@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SukaWarga10 — Sistem Informasi Manajemen Komunitas</title>
+  <meta name="description"
+    content="Sistem billing dan pengelolaan iuran warga RW 10 Kel. Sukakarya, Kec. Tarogong Kidul, Garut">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src *; object-src 'none'; base-uri 'self'">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="App.toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="logorw10.jpg" alt="SukaWarga10" class="sidebar-logo-icon"
+            style="width:38px;height:38px;border-radius:50%;object-fit:cover">
+          <div class="sidebar-logo-text">
+            <span class="sidebar-logo-title">SukaWarga10</span>
+            <span class="sidebar-logo-subtitle">Manajemen Komunitas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-rw-badge">
+        <div class="rw-label">Aktif</div>
+        <div class="rw-name">RW 10 — Sukakarya, Garut</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Menu Utama</div>
+        <div class="nav-item active" data-page="dashboard" onclick="App.navigate('dashboard')">
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" data-page="pendataan" onclick="App.navigate('pendataan')">
+          <span class="nav-icon">👥</span> Data Warga
+          <span class="nav-badge" id="navBadgeWarga">–</span>
+        </div>
+        <div class="nav-item" data-page="sampah" onclick="App.navigate('sampah')">
+          <span class="nav-icon">🗑️</span> Iuran Sampah
+          <span class="nav-badge" id="navBadgeSampah">–</span>
+        </div>
+        <div class="nav-item" data-page="padaringan" onclick="App.navigate('padaringan')">
+          <span class="nav-icon">💰</span> Iuran Padaringan
+        </div>
+        <div class="nav-item" data-page="laporan" onclick="App.navigate('laporan')">
+          <span class="nav-icon">📄</span> Laporan
+        </div>
+        <div class="nav-item" data-page="surat" onclick="App.navigate('surat')">
+          <span class="nav-icon">📜</span> Surat Menyurat
+        </div>
+        <div class="nav-item" data-page="umkm" onclick="App.navigate('umkm')">
+          <span class="nav-icon">🏪</span> UMKM Warga
+        </div>
+
+        <div class="nav-section-label">Keuangan</div>
+        <div class="nav-item" data-page="bukukas" onclick="App.navigate('bukukas')">
+          <span class="nav-icon">📖</span> Buku Kas
+        </div>
+        <div class="nav-item" data-page="pengeluaran" onclick="App.navigate('pengeluaran')">
+          <span class="nav-icon">💸</span> Pengeluaran
+        </div>
+        <div class="nav-item" data-page="sumbangan" onclick="App.navigate('sumbangan')">
+          <span class="nav-icon">🎁</span> Sumbangan
+        </div>
+
+        <div class="nav-section-label">Administrasi</div>
+        <div class="nav-item" data-page="setor" onclick="App.navigate('setor')">
+          <span class="nav-icon">📋</span> Setor Sampah RT
+        </div>
+        <div class="nav-item" data-page="aduan" onclick="App.navigate('aduan')">
+          <span class="nav-icon">📝</span> Aduan Warga
+          <div class="nav-notif" id="navNotifAduan" style="display:none"></div>
+        </div>
+        <div class="nav-item" data-page="mpwa" onclick="App.navigate('mpwa')">
+          <span class="nav-icon">📱</span> MPWA Broadcast
+        </div>
+        <div class="nav-item" data-page="kegiatan" onclick="App.navigate('kegiatan')">
+          <span class="nav-icon">📅</span> Kegiatan RW
+        </div>
+
+        <div class="nav-section-label" id="navSectionAdmin">Admin</div>
+        <div class="nav-item" data-page="users" onclick="App.navigate('users')" id="navUsers">
+          <span class="nav-icon">👥</span> Manajemen Akun
+        </div>
+        <div class="nav-item" data-page="auditlog" onclick="App.navigate('auditlog')" id="navAuditlog">
+          <span class="nav-icon">📋</span> Log Sistem
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user" onclick="App.showProfileOrSettings()">
+          <div class="sidebar-avatar" id="sidebarAvatar">A</div>
+          <div>
+            <div class="sidebar-user-name" id="sidebarUserName">Admin</div>
+            <div class="sidebar-user-role">Bendahara RW 10</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="Auth.logout()" title="Keluar dari sistem">
+          🚪 Keluar
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" onclick="App.toggleSidebar()">☰</button>
+          <div>
+            <div class="page-title" id="pageTitle">Dashboard</div>
+            <span class="page-subtitle" id="pageSubtitle">RW 10 Sukakarya — Kondisi terkini</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <span class="header-search-icon">🔍</span>
+            <input type="text" placeholder="Cari warga..." id="globalSearch" onkeyup="App.globalSearch(this.value)"
+              autocomplete="off">
+            <div class="search-dropdown" id="searchDropdown"></div>
+          </div>
+          <div class="header-avatar" id="headerAvatar" onclick="App.showProfileOrSettings()">A</div>
+        </div>
+      </header>
+
+      <div class="page-content" id="pageContent">
+        <!-- Dynamic content here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Bottom Navigation (Mobile) -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="bnav-item active" data-page="dashboard" onclick="App.navigate('dashboard')">
+      <span class="bnav-icon">📊</span>
+      <span class="bnav-label">Dashboard</span>
+    </div>
+    <div class="bnav-item" data-page="pendataan" onclick="App.navigate('pendataan')">
+      <span class="bnav-icon">👥</span>
+      <span class="bnav-label">Warga</span>
+    </div>
+    <div class="bnav-item" data-page="billing" onclick="App.navigate('padaringan')">
+      <span class="bnav-icon">💰</span>
+      <span class="bnav-label">Billing</span>
+    </div>
+    <div class="bnav-item" data-page="bukukas" onclick="App.navigate('bukukas')">
+      <span class="bnav-icon">📖</span>
+      <span class="bnav-label">Kas</span>
+    </div>
+    <div class="bnav-item" data-page="laporan" onclick="App.navigate('laporan')">
+      <span class="bnav-icon">📋</span>
+      <span class="bnav-label">Laporan</span>
+    </div>
+  </nav>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="App.closeModal(event)">
+    <div class="modal" id="modalContent" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <!-- Backup Notification -->
+  <div class="backup-notif" id="backupNotif" style="display:none">
+    <span>💾</span>
+    <span id="backupMsg"></span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-sm btn-primary" onclick="App.doBackup()">Backup Sekarang</button>
+      <button class="btn btn-sm btn-outline"
+        onclick="document.getElementById('backupNotif').style.display='none'">✕</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/db.js?v=3"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script src="js/pages.js?v=3"></script>
+  <script src="js/pages-billing.js?v=3"></script>
+  <script src="js/pages-kwitansi.js?v=3"></script>
+  <script src="js/pages-bukukas.js?v=3"></script>
+  <script src="js/pages-surat.js?v=3"></script>
+  <script src="js/pages-umkm.js?v=3"></script>
+  <script src="js/pages-users.js?v=3"></script>
+  <script src="js/pages-mpwa-laporan.js?v=3"></script>
+  <script src="js/pages-kegiatan.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
+</body>
+
+</html>

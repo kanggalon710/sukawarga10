@@ -1,0 +1,174 @@
+<?php
+
+if (!function_exists('formatRupiah')) {
+    function formatRupiah($value, $withPrefix = true): string
+    {
+        $formatted = number_format((float) $value, 0, ',', '.');
+        return $withPrefix ? 'Rp ' . $formatted : $formatted;
+    }
+}
+
+if (!function_exists('getDefaultPermissions')) {
+    function getDefaultPermissions(): array
+    {
+        return [
+            'superadmin' => ['dashboard','warga','sampah','padaringan','surat','pendaftaran','umkm','bukukas','pengeluaran','sumbangan','setor','aduan','mpwa','kegiatan','laporan','akun','log','pengaturan'],
+            'ketua_rw'   => ['dashboard','warga','sampah','padaringan','surat','pendaftaran','umkm','bukukas','pengeluaran','sumbangan','setor','aduan','mpwa','kegiatan','laporan','log','pengaturan'],
+            'bendahara'  => ['dashboard','warga','sampah','padaringan','bukukas','pengeluaran','sumbangan','setor','aduan','laporan'],
+            'petugas_rt' => ['dashboard','warga','sampah','padaringan','setor','aduan','kegiatan','umkm'],
+            'warga'      => ['dashboard','aduan'],
+        ];
+    }
+}
+
+if (!function_exists('getMenuPermissions')) {
+    function getMenuPermissions(): array
+    {
+        try {
+            $stored = \App\Models\AppSetting::where('key', 'role_permissions')->value('value');
+            if ($stored) {
+                $decoded = json_decode($stored, true);
+                if (is_array($decoded)) return $decoded;
+            }
+        } catch (\Exception $e) {}
+        return getDefaultPermissions();
+    }
+}
+
+if (!function_exists('userCan')) {
+    function userCan(string $menuKey): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        $level = $user->level ?? 'warga';
+
+        // Admin-like levels always get full access
+        if (in_array(strtolower($level), ['superadmin', 'super_admin', 'admin'])) return true;
+
+        $perms = getMenuPermissions();
+
+        // If level not found in permissions config, grant full access (safety fallback)
+        if (!isset($perms[$level])) return true;
+
+        $allowed = $perms[$level] ?? [];
+        return in_array($menuKey, $allowed);
+    }
+}
+
+if (!function_exists('getAllMenuItems')) {
+    function getAllMenuItems(): array
+    {
+        return [
+            ['key' => 'dashboard',   'label' => 'Dashboard',       'icon' => 'fa-tachometer-alt', 'section' => 'UTAMA'],
+            ['key' => 'warga',       'label' => 'Data Warga',      'icon' => 'fa-users',          'section' => 'UTAMA'],
+            ['key' => 'sampah',      'label' => 'Iuran Sampah',    'icon' => 'fa-trash',          'section' => 'BILLING'],
+            ['key' => 'padaringan',  'label' => 'Padaringan',      'icon' => 'fa-utensils',       'section' => 'BILLING'],
+            ['key' => 'surat',       'label' => 'Surat Menyurat',  'icon' => 'fa-envelope-open-text', 'section' => 'LAYANAN'],
+            ['key' => 'pendaftaran', 'label' => 'Pendaftaran',     'icon' => 'fa-user-clock',     'section' => 'LAYANAN'],
+            ['key' => 'umkm',        'label' => 'UMKM Warga',      'icon' => 'fa-store',          'section' => 'LAYANAN'],
+            ['key' => 'bukukas',     'label' => 'Buku Kas',        'icon' => 'fa-book',           'section' => 'KEUANGAN'],
+            ['key' => 'pengeluaran', 'label' => 'Pengeluaran',     'icon' => 'fa-file-invoice-dollar', 'section' => 'KEUANGAN'],
+            ['key' => 'sumbangan',   'label' => 'Sumbangan',       'icon' => 'fa-gift',           'section' => 'KEUANGAN'],
+            ['key' => 'setor',       'label' => 'Setor Sampah RT', 'icon' => 'fa-recycle',        'section' => 'ADMINISTRASI'],
+            ['key' => 'aduan',       'label' => 'Aduan Warga',     'icon' => 'fa-headset',        'section' => 'ADMINISTRASI'],
+            ['key' => 'mpwa',        'label' => 'MPWA Broadcast',  'icon' => 'fab fa-whatsapp',   'section' => 'ADMINISTRASI'],
+            ['key' => 'kegiatan',    'label' => 'Kegiatan RW',     'icon' => 'fa-calendar-alt',   'section' => 'ADMINISTRASI'],
+            ['key' => 'laporan',     'label' => 'Laporan',         'icon' => 'fa-chart-bar',      'section' => 'ADMIN'],
+            ['key' => 'akun',        'label' => 'Manajemen Akun',  'icon' => 'fa-user-shield',    'section' => 'ADMIN'],
+            ['key' => 'log',         'label' => 'Log Sistem',      'icon' => 'fa-history',        'section' => 'ADMIN'],
+            ['key' => 'pengaturan',  'label' => 'Pengaturan',      'icon' => 'fa-cog',            'section' => 'ADMIN'],
+        ];
+    }
+}
+
+if (!function_exists('statusKerjaDariPekerjaan')) {
+    /**
+     * Klasifikasi teks bebas `pekerjaan` → status ketenagakerjaan terstruktur.
+     * Dipakai backfill data lama & import CSV. Urutan cek penting (negasi dulu).
+     */
+    function statusKerjaDariPekerjaan($teks): string
+    {
+        $t = strtolower(trim((string) $teks));
+        if ($t === '' || $t === '-') return 'Tidak Bekerja';
+        foreach (['belum', 'tidak bekerja', 'tdk bekerja', 'menganggur', 'nganggur', 'tidak kerja'] as $k) {
+            if (str_contains($t, $k)) return 'Tidak Bekerja';
+        }
+        foreach (['mencari kerja', 'cari kerja'] as $k) {
+            if (str_contains($t, $k)) return 'Mencari Kerja';
+        }
+        foreach (['pelajar', 'siswa', 'sekolah', 'mahasiswa', 'kuliah', 'paud', 'tk'] as $k) {
+            if (str_contains($t, $k)) return 'Sekolah';
+        }
+        foreach (['ibu rumah tangga', 'irt', 'mengurus rumah'] as $k) {
+            if (str_contains($t, $k)) return 'Mengurus Rumah Tangga';
+        }
+        if (str_contains($t, 'pensiun')) return 'Pensiunan';
+        foreach (['balita', 'bayi'] as $k) {
+            if (str_contains($t, $k)) return 'Tidak Bekerja';
+        }
+        return 'Bekerja';
+    }
+}
+
+if (!function_exists('incomeMidpoint')) {
+    /**
+     * Titik tengah (Rp) rentang penghasilan — untuk ESTIMASI agregat pendapatan
+     * rumah tangga & per kapita. Mendukung bucket kanonik + bucket form lama.
+     */
+    function incomeMidpoint($range): int
+    {
+        $r = strtolower(str_replace([' ', ','], ['', '.'], (string) $range));
+        if ($r === '' || $r === '-') return 0;
+        if (str_contains($r, '<500'))                            return 250000;
+        if (str_contains($r, '500rb-1jt'))                       return 750000;
+        if (str_contains($r, '<1'))                              return 500000;
+        if (str_contains($r, '1-2.5') || str_contains($r, '1jt-2.5jt'))   return 1750000;
+        if (str_contains($r, '2.5-5') || str_contains($r, '2.5jt-5jt'))   return 3750000;
+        if (str_contains($r, '>5'))                              return 6000000;
+        return 0;
+    }
+}
+
+if (!function_exists('garisKemiskinan')) {
+    /** Garis kemiskinan per kapita/bulan (Rp). Override via AppSetting key `garis_kemiskinan`. */
+    function garisKemiskinan(): int
+    {
+        try {
+            $v = \App\Models\AppSetting::where('key', 'garis_kemiskinan')->value('value');
+            if ($v !== null && is_numeric($v) && (int) $v > 0) return (int) $v;
+        } catch (\Exception $e) {}
+        return 500000; // default ≈ garis kemiskinan kab. Garut (dibulatkan)
+    }
+}
+
+if (!function_exists('kkKepalaBekerja')) {
+    /** Apakah kepala keluarga terhitung bekerja (punya sumber pendapatan aktif). */
+    function kkKepalaBekerja($kk): bool
+    {
+        $sp = strtolower(trim((string) ($kk->sumberPendapatan ?? '')));
+        if (str_contains($sp, 'tidak bekerja')) return false;
+        if ($sp !== '') return true;
+        $pk = strtolower(trim((string) ($kk->pekerjaan ?? '')));
+        return $pk !== '' && $pk !== '-' && !str_contains($pk, 'tidak bekerja') && !str_contains($pk, 'belum');
+    }
+}
+
+if (!function_exists('normalizeWa')) {
+    /**
+     * Normalisasi nomor WhatsApp Indonesia ke format internasional tanpa "+": 62xxxxxxxxxx.
+     * Menerima: 08xx, 8xx, 62xx, +62xx, 0062xx, dengan spasi/strip/titik.
+     * Return null bila kosong. Pengecekan panjang dilakukan saat kirim/validasi.
+     */
+    function normalizeWa($raw): ?string
+    {
+        $d = preg_replace('/\D/', '', (string) $raw);   // ambil digit saja
+        if ($d === '') return null;
+        if (str_starts_with($d, '00')) $d = substr($d, 2);          // 0062.. → 62..
+        if (str_starts_with($d, '0')) $d = '62' . substr($d, 1);    // 08xx  → 628xx
+        elseif (str_starts_with($d, '8')) $d = '62' . $d;           // 8xx   → 628xx
+        elseif (!str_starts_with($d, '62')) $d = '62' . $d;         // fallback: anggap lokal
+        if (str_starts_with($d, '620')) $d = '62' . ltrim(substr($d, 2), '0'); // 62+0xx → 62xx
+        return $d ?: null;
+    }
+}

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f7a4d"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Abstract 4 people circle -->
+  <g transform="translate(250, 250)">
+    <!-- Top Left (Green) -->
+    <path d="M-60,-60 C-20,-120 40,-80 60,-60 C20,-40 -20,-20 -60,-60 Z" fill="url(#grad1)" opacity="0.95"/>
+    <path d="M-60,-60 C-120,-20 -80,40 -60,60 C-40,20 -20,-20 -60,-60 Z" fill="url(#grad1)" opacity="0.95"/>
+    <circle cx="-80" cy="-80" r="28" fill="url(#grad1)"/>
+    
+    <!-- Top Right (Amber) -->
+    <path d="M60,-60 C20,-120 -40,-80 -60,-60 C-20,-40 20,-20 60,-60 Z" fill="url(#grad2)" opacity="0.95"/>
+    <path d="M60,-60 C120,-20 80,40 60,60 C40,20 20,-20 60,-60 Z" fill="url(#grad2)" opacity="0.95"/>
+    <circle cx="80" cy="-80" r="28" fill="url(#grad2)"/>
+    
+    <!-- Bottom Right (Green) -->
+    <path d="M60,60 C20,120 -40,80 -60,60 C-20,40 20,20 60,60 Z" fill="url(#grad1)" opacity="0.95"/>
+    <path d="M60,60 C120,20 80,-40 60,-60 C40,-20 20,20 60,60 Z" fill="url(#grad1)" opacity="0.95"/>
+    <circle cx="80" cy="80" r="28" fill="url(#grad1)"/>
+    
+    <!-- Bottom Left (Amber) -->
+    <path d="M-60,60 C-20,120 40,80 60,60 C20,40 -20,20 -60,60 Z" fill="url(#grad2)" opacity="0.95"/>
+    <path d="M-60,60 C-120,20 -80,-40 -60,-60 C-40,-20 -20,20 -60,60 Z" fill="url(#grad2)" opacity="0.95"/>
+    <circle cx="-80" cy="80" r="28" fill="url(#grad2)"/>
+  </g>
+</svg>

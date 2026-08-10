@@ -1,0 +1,287 @@
+/* =========================================================
+   BI REPORT v2 — Sistem tipografi + komponen data
+   Prefix: bi- / t-  ·  CSS murni  ·  hanya dimuat di /laporan
+   Semua ukuran teks WAJIB memakai token --fs-* (styles.css).
+   Tidak ada px mentah di markup.
+   ========================================================= */
+:root {
+    --bi-track: #f1f5f9;
+    --bi-border: #e6ecf2;
+    --bi-ink: #0f172a;
+    --bi-ink-2: #475569;
+    --bi-muted: #64748b;
+    --bi-surface: #ffffff;
+    --bi-surface-2: #f8fafc;
+    /* peringkat (distribusi umum) */
+    --bi-rank1a: #2e7d50;
+    --bi-rank1b: #43a047;
+    --bi-rank2: #0d9488;
+    --bi-rank3: #d97706;
+    --bi-rest: #94a3b8;
+    /* semantik (sanitasi & kesejahteraan) */
+    --bi-good-a: #2e7d50;
+    --bi-good-b: #43a047;
+    --bi-ok: #d97706;
+    --bi-warn: #e57373;
+    /* ritme & elevasi */
+    --bi-r: 12px;
+    --bi-r-sm: 9px;
+    --bi-sh-1: 0 1px 2px rgba(15, 23, 42, .05);
+    --bi-sh-2: 0 4px 14px -6px rgba(15, 23, 42, .14);
+    --bi-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* ══════════════ 1. SKALA TIPOGRAFI SEMANTIK ══════════════
+   Peran teks, bukan ukuran acak. Dipakai di seluruh laporan. */
+.t-display { font-size: var(--fs-2xl); font-weight: 800; line-height: 1.1;  letter-spacing: -.02em; color: var(--bi-ink); }
+.t-title   { font-size: var(--fs-xl);  font-weight: 700; line-height: 1.25; letter-spacing: -.01em; color: var(--bi-ink); }
+.t-section { font-size: var(--fs-lg);  font-weight: 700; line-height: 1.3;  color: var(--bi-ink); }
+.t-sub     { font-size: var(--fs-md);  font-weight: 600; line-height: 1.4;  color: var(--bi-ink); }
+.t-body    { font-size: var(--fs-base);font-weight: 400; line-height: 1.6;  color: var(--bi-ink-2); }
+.t-sm      { font-size: var(--fs-sm);  font-weight: 400; line-height: 1.55; color: var(--bi-ink-2); }
+.t-meta    { font-size: var(--fs-xs);  font-weight: 400; line-height: 1.5;  color: var(--bi-muted); }
+.t-label   { font-size: var(--fs-2xs); font-weight: 700; line-height: 1.4;  letter-spacing: .07em; text-transform: uppercase; color: var(--bi-muted); }
+.t-num     { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; letter-spacing: -.01em; }
+.t-strong  { font-weight: 700; color: var(--bi-ink); }
+
+/* ══════════════ 2. STRUKTUR SECTION ══════════════ */
+.bi-block { padding: 20px; border-top: 1px solid var(--bi-border); }
+.bi-block:first-child { border-top: 0; }
+.bi-block__title { display: flex; align-items: center; gap: 8px; margin: 0 0 3px; }
+.bi-block__desc { margin: 0 0 16px; max-width: 68ch; }
+.bi-empty { padding: 14px 0; }
+
+/* Kepala kartu bernomor — hierarki jelas & scannable */
+.bi-head { display: flex; align-items: flex-start; gap: 13px; padding: 18px 20px; border-bottom: 1px solid var(--bi-border); }
+.bi-head__no {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 9px;
+    display: grid; place-items: center;
+    background: var(--bi-surface-2); border: 1px solid var(--bi-border);
+    color: var(--bi-ink-2); font-size: var(--fs-sm); font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+.bi-head__body { min-width: 0; flex: 1; }
+.bi-head__body h2 { display: flex; align-items: center; gap: 9px; margin: 0; }
+.bi-head__body h2 i { color: var(--bi-rank1a); font-size: var(--fs-md); opacity: .9; }
+.bi-head__desc { margin-top: 3px; max-width: 76ch; }
+.bi-block__title i { color: var(--bi-rank1a); font-size: var(--fs-sm); opacity: .9; }
+
+/* ══════════════ 2B. TAB LAPORAN (segmented control) ══════════════ */
+.bi-tabs {
+    display: flex; gap: 4px; padding: 4px; margin-bottom: 4px;
+    background: var(--bi-surface); border: 1px solid var(--bi-border);
+    border-radius: 11px; box-shadow: var(--bi-sh-1);
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.bi-tabs::-webkit-scrollbar { display: none; }
+.bi-tabs a {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 15px; border-radius: 8px; white-space: nowrap;
+    font-size: var(--fs-sm); font-weight: 600; color: var(--bi-ink-2);
+    text-decoration: none; border: 0; background: transparent;
+    transition: background .18s var(--bi-ease), color .18s var(--bi-ease);
+}
+.bi-tabs a:hover { background: var(--bi-surface-2); color: var(--bi-ink); }
+.bi-tabs a[aria-current="page"] {
+    background: linear-gradient(135deg, var(--bi-rank1a), var(--bi-rank1b));
+    color: #fff; box-shadow: 0 2px 8px -2px rgba(46, 125, 80, .5);
+}
+.bi-tabs a i { font-size: var(--fs-xs); opacity: .85; }
+.bi-tabs a:focus-visible { outline: 2px solid var(--bi-rank1a); outline-offset: 2px; }
+.bi-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.bi-toolbar__year { flex: 0 0 auto; }
+.bi-toolbar__tabs { flex: 1 1 320px; min-width: 0; }
+
+/* Layar sempit: tab jadi grid 2×2 — semua terlihat, tanpa scroll horizontal */
+@media (max-width: 760px) {
+    .bi-toolbar { gap: 10px; }
+    .bi-toolbar__year, .bi-toolbar__tabs { flex: 1 1 100%; }
+    .bi-tabs {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+        overflow: visible;
+    }
+    .bi-tabs a { justify-content: center; padding: 11px 8px; text-align: center; }
+    /* Sub-nav section ikut membungkus, bukan digeser */
+    .bi-jump { flex-wrap: wrap; overflow: visible; }
+}
+
+/* ══════════════ 3. NAV LONCAT SECTION (sticky) ══════════════ */
+.bi-jump {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; gap: 7px; overflow-x: auto; padding: 11px 2px;
+    margin-bottom: 14px;
+    background: linear-gradient(var(--abu, #f8fafc) 72%, rgba(248, 250, 252, 0));
+    scrollbar-width: none;
+}
+.bi-jump::-webkit-scrollbar { display: none; }
+.bi-jump a {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 13px; border-radius: 999px; white-space: nowrap;
+    background: var(--bi-surface); border: 1px solid var(--bi-border);
+    color: var(--bi-ink-2); font-size: var(--fs-xs); font-weight: 600;
+    text-decoration: none; box-shadow: var(--bi-sh-1);
+    transition: color .18s var(--bi-ease), border-color .18s var(--bi-ease), transform .18s var(--bi-ease);
+}
+.bi-jump a:hover { color: var(--bi-rank1a); border-color: var(--bi-rank1b); transform: translateY(-1px); }
+.bi-jump a i { font-size: var(--fs-2xs); opacity: .75; }
+
+/* ══════════════ 4. BANNER RINGKAS ══════════════ */
+.bi-hero {
+    position: relative; overflow: hidden;
+    border-radius: var(--bi-r); padding: 26px 24px; margin-bottom: 16px;
+    background: linear-gradient(135deg, #16307a 0%, #24429b 52%, #3450b8 100%);
+    color: #fff; box-shadow: var(--bi-sh-2);
+}
+/* tekstur grid halus — vektor CSS, bukan gambar raster */
+.bi-hero::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .16;
+    background-image: linear-gradient(rgba(255, 255, 255, .5) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, .5) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: radial-gradient(120% 90% at 82% 8%, #000 0%, transparent 68%);
+    -webkit-mask-image: radial-gradient(120% 90% at 82% 8%, #000 0%, transparent 68%);
+}
+.bi-hero__inner { position: relative; z-index: 1; }
+.bi-hero__eyebrow { color: rgba(255, 255, 255, .72); }
+.bi-hero__title { color: #fff; display: flex; align-items: center; gap: 10px; margin: 4px 0 4px; }
+.bi-hero__desc { color: rgba(255, 255, 255, .8); margin: 0; max-width: 62ch; }
+.bi-hero__stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 10px; margin-top: 20px;
+}
+.bi-stat {
+    background: rgba(255, 255, 255, .11); border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: var(--bi-r-sm); padding: 13px 15px;
+    backdrop-filter: blur(2px);
+}
+.bi-stat__val { color: #fff; display: flex; align-items: baseline; gap: 6px; }
+.bi-stat__val i { font-size: var(--fs-md); opacity: .85; }
+.bi-stat__lbl { color: rgba(255, 255, 255, .72); margin-top: 3px; }
+
+/* ══════════════ 5. RANKED BAR LIST ══════════════ */
+.bi-ranked { display: flex; flex-direction: column; }
+.bi-row {
+    display: grid; grid-template-columns: 150px 1fr 84px;
+    align-items: center; gap: 14px;
+    padding: 7px 8px; margin: 0 -8px; border-radius: var(--bi-r-sm);
+    transition: background .16s var(--bi-ease);
+}
+.bi-row:hover { background: var(--bi-surface-2); }   /* row highlighting on hover */
+.bi-row__label { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
+.bi-row__name { font-size: var(--fs-sm); font-weight: 600; color: var(--bi-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.bi-row__sub { font-size: var(--fs-2xs); color: var(--bi-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+.bi-row__track { height: 22px; background: var(--bi-track); border-radius: 7px; overflow: hidden; }
+.bi-row__fill { height: 100%; border-radius: 7px; width: 0; min-width: 3px; transition: width .8s var(--bi-ease); }
+.bi-row__val { text-align: right; white-space: nowrap; font-size: var(--fs-base); font-weight: 700; color: var(--bi-ink); font-variant-numeric: tabular-nums; }
+.bi-row__val small { font-size: var(--fs-2xs); font-weight: 500; color: var(--bi-muted); display: block; margin-top: 1px; }
+
+.bi-fill--rank1 { background: linear-gradient(90deg, var(--bi-rank1a), var(--bi-rank1b)); }
+.bi-fill--rank2 { background: var(--bi-rank2); }
+.bi-fill--rank3 { background: var(--bi-rank3); }
+.bi-fill--rest  { background: var(--bi-rest); }
+.bi-fill--good  { background: linear-gradient(90deg, var(--bi-good-a), var(--bi-good-b)); }
+.bi-fill--ok    { background: var(--bi-ok); }
+.bi-fill--warn  { background: var(--bi-warn); }
+
+/* ══════════════ 6. KPI CARD ══════════════ */
+.bi-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 12px; }
+.bi-kpi {
+    position: relative; background: var(--bi-surface);
+    border: 1px solid var(--bi-border); border-left: 3px solid var(--bi-accent, var(--bi-rank1a));
+    border-radius: var(--bi-r-sm); padding: 15px 16px;
+    transition: box-shadow .18s var(--bi-ease), transform .18s var(--bi-ease);
+}
+.bi-kpi:hover { box-shadow: var(--bi-sh-2); transform: translateY(-2px); }
+.bi-kpi__icon { color: var(--bi-accent, var(--bi-rank1a)); font-size: var(--fs-md); margin-bottom: 8px; display: block; }
+.bi-kpi__value { font-size: var(--fs-2xl); font-weight: 800; line-height: 1; color: var(--bi-ink); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.bi-kpi__value span { font-size: var(--fs-sm); font-weight: 600; color: var(--bi-muted); letter-spacing: 0; }
+.bi-kpi__label { font-size: var(--fs-sm); font-weight: 600; color: var(--bi-ink-2); margin-top: 6px; }
+.bi-kpi__context { font-size: var(--fs-2xs); color: var(--bi-muted); margin-top: 3px; }
+.bi-kpi__bar { height: 5px; background: var(--bi-track); border-radius: 3px; overflow: hidden; margin-top: 11px; }
+.bi-kpi__bar > span { display: block; height: 100%; border-radius: 3px; width: 0; background: var(--bi-accent, var(--bi-rank1a)); transition: width .8s var(--bi-ease); }
+.bi-kpi--green  { --bi-accent: var(--bi-rank1b); }
+.bi-kpi--teal   { --bi-accent: var(--bi-rank2); }
+.bi-kpi--amber  { --bi-accent: var(--bi-rank3); }
+.bi-kpi--blue   { --bi-accent: #1e88e5; }
+.bi-kpi--purple { --bi-accent: #7b3fb0; }
+.bi-kpi--red    { --bi-accent: #e57373; }
+.bi-kpi--rest   { --bi-accent: var(--bi-rest); }
+
+/* ══════════════ 7. PIRAMIDA PENDUDUK ══════════════ */
+.bi-pyr { display: flex; flex-direction: column; gap: 6px; }
+.bi-pyr__row { display: grid; grid-template-columns: 1fr 136px 1fr; align-items: center; gap: 12px; padding: 3px 0; }
+.bi-pyr__side { display: flex; align-items: center; gap: 7px; height: 23px; }
+.bi-pyr__side--l { justify-content: flex-end; }
+.bi-pyr__bar { height: 23px; border-radius: 4px; min-width: 2px; width: 0; transition: width .8s var(--bi-ease); }
+.bi-pyr__bar--l { background: linear-gradient(90deg, #64b5f6, #1e88e5); }
+.bi-pyr__bar--p { background: linear-gradient(90deg, #e91e63, #f06292); }
+.bi-pyr__num { font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; min-width: 22px; }
+.bi-pyr__num--l { color: #1565c0; text-align: right; }
+.bi-pyr__num--p { color: #c2185b; }
+.bi-pyr__label { font-size: var(--fs-2xs); font-weight: 600; color: var(--bi-ink-2); text-align: center; white-space: nowrap; }
+.bi-pyr__legend { display: grid; grid-template-columns: 1fr 136px 1fr; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bi-border); }
+.bi-pyr__legend > :first-child { text-align: right; color: #1565c0; }
+.bi-pyr__legend > :last-child { color: #c2185b; }
+.bi-pyr__legend span { font-size: var(--fs-xs); font-weight: 700; }
+
+/* ══════════════ 8. TABEL DATA ══════════════ */
+.bi-table-wrap { overflow-x: auto; border: 1px solid var(--bi-border); border-radius: var(--bi-r-sm); max-height: 430px; }
+.bi-table { width: 100%; border-collapse: collapse; }
+.bi-table thead th {
+    position: sticky; top: 0; z-index: 1; background: var(--bi-surface-2);
+    font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--bi-muted); padding: 11px 12px; text-align: center; white-space: nowrap;
+    border-bottom: 1px solid var(--bi-border);
+}
+.bi-table thead th:first-child { text-align: left; }
+.bi-table tbody td { padding: 11px 12px; text-align: center; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; color: var(--bi-ink); }
+.bi-table tbody td:first-child { text-align: left; font-weight: 700; }
+.bi-table tbody tr { border-top: 1px solid #eef2f6; transition: background .16s var(--bi-ease); }
+.bi-table tbody tr:nth-child(even) { background: #fbfcfe; }
+.bi-table tbody tr:hover { background: var(--bi-surface-2); }
+.bi-zero { color: #cbd5e1; }
+
+/* ══════════════ 9. CHART BULANAN ══════════════ */
+.bi-barchart { display: flex; align-items: flex-end; gap: 7px; height: 190px; padding: 10px 4px 0; border-bottom: 2px solid var(--bi-border); }
+.bi-barchart__col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 5px; }
+.bi-barchart__bars { display: flex; align-items: flex-end; gap: 3px; height: 100%; }
+.bi-barchart__bar { width: 14px; border-radius: 3px 3px 0 0; min-height: 2px; transition: height .8s var(--bi-ease), filter .16s var(--bi-ease); }
+.bi-barchart__col:hover .bi-barchart__bar { filter: brightness(1.08); }
+.bi-barchart__bar--in { background: linear-gradient(180deg, #43a047, #2e7d50); }
+.bi-barchart__bar--out { background: linear-gradient(180deg, #ef5350, #d32f2f); }
+.bi-barchart__lbl { font-size: var(--fs-2xs); color: var(--bi-muted); font-weight: 600; }
+.bi-legend { display: flex; gap: 18px; justify-content: center; margin-top: 14px; }
+.bi-legend span { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-xs); color: var(--bi-ink-2); font-weight: 600; }
+.bi-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+/* ══════════════ 10. UTILITAS ══════════════ */
+.bi-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 13px; margin-top: 13px; border-top: 1px solid var(--bi-border); }
+.bi-note { border-radius: 0 0 var(--bi-r) var(--bi-r); background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%); }
+.bi-note ul { margin: 0; padding-left: 19px; }
+.bi-note li + li { margin-top: 7px; }
+.bi-data-toggle > summary { cursor: pointer; color: var(--bi-rank1a); font-weight: 600; font-size: var(--fs-xs); list-style: none; display: inline-flex; align-items: center; gap: 7px; padding: 7px 0; }
+.bi-data-toggle > summary::-webkit-details-marker { display: none; }
+.bi-data-toggle table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.bi-data-toggle th, .bi-data-toggle td { text-align: right; padding: 6px 9px; border-bottom: 1px solid #eef2f6; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.bi-data-toggle th { color: var(--bi-muted); font-weight: 700; }
+.bi-data-toggle th:first-child, .bi-data-toggle td:first-child { text-align: left; }
+.bi-ico { width: 1.05em; text-align: center; flex-shrink: 0; }
+
+/* aksesibilitas */
+.bi-jump a:focus-visible, .bi-data-toggle > summary:focus-visible { outline: 2px solid var(--bi-rank1a); outline-offset: 2px; }
+
+/* ══════════════ 11. RESPONSIF ══════════════ */
+@media (max-width: 720px) {
+    .bi-block { padding: 16px; }
+    .bi-head { padding: 15px 16px; gap: 11px; }
+    .bi-row { grid-template-columns: 104px 1fr 70px; gap: 10px; }
+    .bi-row__track { height: 20px; }
+    .bi-pyr__row, .bi-pyr__legend { grid-template-columns: 1fr 84px 1fr; gap: 7px; }
+    .bi-hero { padding: 20px 17px; }
+    .bi-hero__stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bi-row__fill, .bi-kpi__bar > span, .bi-pyr__bar, .bi-barchart__bar { transition: none !important; }
+    .bi-kpi:hover, .bi-jump a:hover { transform: none; }
+}

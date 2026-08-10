@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SukaWarga10 — Login</title>
+    <meta name="description" content="Sistem Informasi Manajemen RW 10 Kel. Sukakarya, Garut — Swiss van Java">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --hijau-teh: #2d6a4f;
+            --hijau-muda: #40916c;
+            --hijau-cerah: #52b788;
+            --cokelat-tanah: #774936;
+            --emas: #c9a843;
+            --emas-muda: #f0c060;
+            --krem: #fdf8f0;
+            --krem2: #f5ede0;
+            --putih: #ffffff;
+            --teks-gelap: #1a2e1a;
+            --teks-medium: #3d5a3e;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--hijau-teh);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ===== PANEL KIRI — ILUSTRASI GARUT ===== */
+        .left-panel {
+            flex: 1.2;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-start;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        /* Sky gradient */
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg,
+                    #87ceeb 0%,
+                    #a8d8ea 20%,
+                    #b8e4c9 45%,
+                    #2d6a4f 70%,
+                    #1b4332 100%);
+            z-index: 0;
+        }
+
+        /* Clouds */
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50px;
+            z-index: 1;
+            animation: floatCloud linear infinite;
+        }
+
+        .cloud::before,
+        .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+        }
+
+        .cloud-1 {
+            width: 120px;
+            height: 35px;
+            top: 12%;
+            left: 10%;
+            animation-duration: 28s;
+        }
+
+        .cloud-1::before {
+            width: 50px;
+            height: 50px;
+            top: -25px;
+            left: 15px;
+        }
+
+        .cloud-1::after {
+            width: 35px;
+            height: 35px;
+            top: -18px;
+            left: 55px;
+        }
+
+        .cloud-2 {
+            width: 80px;
+            height: 25px;
+            top: 22%;
+            left: 55%;
+            animation-duration: 22s;
+            animation-delay: -8s;
+        }
+
+        .cloud-2::before {
+            width: 35px;
+            height: 35px;
+            top: -18px;
+            left: 10px;
+        }
+
+        .cloud-2::after {
+            width: 25px;
+            height: 25px;
+            top: -12px;
+            left: 38px;
+        }
+
+        .cloud-3 {
+            width: 100px;
+            height: 30px;
+            top: 8%;
+            left: 70%;
+            animation-duration: 35s;
+            animation-delay: -15s;
+        }
+
+        .cloud-3::before {
+            width: 40px;
+            height: 40px;
+            top: -22px;
+            left: 12px;
+        }
+
+        .cloud-3::after {
+            width: 30px;
+            height: 30px;
+            top: -16px;
+            left: 50px;
+        }
+
+        @keyframes floatCloud {
+            0% {
+                transform: translateX(-200px);
+            }
+
+            100% {
+                transform: translateX(110vw);
+            }
+        }
+
+        /* Gunung / Pegunungan SVG */
+        .mountains {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2;
+        }
+
+        /* Tea plantation / hills */
+        .hills {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 3;
+        }
+
+        /* Floating tea leaves */
+        .leaf {
+            position: absolute;
+            width: 18px;
+            height: 10px;
+            background: var(--hijau-cerah);
+            border-radius: 0 50% 50% 50%;
+            z-index: 4;
+            opacity: 0.7;
+            animation: floatLeaf ease-in-out infinite;
+        }
+
+        .leaf:nth-child(1) {
+            top: 30%;
+            left: 20%;
+            animation-duration: 6s;
+            animation-delay: 0s;
+        }
+
+        .leaf:nth-child(2) {
+            top: 45%;
+            left: 60%;
+            animation-duration: 8s;
+            animation-delay: -2s;
+        }
+
+        .leaf:nth-child(3) {
+            top: 25%;
+            left: 80%;
+            animation-duration: 7s;
+            animation-delay: -4s;
+        }
+
+        .leaf:nth-child(4) {
+            top: 55%;
+            left: 35%;
+            animation-duration: 9s;
+            animation-delay: -1s;
+        }
+
+        .leaf:nth-child(5) {
+            top: 35%;
+            left: 50%;
+            animation-duration: 5s;
+            animation-delay: -3s;
+        }
+
+        @keyframes floatLeaf {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(15deg);
+                opacity: 0.9;
+            }
+        }
+
+        /* Hero text di panel kiri */
+        .hero-text {
+            position: absolute;
+            top: 52%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+            z-index: 5;
+            padding: 0 48px;
+            text-align: left;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--krem);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 700;
+            color: var(--krem);
+            line-height: 1.15;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+            margin-bottom: 8px;
+        }
+
+        .hero-title span {
+            color: var(--emas-muda);
+            font-style: italic;
+        }
+
+        .hero-subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            max-width: 360px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 32px;
+        }
+
+        .hero-stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero-stat-val {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--emas-muda);
+        }
+
+        .hero-stat-lbl {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Batik ornament border */
+        .batik-border {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: repeating-linear-gradient(90deg,
+                    var(--emas) 0px, var(--emas) 12px,
+                    var(--cokelat-tanah) 12px, var(--cokelat-tanah) 16px,
+                    var(--emas-muda) 16px, var(--emas-muda) 24px,
+                    var(--cokelat-tanah) 24px, var(--cokelat-tanah) 28px);
+            z-index: 10;
+        }
+
+        /* ===== PANEL KANAN — FORM LOGIN ===== */
+        .right-panel {
+            width: 420px;
+            min-width: 360px;
+            min-height: 100vh;
+            background: var(--krem);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 48px 40px;
+            position: relative;
+            z-index: 10;
+            box-shadow: -8px 0 60px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Batik ornament top right panel */
+        .right-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--hijau-teh), var(--emas), var(--cokelat-tanah), var(--emas), var(--hijau-teh));
+        }
+
+        /* Motif batik sudut */
+        .batik-corner {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            opacity: 0.08;
+        }
+
+        .login-logo {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, var(--hijau-teh), var(--hijau-muda));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 24px rgba(45, 106, 79, 0.3);
+            position: relative;
+        }
+
+        .login-logo::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, var(--emas), var(--emas-muda), var(--emas));
+            z-index: -1;
+        }
+
+        .login-app-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--teks-gelap);
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .login-tagline {
+            font-size: 12px;
+            color: var(--hijau-muda);
+            text-align: center;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .login-sub {
+            font-size: 13px;
+            color: #6b7a6b;
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        /* Divider ornamen */
+        .ornament-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+            width: 100%;
+        }
+
+        .ornament-divider::before,
+        .ornament-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--emas), transparent);
+        }
+
+        .ornament-divider span {
+            font-size: 18px;
+            color: var(--emas);
+        }
+
+        /* Form styles */
+        .form-group {
+            width: 100%;
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--teks-medium);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #d5e8d0;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            background: white;
+            color: var(--teks-gelap);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--hijau-teh);
+            box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #a8b8a8;
+        }
+
+        /* PIN input special */
+        .pin-group {
+            position: relative;
+        }
+
+        .pin-group .form-input {
+            letter-spacing: 8px;
+            font-size: 20px;
+            text-align: center;
+            font-weight: 700;
+            padding-right: 48px;
+        }
+
+        .pin-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #8a9e8a;
+            padding: 4px;
+        }
+
+        /* PIN dots visual */
+        .pin-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .pin-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid #c5d5c5;
+            transition: all 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: var(--hijau-teh);
+            border-color: var(--hijau-teh);
+            transform: scale(1.15);
+        }
+
+        /* Tombol login */
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--hijau-teh), var(--hijau-muda));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+            margin-top: 8px;
+            box-shadow: 0 6px 20px rgba(45, 106, 79, 0.4);
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: left 0.4s;
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(45, 106, 79, 0.5);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-login.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Error message */
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #991b1b;
+            text-align: center;
+            margin-bottom: 12px;
+            display: none;
+            animation: shakeAnim 0.3s ease;
+        }
+
+        .error-box.show {
+            display: block;
+        }
+
+        @keyframes shakeAnim {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-6px);
+            }
+
+            75% {
+                transform: translateX(6px);
+            }
+        }
+
+        /* Footer */
+        .login-footer {
+            margin-top: 36px;
+            text-align: center;
+        }
+
+        .login-footer p {
+            font-size: 11px;
+            color: #8a9e8a;
+            line-height: 1.7;
+        }
+
+        .login-footer strong {
+            color: var(--hijau-teh);
+        }
+
+        /* Versi badge */
+        .version-badge {
+            display: inline-block;
+            background: #e8f4e8;
+            color: var(--hijau-teh);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 50px;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                flex: none;
+                height: 280px;
+                min-height: unset;
+            }
+
+            .hero-text {
+                top: auto;
+                bottom: 24px;
+                transform: none;
+                padding: 0 24px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+            }
+
+            .hero-stats {
+                gap: 20px;
+            }
+
+            .hero-stat-val {
+                font-size: 20px;
+            }
+
+            .right-panel {
+                width: 100%;
+                min-width: unset;
+                min-height: unset;
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ===== PANEL KIRI ===== -->
+    <div class="left-panel">
+        <!-- Awan -->
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+
+        <!-- Daun teh mengambang -->
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+
+        <!-- Pegunungan SVG -->
+        <svg class="mountains" viewBox="0 0 900 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Gunung jauh (Gunung Guntur) -->
+            <polygon points="0,320 120,90 240,320" fill="#3d8b5e" opacity="0.6" />
+            <polygon points="100,320 280,50 440,320" fill="#2d7a50" opacity="0.7" />
+            <!-- Gunung Papandayan / Cikuray -->
+            <polygon points="300,320 520,30 720,320" fill="#236040" opacity="0.9" />
+            <polygon points="550,320 720,80 900,320" fill="#1d5235" opacity="0.85" />
+            <polygon points="700,320 820,120 900,220 900,320" fill="#174a2e" />
+            <!-- Snow cap -->
+            <polygon points="520,30 490,80 550,80" fill="rgba(255,255,255,0.7)" />
+        </svg>
+
+        <!-- Perbukitan hijau depan (perkebunan teh) -->
+        <svg class="hills" viewBox="0 0 900 130" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,130 Q80,60 180,80 Q280,100 380,55 Q480,10 580,55 Q680,100 780,70 Q850,50 900,75 L900,130 Z"
+                fill="#1b4332" />
+            <!-- Pola garis kebun teh -->
+            <path d="M0,130 Q80,80 180,95 Q280,110 380,75 Q480,40 580,75 Q680,110 780,90 Q850,70 900,90 L900,130 Z"
+                fill="#15372a" opacity="0.5" />
+        </svg>
+
+        <!-- Teks hero -->
+        <div class="hero-text">
+            <div class="hero-badge">🌿 Swiss van Java</div>
+            <h1 class="hero-title">Kota <span>Garut</span>,<br>Kota Kami</h1>
+            <p class="hero-subtitle">Sistem Informasi Manajemen Warga RW 10 Kelurahan Sukakarya, Kota Garut</p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-val" id="heroKK">–</span>
+                    <span class="hero-stat-lbl">Kepala Keluarga</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-val" id="heroJiwa">–</span>
+                    <span class="hero-stat-lbl">Jiwa</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-val">3 RT</span>
+                    <span class="hero-stat-lbl">Lingkungan</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="batik-border"></div>
+    </div>
+
+    <!-- ===== PANEL KANAN — LOGIN FORM ===== -->
+    <div class="right-panel">
+        <!-- Ornamen batik sudut (SVG) -->
+        <svg class="batik-corner" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="28" stroke="#2d6a4f" stroke-width="2" />
+            <circle cx="30" cy="30" r="20" stroke="#c9a843" stroke-width="1.5" />
+            <circle cx="30" cy="30" r="12" stroke="#2d6a4f" stroke-width="1" />
+            <path d="M30 2 L34 14 L30 10 L26 14 Z" fill="#c9a843" />
+            <path d="M58 30 L46 26 L50 30 L46 34 Z" fill="#c9a843" />
+            <path d="M30 58 L26 46 L30 50 L34 46 Z" fill="#c9a843" />
+            <path d="M2 30 L14 34 L10 30 L14 26 Z" fill="#c9a843" />
+        </svg>
+
+        <img src="logorw10.jpg" alt="SukaWarga10" class="login-logo"
+            style="width:72px;height:72px;border-radius:20px;object-fit:cover;font-size:0">
+        <h1 class="login-app-name">SukaWarga10</h1>
+        <div class="login-tagline">🌿 Swiss van Java — Garut</div>
+        <p class="login-sub">Kelurahan Sukakarya, Kec. Tarogong Kidul</p>
+
+        <div class="ornament-divider">
+            <span>✦</span>
+        </div>
+
+        <!-- Error box -->
+        <div class="error-box" id="errorBox">
+            ⚠️ Username atau PIN salah. Silakan coba lagi.
+        </div>
+
+        <!-- Form -->
+        <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-input" id="inputUser" placeholder="Masukkan username" autocomplete="username"
+                autocapitalize="none" spellcheck="false"
+                onkeydown="if(event.key==='Enter')document.getElementById('inputPIN').focus()">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">PIN (6 Digit)</label>
+            <div class="pin-group">
+                <input type="password" class="form-input" id="inputPIN" placeholder="• • • • • •" maxlength="6"
+                    inputmode="numeric" pattern="[0-9]*" oninput="Auth.updatePinDots(this.value)"
+                    onkeydown="if(event.key==='Enter')Auth.login()">
+                <button class="pin-toggle" onclick="Auth.togglePinVisibility()"
+                    title="Tampilkan/sembunyikan PIN">👁️</button>
+            </div>
+            <div class="pin-dots" id="pinDots">
+                <div class="pin-dot" id="dot0"></div>
+                <div class="pin-dot" id="dot1"></div>
+                <div class="pin-dot" id="dot2"></div>
+                <div class="pin-dot" id="dot3"></div>
+                <div class="pin-dot" id="dot4"></div>
+                <div class="pin-dot" id="dot5"></div>
+            </div>
+        </div>
+
+        <button class="btn-login" id="btnLogin" onclick="Auth.login()">
+            🔑 Masuk ke Sistem
+        </button>
+
+        <div class="login-footer">
+            <p>Sistem Informasi Manajemen Komunitas<br>
+                <strong>RW 10 Sukakarya · Garut · Jawa Barat</strong>
+            </p>
+            <div class="version-badge">v3.0 · 2026</div>
+        </div>
+    </div>
+
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Load stats for hero section
+        window.addEventListener('DOMContentLoaded', () => {
+            // If already logged in, redirect to app
+            if (Auth.getSession()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            // Populate hero stats from DB
+            try {
+                const keluarga = DB.getAll('keluarga');
+                const totalKK = keluarga.length;
+                const totalJiwa = keluarga.reduce((s, k) => s + (parseInt(k.jumlahAnggota) || 0), 0);
+                document.getElementById('heroKK').textContent = totalKK || '–';
+                document.getElementById('heroJiwa').textContent = totalJiwa || '–';
+            } catch (e) { /* DB might be empty */ }
+
+            // Focus username input
+            document.getElementById('inputUser').focus();
+        });
+    </script>
+</body>
+
+</html>
