@@ -15,7 +15,11 @@ class AkunController extends Controller
         if (!$user->canManageUsers() && !$user->isSuperAdmin()) {
             return redirect('/')->with('error', 'Anda tidak memiliki akses ke halaman ini.');
         }
-        $users = User::orderByRaw("FIELD(level, 'superadmin','ketua_rw','bendahara','petugas_rt','warga')")
+        // CASE portabel (MySQL + SQLite). FIELD() hanya tersedia di MySQL.
+        $users = User::orderByRaw("CASE level
+                WHEN 'superadmin' THEN 1 WHEN 'super_admin' THEN 1 WHEN 'admin' THEN 1
+                WHEN 'ketua_rw' THEN 2 WHEN 'bendahara' THEN 3
+                WHEN 'petugas_rt' THEN 4 WHEN 'warga' THEN 5 ELSE 6 END")
             ->orderBy('username')->get();
         return view('admin.akun', compact('users'));
     }

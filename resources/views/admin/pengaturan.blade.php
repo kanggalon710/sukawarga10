@@ -44,8 +44,8 @@
 
 <!-- Tab WhatsApp API -->
 <div class="card" id="panelWa" style="display:none;">
-    <div class="card-header"><div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp API — MPWA</div></div>
-    <div class="card-sub">Konfigurasi koneksi ke gateway <strong>mpwa.jabnet.id</strong> — isi API Key dan nomor pengirim dari akun MPWA Anda.</div>
+    <div class="card-header"><div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp API · MPWA</div></div>
+    <div class="card-sub">Konfigurasi koneksi ke gateway <strong>mpwa.jabnet.id</strong> · isi API Key dan nomor pengirim dari akun MPWA Anda.</div>
     <div style="display:grid; gap:16px; margin-top:16px;">
 
         <!-- API Key -->

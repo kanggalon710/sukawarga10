@@ -28,14 +28,22 @@ class User extends Authenticatable
     // Auth uses PIN field instead of password
     public function getAuthPassword() { return $this->pin; }
 
-    public function isSuperAdmin(): bool { return $this->level === 'superadmin'; }
+    /**
+     * Level setara superadmin. Akun default aplikasi memakai level 'admin',
+     * dan middleware CheckRole sudah menyetarakannya (power 5). Semua
+     * pengecekan izin di bawah WAJIB memakai daftar ini supaya konsisten,
+     * jangan pernah membandingkan ke 'superadmin' saja.
+     */
+    public const LEVEL_ADMIN = ['superadmin', 'super_admin', 'admin'];
+
+    public function isSuperAdmin(): bool { return in_array($this->level, self::LEVEL_ADMIN, true); }
     public function isKetuaRW(): bool { return $this->level === 'ketua_rw'; }
     public function isBendahara(): bool { return $this->level === 'bendahara'; }
     public function isPetugasRT(): bool { return $this->level === 'petugas_rt'; }
 
-    public function canVoid(): bool { return in_array($this->level, ['superadmin', 'ketua_rw']); }
-    public function canManageUsers(): bool { return in_array($this->level, ['superadmin']); }
-    public function canManageFinance(): bool { return in_array($this->level, ['superadmin', 'ketua_rw', 'bendahara']); }
+    public function canVoid(): bool { return $this->isSuperAdmin() || $this->level === 'ketua_rw'; }
+    public function canManageUsers(): bool { return $this->isSuperAdmin(); }
+    public function canManageFinance(): bool { return $this->isSuperAdmin() || in_array($this->level, ['ketua_rw', 'bendahara'], true); }
 
     public function isActive(): bool { return $this->status === 'aktif'; }
 

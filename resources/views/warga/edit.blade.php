@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Edit Warga')
 @section('page-title', 'Edit Data Keluarga')
-@section('page-subtitle'){{ $kk->nama }} — RT {{ $kk->rt }}@endsection
+@section('page-subtitle'){{ $kk->nama }} · RT {{ $kk->rt }}@endsection
 
 @section('content')
 @php
@@ -459,7 +459,7 @@
     </div>
 </div>
 
-{{-- Modal Edit Anggota — independen dari layout, dipakai bersama tampilan desktop & mobile --}}
+{{-- Modal Edit Anggota · independen dari layout, dipakai bersama tampilan desktop & mobile --}}
 <div class="ag-modal-overlay" id="agEditModal">
     <div class="ag-modal">
         <div class="ag-modal-head">
@@ -598,7 +598,7 @@ const agData = {
 };
 const agUpdateBase = "{{ url('warga/'.$kk->id.'/anggota') }}";
 
-// Buka modal edit anggota — dipakai oleh tombol Edit di tabel desktop MAUPUN kartu mobile
+// Buka modal edit anggota · dipakai oleh tombol Edit di tabel desktop MAUPUN kartu mobile
 function toggleEditAnggota(id) {
     const d = agData[id];
     if (!d) return;

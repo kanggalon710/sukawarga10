@@ -197,7 +197,7 @@ $katIcon = match($a->kategori) {
 </div>
 @empty
 <div class="card" style="text-align:center; padding:60px 40px;">
-    <i class="fas fa-clipboard-check" style="font-size:52px; color:var(--abu3); margin-bottom:16px; display:block;"></i>
+    <img src="{{ asset('empty-state.png') }}" alt="" aria-hidden="true" class="blank-state__art" width="176" height="176">
     <h3 style="color:var(--text2); margin-bottom:8px;">
         {{ $status ? 'Tidak ada aduan berstatus "' . $status . '"' : 'Belum Ada Pengaduan' }}
     </h3>
@@ -224,7 +224,7 @@ $katIcon = match($a->kategori) {
             <input type="hidden" name="pelapor" value="{{ $user->nama ?? $user->username }}">
             <input type="hidden" name="rt" value="{{ $user->rt ?? '' }}">
             <div style="margin-bottom:14px; padding:10px 12px; background:var(--abu); border-radius:var(--radius-sm); font-size:13px;">
-                <strong>{{ $user->nama ?? $user->username }}</strong> — RT {{ $user->rt ?? '-' }}
+                <strong>{{ $user->nama ?? $user->username }}</strong> · RT {{ $user->rt ?? '-' }}
             </div>
             @else
             {{-- Pengurus: search pelapor --}}
@@ -250,7 +250,7 @@ $katIcon = match($a->kategori) {
                 <div>
                     <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">RT</label>
                     <select name="rt" id="aduanRT" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:white;">
-                        <option value="">— RT —</option>
+                        <option value="">- RT -</option>
                         @for($i=1;$i<=6;$i++)<option value="{{ str_pad($i,2,'0',STR_PAD_LEFT) }}">RT {{ str_pad($i,2,'0',STR_PAD_LEFT) }}</option>@endfor
                     </select>
                 </div>
@@ -324,8 +324,8 @@ function openTL(id, nama, newStatus) {
     document.getElementById('tlStatus').value = newStatus;
     document.getElementById('tlCatatan').value = '';
     document.getElementById('tlTitle').innerHTML = newStatus === 'selesai'
-        ? '<i class="fas fa-check-circle" style="color:var(--hijau);"></i> Selesaikan Aduan — ' + nama
-        : '<i class="fas fa-times" style="color:var(--merah);"></i> Tolak Aduan — ' + nama;
+        ? '<i class="fas fa-check-circle" style="color:var(--hijau);"></i> Selesaikan Aduan · ' + nama
+        : '<i class="fas fa-times" style="color:var(--merah);"></i> Tolak Aduan · ' + nama;
     document.getElementById('tlModal').style.display = 'flex';
 }
 
@@ -352,7 +352,7 @@ function filterAduanWarga(q) {
     const ql = q.toLowerCase();
     const hits = aduanWargaData.filter(w => w.nama.toLowerCase().includes(ql) || w.rt.includes(q));
     if (!hits.length) {
-        dd.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text3);">Tidak ditemukan — nama akan dicatat langsung</div>';
+        dd.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text3);">Tidak ditemukan · nama akan dicatat langsung</div>';
         dd.style.display = 'block';
         return;
     }
@@ -360,7 +360,7 @@ function filterAduanWarga(q) {
         `<div onclick="selectAduanWarga('${w.nama.replace(/'/g,"\\'")}','${w.rt}')"
              style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--abu2);"
              onmouseover="this.style.background='var(--abu)'" onmouseout="this.style.background='white'">
-            <span style="font-weight:600;">${w.nama}</span> <span style="font-size:11px;color:var(--text3);">— RT ${w.rt}</span>
+            <span style="font-weight:600;">${w.nama}</span> <span style="font-size:11px;color:var(--text3);">- RT ${w.rt}</span>
         </div>`
     ).join('');
     dd.style.display = 'block';

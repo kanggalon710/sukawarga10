@@ -43,7 +43,7 @@
 </div>
 @else
 <div class="card" style="text-align:center; padding:40px;">
-    <i class="fas fa-calendar-alt" style="font-size:48px; color:var(--abu3); margin-bottom:16px;"></i>
+    <img src="{{ asset('empty-state.png') }}" alt="" aria-hidden="true" class="blank-state__art" width="176" height="176">
     <h3 style="color:var(--text2);">Belum Ada Kegiatan</h3>
     <p style="color:var(--text3); font-size:13px; max-width:400px; margin:8px auto 16px;">Catat kegiatan RW seperti rapat rutin, kerja bakti, acara sosial, atau kegiatan olahraga. Semua kegiatan akan terdokumentasi dengan PIC dan statusnya.</p>
     <button class="btn btn-primary btn-sm" onclick="document.getElementById('addModal').style.display='flex'"><i class="fas fa-plus"></i> Tambah Kegiatan Pertama</button>

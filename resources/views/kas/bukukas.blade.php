@@ -69,7 +69,7 @@
                     <td style="font-size:13px;">
                         {{ $t->keterangan }}
                         @if($t->voided)
-                            <div style="font-size:10px; color:var(--merah); margin-top:2px;"><i class="fas fa-ban"></i> VOID oleh {{ $t->void_by }} — {{ $t->void_reason }}</div>
+                            <div style="font-size:10px; color:var(--merah); margin-top:2px;"><i class="fas fa-ban"></i> VOID oleh {{ $t->void_by }} · {{ $t->void_reason }}</div>
                         @endif
                     </td>
                     <td class="td-mono" style="text-align:right; color:var(--hijau); font-weight:600;">{{ !$t->voided && $t->jenis == 'masuk' ? number_format($t->jumlah,0,',','.') : '' }}</td>

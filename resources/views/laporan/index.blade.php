@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Laporan')
 @section('page-title', 'Laporan')
-@section('page-subtitle', 'Analisis keuangan & demografi — Tahun ' . $tahun)
+@section('page-subtitle', 'Analisis keuangan & demografi · Tahun ' . $tahun)
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/bi-report.css') }}">
@@ -71,7 +71,7 @@
         function biRT($rt) { return 'RT ' . trim(preg_replace('/^\s*RT\s*/i', '', (string) $rt)); }
     }
     if (!function_exists('biHead')) {
-        // Kepala kartu bernomor — satu pola untuk semua section
+        // Kepala kartu bernomor · satu pola untuk semua section
         function biHead($no, $icon, $title, $desc = '') {
             return '<div class="bi-head">'
                 . '<span class="bi-head__no">' . $no . '</span>'
@@ -114,7 +114,7 @@
     <h3>Laporan Keuangan {{ $tahun }}</h3>
     <p>Total pemasukan vs pengeluaran RW 10</p>
     <div class="banner-amount">Rp {{ number_format($totalMasuk - $totalKeluar, 0, ',', '.') }}</div>
-    <div class="banner-sub">Saldo bersih (Masuk: {{ number_format($totalMasuk, 0, ',', '.') }} — Keluar: {{ number_format($totalKeluar, 0, ',', '.') }})</div>
+    <div class="banner-sub">Saldo bersih (Masuk: {{ number_format($totalMasuk, 0, ',', '.') }} · Keluar: {{ number_format($totalKeluar, 0, ',', '.') }})</div>
 </div>
 @endif
 
@@ -140,15 +140,15 @@
 
 @if($tab === 'ringkasan')
 <div class="card">
-    {!! biHead('#', 'fa-chart-column', 'Tren Bulanan ' . $tahun, 'Pemasukan vs pengeluaran per bulan — arahkan kursor ke batang untuk nilai persis') !!}
+    {!! biHead('#', 'fa-chart-column', 'Tren Bulanan ' . $tahun, 'Pemasukan vs pengeluaran per bulan · arahkan kursor ke batang untuk nilai persis') !!}
     <div class="bi-block">
         @php $maxB = max(collect($bulanData)->max('masuk'), collect($bulanData)->max('keluar'), 1); @endphp
         <div class="bi-barchart">
             @foreach($bulanData as $b)
             <div class="bi-barchart__col">
                 <div class="bi-barchart__bars">
-                    <div class="bi-barchart__bar bi-barchart__bar--in" style="height:{{ round($b['masuk']/$maxB*150) }}px;" title="{{ $b['bulan'] }} — Masuk: Rp {{ number_format($b['masuk'],0,',','.') }}"></div>
-                    <div class="bi-barchart__bar bi-barchart__bar--out" style="height:{{ round($b['keluar']/$maxB*150) }}px;" title="{{ $b['bulan'] }} — Keluar: Rp {{ number_format($b['keluar'],0,',','.') }}"></div>
+                    <div class="bi-barchart__bar bi-barchart__bar--in" style="height:{{ round($b['masuk']/$maxB*150) }}px;" title="{{ $b['bulan'] }} · Masuk: Rp {{ number_format($b['masuk'],0,',','.') }}"></div>
+                    <div class="bi-barchart__bar bi-barchart__bar--out" style="height:{{ round($b['keluar']/$maxB*150) }}px;" title="{{ $b['bulan'] }} · Keluar: Rp {{ number_format($b['keluar'],0,',','.') }}"></div>
                 </div>
                 <div class="bi-barchart__lbl">{{ $b['bulan'] }}</div>
             </div>
@@ -166,7 +166,7 @@
 @if(in_array($tab, $tabsData) && !empty($demografi))
 
 @php
-    // Peta section per tab — tiap halaman fokus, bisa di-bookmark lewat URL-nya sendiri
+    // Peta section per tab · tiap halaman fokus, bisa di-bookmark lewat URL-nya sendiri
     $jumpMap = [
         'demografi'  => [['sec-1','fa-users','Populasi'], ['sec-6','fa-chart-simple','Piramida Usia'], ['sec-7','fa-graduation-cap','Pendidikan']],
         'ekonomi'    => [['sec-2','fa-briefcase','Rumah Tangga'], ['sec-5','fa-user-tie','Pekerjaan'], ['sec-4','fa-hand-holding-heart','Bansos']],
@@ -187,7 +187,7 @@
     <div class="bi-hero__inner">
         <div class="bi-hero__eyebrow t-label">Profil Demografi</div>
         <h1 class="bi-hero__title t-display"><i class="fas fa-chart-pie" aria-hidden="true"></i> RW 10 Sukakarya</h1>
-        <p class="bi-hero__desc t-sm">Data kependudukan, kondisi sosial-ekonomi, dan kesejahteraan masyarakat — dasar perencanaan program warga.</p>
+        <p class="bi-hero__desc t-sm">Data kependudukan, kondisi sosial-ekonomi, dan kesejahteraan masyarakat · dasar perencanaan program warga.</p>
         <div class="bi-hero__stats">
             <div class="bi-stat">
                 <div class="bi-stat__val t-display t-num">{{ number_format($demografi['totalKK'], 0, ',', '.') }}</div>
@@ -258,7 +258,7 @@
     @php $ert = $demografi['ekonomiRT']; @endphp
     <div class="bi-block">
         <h3 class="bi-block__title t-sub"><i class="fas fa-people-roof bi-ico" aria-hidden="true"></i> Ekonomi Rumah Tangga (Seluruh Pekerja dalam KK)</h3>
-        <p class="bi-block__desc t-meta">Menghitung semua anggota yang bekerja — bukan hanya kepala keluarga — dari {{ $ert['totalIndividu'] }} jiwa terdata. Estimasi pendapatan memakai titik tengah rentang.</p>
+        <p class="bi-block__desc t-meta">Menghitung semua anggota yang bekerja · bukan hanya kepala keluarga · dari {{ $ert['totalIndividu'] }} jiwa terdata. Estimasi pendapatan memakai titik tengah rentang.</p>
         <div class="bi-kpi-grid" style="margin-bottom:16px;">
             {!! biKpi($ert['totalPekerja'], 'Total Pekerja', 'rata-rata ' . $ert['rataPekerjaPerKK'] . ' pekerja per KK', 'green', 'fa-briefcase') !!}
             {!! biKpi($ert['kkTanpaPekerja'], 'KK Tanpa Pekerja', 'prioritas bantuan & pemberdayaan', 'red', 'fa-user-slash', $demografi['totalKK'] > 0 ? round($ert['kkTanpaPekerja'] / $demografi['totalKK'] * 100) : 0) !!}
@@ -277,7 +277,7 @@
 
         <h4 class="t-sub" style="margin:18px 0 3px;"><i class="fas fa-scale-unbalanced bi-ico" aria-hidden="true"></i> Estimasi Pendapatan per Kapita</h4>
         <p class="bi-block__desc t-meta">Total pendapatan rumah tangga (KK + anggota bekerja) dibagi jumlah jiwa. {{ $ert['kkBelumTerdataIncome'] > 0 ? $ert['kkBelumTerdataIncome'] . ' KK belum terdata penghasilannya (tidak dihitung).' : '' }}</p>
-        {!! biRanked($ert['perKapita'], max(1, $demografi['totalKK'] - $ert['kkBelumTerdataIncome']), ['mode' => 'sequential', 'order' => ['< Rp 500 rb (di bawah garis)', 'Rp 500 rb – 1 jt', 'Rp 1 – 2 jt', '> Rp 2 jt']]) !!}
+        {!! biRanked($ert['perKapita'], max(1, $demografi['totalKK'] - $ert['kkBelumTerdataIncome']), ['mode' => 'sequential', 'order' => ['< Rp 500 rb (di bawah garis)', 'Rp 500 rb · 1 jt', 'Rp 1 · 2 jt', '> Rp 2 jt']]) !!}
     </div>
     @endif
 </div>
@@ -316,9 +316,9 @@
     @php
         $matSections = [
             ['key' => 'tipe_bangunan', 'icon' => 'fa-building', 'title' => 'Tipe Bangunan', 'desc' => 'Jenis konstruksi rumah: permanen, semi permanen, atau non permanen.'],
-            ['key' => 'lantai', 'icon' => 'fa-square', 'title' => 'Bahan Lantai', 'desc' => 'Material lantai rumah — keramik, semen, atau tanah.'],
-            ['key' => 'dinding', 'icon' => 'fa-border-all', 'title' => 'Bahan Dinding', 'desc' => 'Material dinding — tembok, papan, atau bambu.'],
-            ['key' => 'atap', 'icon' => 'fa-house-chimney-window', 'title' => 'Bahan Atap', 'desc' => 'Jenis atap — genteng, seng, asbes, dan lainnya.'],
+            ['key' => 'lantai', 'icon' => 'fa-square', 'title' => 'Bahan Lantai', 'desc' => 'Material lantai rumah · keramik, semen, atau tanah.'],
+            ['key' => 'dinding', 'icon' => 'fa-border-all', 'title' => 'Bahan Dinding', 'desc' => 'Material dinding · tembok, papan, atau bambu.'],
+            ['key' => 'atap', 'icon' => 'fa-house-chimney-window', 'title' => 'Bahan Atap', 'desc' => 'Jenis atap · genteng, seng, asbes, dan lainnya.'],
         ];
     @endphp
     @foreach($matSections as $sec)
@@ -333,11 +333,11 @@
 
     @php
         $sanSections = [
-            ['key' => 'air_minum', 'icon' => 'fa-droplet', 'title' => 'Sumber Air Minum', 'desc' => 'Sumber air utama untuk minum — PDAM, sumur, atau galon.'],
+            ['key' => 'air_minum', 'icon' => 'fa-droplet', 'title' => 'Sumber Air Minum', 'desc' => 'Sumber air utama untuk minum · PDAM, sumur, atau galon.'],
             ['key' => 'air_mandi', 'icon' => 'fa-shower', 'title' => 'Sumber Air Mandi & Cuci', 'desc' => 'Sumber air untuk keperluan mandi dan mencuci.'],
-            ['key' => 'masak', 'icon' => 'fa-fire-burner', 'title' => 'Sumber Energi Masak', 'desc' => 'Bahan bakar utama memasak — LPG, kayu, atau listrik.'],
+            ['key' => 'masak', 'icon' => 'fa-fire-burner', 'title' => 'Sumber Energi Masak', 'desc' => 'Bahan bakar utama memasak · LPG, kayu, atau listrik.'],
             ['key' => 'jamban', 'icon' => 'fa-toilet', 'title' => 'Kepemilikan Jamban', 'desc' => 'Status fasilitas MCK: sendiri, bersama, atau tidak punya.'],
-            ['key' => 'tinja', 'icon' => 'fa-water', 'title' => 'Pembuangan Tinja', 'desc' => 'Sistem pembuangan limbah — septic tank atau sungai.'],
+            ['key' => 'tinja', 'icon' => 'fa-water', 'title' => 'Pembuangan Tinja', 'desc' => 'Sistem pembuangan limbah · septic tank atau sungai.'],
             ['key' => 'sampah', 'icon' => 'fa-trash-can', 'title' => 'Cara Buang Sampah', 'desc' => 'Pengelolaan sampah rumah tangga sehari-hari.'],
         ];
     @endphp
@@ -381,7 +381,7 @@
     @if($demografi['bpjsTotal'] > 0)
     <div class="bi-block">
         <h3 class="bi-block__title t-sub"><i class="fas fa-id-card bi-ico" aria-hidden="true"></i> Status BPJS Seluruh Anggota</h3>
-        <p class="bi-block__desc t-meta">Distribusi kepesertaan BPJS/JKN dari {{ $demografi['bpjsTotal'] }} jiwa tercatat — hijau aktif, merah perlu perhatian.</p>
+        <p class="bi-block__desc t-meta">Distribusi kepesertaan BPJS/JKN dari {{ $demografi['bpjsTotal'] }} jiwa tercatat · hijau aktif, merah perlu perhatian.</p>
         {!! biRanked($demografi['bpjs']->toArray(), $demografi['bpjsTotal'], ['mode' => 'semantic']) !!}
     </div>
     @endif
@@ -409,14 +409,14 @@
             {!! biKpi($demografi['medianAge'], 'Median Usia', 'tahun', 'purple', 'fa-arrow-down-1-9') !!}
             {!! biKpi($demografi['youngestAge'], 'Termuda', 'tahun', 'teal', 'fa-baby') !!}
             {!! biKpi($demografi['oldestAge'], 'Tertua', 'tahun', 'amber', 'fa-user-clock') !!}
-            {!! biKpi($demografi['produktif'], 'Usia Produktif', 'rentang 18–59 tahun', 'blue', 'fa-briefcase') !!}
+            {!! biKpi($demografi['produktif'], 'Usia Produktif', 'rentang 18-59 tahun', 'blue', 'fa-briefcase') !!}
             {!! biKpi($demografi['dependencyRatio'].'<span>%</span>', 'Rasio Dependensi', 'beban tanggungan', 'green', 'fa-scale-balanced') !!}
         </div>
     </div>
 
     <div class="bi-block">
         <h3 class="bi-block__title t-sub"><i class="fas fa-layer-group bi-ico" aria-hidden="true"></i> Piramida Penduduk</h3>
-        <p class="bi-block__desc t-meta">Distribusi umur dan jenis kelamin — laki-laki ke kiri, perempuan ke kanan, dari sumbu tengah yang simetris.</p>
+        <p class="bi-block__desc t-meta">Distribusi umur dan jenis kelamin · laki-laki ke kiri, perempuan ke kanan, dari sumbu tengah yang simetris.</p>
         @php $maxPyr = 1; foreach ($demografi['piramida'] as $c) $maxPyr = max($maxPyr, $c['L'], $c['P']); @endphp
         <div class="bi-pyr">
             @foreach(array_reverse($demografi['piramida'], true) as $label => $d)
@@ -442,7 +442,7 @@
 
     <div class="bi-block">
         <h3 class="bi-block__title t-sub"><i class="fas fa-chart-bar bi-ico" aria-hidden="true"></i> Distribusi Kelompok Umur</h3>
-        <p class="bi-block__desc t-meta">Jumlah jiwa per kelompok usia — dasar perencanaan Posyandu, PAUD, dan program lansia.</p>
+        <p class="bi-block__desc t-meta">Jumlah jiwa per kelompok usia · dasar perencanaan Posyandu, PAUD, dan program lansia.</p>
         @php
             $catDesc = [
                 'Balita (0-4)' => 'Sasaran Posyandu & imunisasi', 'Anak-anak (5-11)' => 'Usia sekolah dasar',
@@ -462,7 +462,7 @@
     @if(count($demografi['agePerRT']) > 0)
     <div class="bi-block">
         <h3 class="bi-block__title t-sub"><i class="fas fa-map-location-dot bi-ico" aria-hidden="true"></i> Komposisi Usia per RT</h3>
-        <p class="bi-block__desc t-meta">Jumlah balita, anak, remaja, usia produktif, dan lansia di tiap RT — untuk distribusi program.</p>
+        <p class="bi-block__desc t-meta">Jumlah balita, anak, remaja, usia produktif, dan lansia di tiap RT · untuk distribusi program.</p>
         <div class="bi-table-wrap">
             <table class="bi-table">
                 <thead>
@@ -479,11 +479,11 @@
                     @foreach($demografi['agePerRT'] as $rt => $ages)
                     <tr>
                         <td>{{ biRT($rt) }}</td>
-                        <td>{!! $ages['balita'] > 0 ? $ages['balita'] : '<span class="bi-zero">—</span>' !!}</td>
-                        <td>{!! $ages['anak'] > 0 ? $ages['anak'] : '<span class="bi-zero">—</span>' !!}</td>
-                        <td>{!! $ages['remaja'] > 0 ? $ages['remaja'] : '<span class="bi-zero">—</span>' !!}</td>
-                        <td>{!! $ages['produktif'] > 0 ? $ages['produktif'] : '<span class="bi-zero">—</span>' !!}</td>
-                        <td>{!! $ages['lansia'] > 0 ? $ages['lansia'] : '<span class="bi-zero">—</span>' !!}</td>
+                        <td>{!! $ages['balita'] > 0 ? $ages['balita'] : '<span class="bi-zero">-</span>' !!}</td>
+                        <td>{!! $ages['anak'] > 0 ? $ages['anak'] : '<span class="bi-zero">-</span>' !!}</td>
+                        <td>{!! $ages['remaja'] > 0 ? $ages['remaja'] : '<span class="bi-zero">-</span>' !!}</td>
+                        <td>{!! $ages['produktif'] > 0 ? $ages['produktif'] : '<span class="bi-zero">-</span>' !!}</td>
+                        <td>{!! $ages['lansia'] > 0 ? $ages['lansia'] : '<span class="bi-zero">-</span>' !!}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -495,15 +495,15 @@
     <div class="bi-block bi-note">
         <h3 class="bi-block__title t-sub"><i class="fas fa-lightbulb bi-ico" aria-hidden="true"></i> Interpretasi Data Usia</h3>
         <ul class="t-sm">
-            <li><span class="t-strong">Rasio Dependensi {{ $demografi['dependencyRatio'] }}%</span> — setiap 100 penduduk usia produktif (18–59 tahun) menanggung {{ $demografi['dependencyRatio'] }} orang non-produktif (anak dan lansia).</li>
+            <li><span class="t-strong">Rasio Dependensi {{ $demografi['dependencyRatio'] }}%</span> · setiap 100 penduduk usia produktif (18-59 tahun) menanggung {{ $demografi['dependencyRatio'] }} orang non-produktif (anak dan lansia).</li>
             @if($demografi['piramida']['Balita (0-4)']['total'] > 0)
-            <li><span class="t-strong">{{ $demografi['piramida']['Balita (0-4)']['total'] }} Balita</span> — indikator kebutuhan Posyandu aktif, imunisasi, dan pemantauan gizi.</li>
+            <li><span class="t-strong">{{ $demografi['piramida']['Balita (0-4)']['total'] }} Balita</span> · indikator kebutuhan Posyandu aktif, imunisasi, dan pemantauan gizi.</li>
             @endif
             @if($demografi['piramida']['Lansia (60+)']['total'] > 0)
-            <li><span class="t-strong">{{ $demografi['piramida']['Lansia (60+)']['total'] }} Lansia</span> — perlu perhatian Posyandu Lansia dan program jaminan hari tua.</li>
+            <li><span class="t-strong">{{ $demografi['piramida']['Lansia (60+)']['total'] }} Lansia</span> · perlu perhatian Posyandu Lansia dan program jaminan hari tua.</li>
             @endif
             @if($demografi['piramida']['Remaja (12-17)']['total'] > 0)
-            <li><span class="t-strong">{{ $demografi['piramida']['Remaja (12-17)']['total'] }} Remaja</span> — potensi sasaran Karang Taruna dan pemberdayaan pemuda.</li>
+            <li><span class="t-strong">{{ $demografi['piramida']['Remaja (12-17)']['total'] }} Remaja</span> · potensi sasaran Karang Taruna dan pemberdayaan pemuda.</li>
             @endif
         </ul>
     </div>

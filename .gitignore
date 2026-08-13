@@ -35,3 +35,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Konfigurasi lokal editor/tooling
+/.claude/
