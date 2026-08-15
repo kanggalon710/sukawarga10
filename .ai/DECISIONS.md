@@ -3,6 +3,21 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Phase B2: localhost jadi domain terdaftar, bukan pengecualian kode
+**Konteks:** Resolver menolak hostname tak terdaftar dengan 404 (§14). Suite
+tes dan `artisan serve` memakai `localhost`, jadi harus ada jalan masuk dev.
+**Opsi:** (a) if `app()->environment('local')` lewati resolver, (b) daftar
+pengecualian hostname di config, (c) daftarkan `localhost`/`127.0.0.1` sebagai
+baris `domains` berstatus `dev` lewat migrasi.
+**Pilihan:** (c).
+**Alasan:** (a) dan (b) membuat jalur kode berbeda antara dev dan produksi,
+persis kelas bug yang paling jarang tertangkap tes (tesnya sendiri jalan di
+jalur pengecualian). Dengan (c), dev dan produksi melewati resolver yang sama
+persis, dan kalau operator butuh hostname tambahan (akses via IP internal),
+mereka menambah baris tabel, bukan mengubah kode. Konsekuensi kecil yang
+diterima: baris localhost ikut ada di tabel produksi, terdokumentasi lewat
+status `dev`.
+
 ## 2026-08-15 - Phase B1: bentuk tabel organizations/domains dan cara mengisinya
 **Konteks:** Implementasi multi-tenant dimulai dari B1 (audit bagian 10). Empat
 keputusan bentuk yang menetapkan preseden untuk fase berikutnya.

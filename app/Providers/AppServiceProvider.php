@@ -12,7 +12,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // scoped, bukan singleton: satu instance per request, di-reset antar
+        // request supaya konteks tenant tidak pernah bocor lintas request.
+        $this->app->scoped(\App\Services\TenantContext::class);
     }
 
     /**

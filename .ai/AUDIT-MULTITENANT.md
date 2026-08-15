@@ -200,8 +200,11 @@ hijau, dan bisa dirilis sendiri:
    existing. Aplikasi belum membacanya. Catatan koreksi: prasyarat "keputusan
    tabel `roles`" yang disebut di bawah ternyata baru relevan di E1, ditunda
    eksplisit (lihat DECISIONS); prasyarat MySQL tetap berlaku untuk fase C/F.
-2. **B2:** `TenantContext` + middleware resolver, default ke RW 10 untuk semua
-   hostname legacy. Perilaku produksi tidak berubah, tapi context mulai tersedia.
+2. **B2 - SELESAI 2026-08-15** (`TenantContext` scoped + `ResolveTenant` di
+   grup web, migrasi `2026_08_15_000005`, tes `TenantResolverTest`): hostname
+   terdaftar → context terisi, tak terdaftar → 404 tanpa fallback, `/up` bebas.
+   Catatan: `localhost`/`127.0.0.1` didaftarkan resmi sebagai domain `dev`,
+   bukan dikecualikan di kode.
 3. **C:** kolom `organization_id` + backfill (semua baris = RW 10) + laporan
    verifikasi. Masih additive.
 4. **E1:** `user_role_assignments` + backfill dari `users.level`, `CheckRole`

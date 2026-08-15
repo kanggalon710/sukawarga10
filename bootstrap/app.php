@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global middleware — applied to all requests
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
+        // Resolver tenant hanya di grup web: health check `/up` dan rute api
+        // (sisa Sanctum) tidak terikat hostname tenant.
+        $middleware->web(append: [\App\Http\Middleware\ResolveTenant::class]);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,

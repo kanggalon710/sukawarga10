@@ -44,10 +44,17 @@ asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
 - [x] **B1 selesai 2026-08-15:** tabel `organizations` + `domains` + seed
       hierarki existing di migrasi `2026_08_15_000004`. Additive murni; 73 tes
       lama tetap hijau, 6 tes baru di `tests/Feature/OrganisasiTest.php`.
-- [ ] **B2:** `TenantContext` service + middleware resolver hostname. Hostname
-      tak terdaftar → 404; `paru.jabnet.id` dan `sukawarga10.jabnet.id` sudah
-      terpetakan ke RW 10 di tabel `domains`. Perilaku produksi tidak boleh
-      berubah.
+- [x] **B2 selesai 2026-08-15:** `TenantContext` (scoped) + middleware
+      `ResolveTenant` di grup web. Hostname tak terdaftar/nonaktif → 404 tanpa
+      fallback; `localhost`/`127.0.0.1` terdaftar resmi status `dev` (migrasi
+      `2026_08_15_000005`). 9 tes di `TenantResolverTest`.
+- [ ] **C:** kolom `organization_id` + backfill (semua baris existing = RW 10)
+      + laporan verifikasi. Additive. Controller mulai MEMBACA TenantContext
+      di sini. PERHATIAN: butuh uji MySQL dulu (lihat butir prasyarat).
+- [ ] **Deploy berikutnya:** setelah migrasi B1+B2 masuk produksi, verifikasi
+      `https://paru.jabnet.id` tetap 200 dan host asing/IP langsung ke server
+      kini 404. Kalau operator perlu hostname tambahan (mis. akses via IP
+      internal), daftarkan lewat tabel `domains`, bukan mengubah kode.
 - [ ] **Sebelum E1:** putuskan nasib tabel `roles` mati (pakai ulang untuk
       `user_role_assignments` atau drop) - catat di DECISIONS.
 - [ ] **Sebelum fase yang mengubah index/JSON (C, F):** jalankan suite di MySQL.

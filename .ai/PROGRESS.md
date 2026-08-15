@@ -2,6 +2,33 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Phase B2 multi-tenant: TenantContext + resolver hostname
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Lanjutan B1. Aplikasi butuh satu tempat resmi yang tahu "request
+ini milik tenant mana" sebelum fase scoping bisa dimulai, dan hostname harus
+di-resolve sekali lewat middleware, bukan di-parsing tersebar (§13-§14).
+**Perubahan:**
+- `app/Services/TenantContext.php`: pemegang konteks per request (scoped di
+  container), API: `organisasi()`, `rw()`, `desa()`, `platform()`, `hostname()`.
+- `app/Http/Middleware/ResolveTenant.php`: lookup hostname di tabel `domains`;
+  tak terdaftar / nonaktif / organisasinya nonaktif → 404. TANPA fallback
+  diam-diam. Dipasang di grup `web` saja sehingga `/up` (health) bebas.
+- Migrasi `2026_08_15_000005`: `localhost` + `127.0.0.1` didaftarkan resmi
+  sebagai domain status `dev` menunjuk RW 10. Tanpa ini, aturan 404 mematahkan
+  `artisan serve` dan seluruh suite tes.
+- 9 tes baru `tests/Feature/TenantResolverTest.php` termasuk kasus
+  `paru.jabnet.id.jahat.example` (suffix-spoofing) dan organisasi nonaktif.
+**File:** app/Services/TenantContext.php, app/Http/Middleware/ResolveTenant.php,
+database/migrations/2026_08_15_000005_register_dev_hostnames.php,
+bootstrap/app.php, app/Providers/AppServiceProvider.php,
+tests/Feature/TenantResolverTest.php
+**Catatan:** Perilaku produksi tidak berubah untuk hostname sah: 79 tes lama
+lulus tanpa disentuh (total 88). Smoke test HTTP dengan header Host sungguhan:
+localhost 200, paru 200, legacy 200, host asing 404, `/up` dari host mana pun
+200. Yang berubah secara sengaja: request dengan header Host asing yang dulu
+tetap dilayani kini 404 - itu justru tujuan §14. Belum ada controller yang
+MEMBACA context (itu Phase C/E); B2 hanya menyediakannya.
+
 ## 2026-08-15 - Phase B1 multi-tenant: tabel organizations + domains
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik project menyetujui mulai implementasi dari B1 (langkah
