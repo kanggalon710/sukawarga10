@@ -1,7 +1,12 @@
-# AGENTS.md — SukaWarga10
+# AGENTS.md - SukaWarga10
 
 Aturan khusus project ini. Aturan universal ada di standar global agent.
 Kalau bertabrakan, file ini yang menang.
+
+> **Baru di project ini? Baca `.ai/HANDOFF.md` dulu.** Isinya keadaan terkini:
+> apa yang sudah diverifikasi, apa yang belum, dan jebakan yang paling sering
+> memakan korban. File ini menjelaskan *aturannya*, HANDOFF menjelaskan
+> *keadaannya*.
 
 ## Apa ini
 
@@ -25,7 +30,7 @@ Bukan demo, bukan proyek latihan: uang iuran warga dan data pribadi ada di dalam
 
 ### Tidak ada build front-end
 
-Tidak ada Node, npm, Vite, atau Tailwind di project ini — toolchain-nya dihapus
+Tidak ada Node, npm, Vite, atau Tailwind di project ini - toolchain-nya dihapus
 2026-08-15 karena tidak satu pun Blade memanggil `@vite` (lihat
 `.ai/DECISIONS.md`). Jangan menambahkan class Tailwind ke Blade, tidak ada yang
 meng-compile-nya. Kalau butuh gaya baru, edit `public/css/styles.css` dan pakai
@@ -52,7 +57,7 @@ Deploy: ikuti `DEPLOY.md` apa adanya, terutama peringatan `--fresh` pada
 
 Kode, komentar, pesan commit, dan seluruh teks UI memakai **bahasa Indonesia**.
 Nama kolom & variabel domain juga Indonesia dan **camelCase** (`namaLengkap`,
-`noHP`, `ikutSampah`, `tanggalLahirKK`) — beda dari konvensi snake_case Laravel.
+`noHP`, `ikutSampah`, `tanggalLahirKK`) - beda dari konvensi snake_case Laravel.
 Ikuti yang sudah ada, jangan "dirapikan" jadi snake_case.
 
 ## Kosakata domain
@@ -63,13 +68,13 @@ Ikuti yang sudah ada, jangan "dirapikan" jadi snake_case.
 | Anggota | Anggota keluarga selain kepala KK (`anggotas`) |
 | Iuran Sampah | Ditagih **per minggu**, kunci `BLN-Mn` (mis. `JAN-M1`) di `iuran_sampahs.weeks` |
 | Padaringan | Iuran **per bulan**, kunci `JAN`..`DES` di `iuran_padaringans.months` |
-| Kas | `umum` / `sampah` / `padaringan` — kolom `transaksis.kas` |
+| Kas | `umum` / `sampah` / `padaringan` - kolom `transaksis.kas` |
 | Void | Pembatalan transaksi (tidak dihapus), hanya superadmin & ketua_rw |
 | Tunggakan | KK peserta yang belum lunas periode berjalan |
 | MPWA | Gateway WhatsApp pihak ketiga untuk notifikasi |
 
 **Total jiwa** = jumlah KK aktif + jumlah anggota. Definisi ini dipakai di
-Dashboard, Laporan, dan accessor `Keluarga::totalJiwa` — jaga tetap satu definisi.
+Dashboard, Laporan, dan accessor `Keluarga::totalJiwa` - jaga tetap satu definisi.
 
 ## Peran & akses
 
@@ -81,8 +86,9 @@ Level: `superadmin` > `ketua_rw` > `bendahara` > `petugas_rt` > `warga`
 - Middleware `role:` (`app/Http/Middleware/CheckRole.php`) → penjaga rute sungguhan.
 
 **Aturan wajib:** setiap rute yang mengubah data harus punya middleware `role:`
-atau pengecekan kepemilikan eksplisit di controller. Beberapa rute lama belum
-memenuhi ini (lihat `.ai/TODO.md`); jangan tiru polanya.
+atau pengecekan kepemilikan eksplisit di controller. Seluruh rute yang ada sudah
+memenuhi ini per 2026-08-15, dan `tests/Feature/OtorisasiTest.php` menjaganya.
+Rute baru wajib ikut ditambahkan ke tes itu.
 
 ## Aturan yang mudah dilanggar
 
@@ -92,7 +98,7 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    non-fillable tanpa bersuara. `Transaksi` dan `User` pernah menyebut kolom yang
    tidak ada sekaligus melewatkan kolom yang benar-benar ditulis, dan akibatnya
    seluruh pencatatan uang gagal. Ada tes yang mengunci ini
-   (`tests/Feature/PencatatanIuranTest.php`) — jangan dilewati.
+   (`tests/Feature/PencatatanIuranTest.php`) - jangan dilewati.
 2. **`update()` juga tunduk pada `$fillable`.** Kolom void pada `Transaksi`
    sengaja tidak fillable, jadi aksi void memakai `forceFill()->save()`.
 3. **Pengiriman WhatsApp hanya lewat `MpwaService`.** `NotificationService`

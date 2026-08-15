@@ -56,6 +56,7 @@ masuk `.gitignore`. Kirim ke server lewat jalur terpisah. Lihat `DEPLOY.md`.
 
 | File | Isi |
 |---|---|
+| `.ai/HANDOFF.md` | **Mulai dari sini.** Keadaan terkini project, apa yang sudah/belum diverifikasi, dan jebakan yang perlu diketahui |
 | `AGENTS.md` | Aturan dan konvensi untuk siapa pun (termasuk AI agent) yang mengubah kode |
 | `DEPLOY.md` | Langkah deploy ke produksi |
 | `.ai/PROGRESS.md` | Riwayat perubahan dan alasannya |
