@@ -208,7 +208,9 @@ hijau, dan bisa dirilis sendiri:
 3. **C - SELESAI 2026-08-15** (migrasi `2026_08_15_000006`, trait
    `MilikOrganisasi`, tes `KepemilikanOrganisasiTest`): kolom + backfill +
    cap otomatis baris baru dari TenantContext (menimpa kiriman client).
-   Verifikasi MySQL masih menunggu akses root pemilik mesin.
+   Verifikasi MySQL SELESAI: 96 tes lulus di MariaDB 11.8.8, termasuk
+   `whereJsonContains` yang lama tertunda; rollback ketiga migrasi
+   multi-tenant diuji turun-naik di MySQL.
 4. **E1:** `user_role_assignments` + backfill dari `users.level`, `CheckRole`
    membaca assignment dengan fallback ke level lama selama transisi.
 5. **E2:** scoping query per controller, satu controller per PR, masing-masing

@@ -2,6 +2,23 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Verifikasi MySQL: 96 tes lulus di MariaDB 11.8.8
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Gerbang wajib sebelum fase multi-tenant boleh deploy: seluruh
+verifikasi sebelumnya hanya SQLite, padahal produksi MySQL, dan
+`whereJsonContains` di `transaksis.periode` belum pernah teruji di sana.
+**Perubahan:** Tidak ada perubahan kode aplikasi. Lingkungan dev: driver
+`pdo_mysql` dipasang, DB `paru_test` dibuat di MariaDB lokal.
+**File:** .ai/TODO.md (catatan lingkungan + centang), .ai/AUDIT-MULTITENANT.md
+**Catatan:** Hasil: 96 tes / 200 assertion lulus penuh di MariaDB 11.8.8;
+40 migrasi naik bersih; 3 migrasi multi-tenant diuji turun-naik di MySQL.
+Insiden yang terjadi dan dipulihkan: `dnf install php-mysqlnd` menarik paket
+PHP 8.5.9 Fedora 44 yang MENIMPA modul milik binary custom PHP 8.4.23
+(/usr/bin/php tak dimiliki paket mana pun) sehingga PDO mati total.
+Dipulihkan dengan mencabut ketiga paket 8.5.9, mengembalikan php.ini dari
+.rpmsave, dan mengekstrak modul dari RPM php 8.4.24 fc43 (API modul sama).
+Pelajarannya tercatat di TODO: jangan `dnf install php-*` di mesin ini.
+
 ## 2026-08-15 - Phase C multi-tenant: kolom organization_id + cap otomatis
 **Agen:** claude | **Status:** selesai (verifikasi MySQL menunggu akses root)
 **Kenapa:** Lanjutan B2. Data tenant butuh kolom kepemilikan sebelum query bisa

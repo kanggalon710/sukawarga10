@@ -52,13 +52,19 @@ asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
       `organization_id` + backfill di 12 tabel (migrasi `2026_08_15_000006`),
       trait `MilikOrganisasi` mengecap baris baru dari TenantContext dan
       menimpa kiriman client. 8 tes di `KepemilikanOrganisasiTest`.
-- [ ] **Verifikasi MySQL untuk B1+B2+C** (wajib sebelum deploy fase ini).
-      MariaDB lokal aktif; yang kurang cuma akses root pemilik mesin:
-      `sudo dnf install -y php-mysqlnd` lalu buat DB uji
-      (`sudo mariadb -e "CREATE DATABASE paru_test; CREATE USER 'paru_test'@'localhost' IDENTIFIED BY 'paru_test'; GRANT ALL ON paru_test.* TO 'paru_test'@'localhost';"`),
-      lalu jalankan suite dengan `DB_CONNECTION=mysql DB_DATABASE=paru_test
-      DB_USERNAME=paru_test DB_PASSWORD=paru_test DB_HOST=127.0.0.1`.
-      Sekalian menutup TODO lama `whereJsonContains` di MySQL.
+- [x] **Verifikasi MySQL selesai 2026-08-15.** Seluruh 96 tes lulus di
+      MariaDB 11.8.8 lokal (DB `paru_test`, user `paru_test`), termasuk
+      `whereJsonContains` pada `transaksis.periode` yang lama tertunda, dan
+      seluruh 40 migrasi naik + rollback 3 migrasi multi-tenant turun-naik
+      bersih. Cara ulang: `DB_CONNECTION=mysql DB_HOST=127.0.0.1
+      DB_DATABASE=paru_test DB_USERNAME=paru_test DB_PASSWORD=paru_test
+      php artisan test`.
+      CATATAN LINGKUNGAN: PHP mesin ini binary custom 8.4.23 di /usr/bin/php
+      yang TIDAK dimiliki paket RPM mana pun, dengan modul di
+      /usr/lib64/php/modules. JANGAN `dnf install php-*` di mesin ini: paket
+      Fedora 44 berversi 8.5 dan menimpa modul 8.4 (sudah pernah terjadi dan
+      dipulihkan dari RPM php 8.4.24 fc43). Driver pdo_mysql kini terpasang
+      dari ekstraksi fc43.
 - [ ] **E1:** `user_role_assignments` + backfill dari `users.level`,
       `CheckRole` membaca assignment dengan fallback level lama. Prasyarat:
       keputusan tabel `roles` mati (butir di bawah).
