@@ -2,6 +2,31 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Phase B1 multi-tenant: tabel organizations + domains
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik project menyetujui mulai implementasi dari B1 (langkah
+pertama audit bagian 10): fondasi hierarki tenant yang additive murni, supaya
+fase resolver dan scoping berdiri di atas tabel yang terjamin bentuknya.
+**Perubahan:**
+- Migrasi `2026_08_15_000004`: tabel `organizations` (self-referencing
+  parent_id, nullOnDelete) dan `domains` (hostname unique), plus seed hierarki
+  existing di dalam migrasi: Platform Jabnet > Desa Sukakarya > RW 10 > RT
+  (diderivasi dari `keluargas.rt` union `users.rt`, dinormalisasi dua digit).
+  Domain `paru.jabnet.id` (primary) dan `sukawarga10.jabnet.id` (legacy)
+  keduanya menunjuk RW 10.
+- Model `Organization` (relasi parent/children/domains, helper `leluhur()`)
+  dan `Domain`. `$fillable` eksplisit sesuai kolom.
+- 6 tes baru di `tests/Feature/OrganisasiTest.php` mengunci bentuk hierarki,
+  pemetaan domain, keunikan hostname, dan perilaku nullOnDelete.
+**File:** database/migrations/2026_08_15_000004_create_organizations_and_domains.php,
+app/Models/Organization.php, app/Models/Domain.php, tests/Feature/OrganisasiTest.php
+**Catatan:** Nol perubahan perilaku: belum ada controller/helper yang membaca
+tabel ini, dan 73 tes lama lulus tanpa disentuh (total 79). Verifikasi:
+rollback `--step=1` bersih; derivasi RT diuji dengan data '01'+'1'+'03' di
+keluargas dan '05' di users menghasilkan tepat 3 RT (01, 03, 05); Pint pass.
+Keputusan bentuk (penamaan Inggris snake_case untuk tabel infra, seed di
+migrasi, desa.jabnet.id sengaja tidak dimasukkan) tercatat di DECISIONS.
+
 ## 2026-08-15 - Audit Phase A multi-tenant (discovery, tanpa perubahan kode)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik project menambahkan `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`

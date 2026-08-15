@@ -3,6 +3,34 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Phase B1: bentuk tabel organizations/domains dan cara mengisinya
+**Konteks:** Implementasi multi-tenant dimulai dari B1 (audit bagian 10). Empat
+keputusan bentuk yang menetapkan preseden untuk fase berikutnya.
+**Keputusan:**
+1. **Tabel infrastruktur platform memakai Inggris snake_case + FK numerik**
+   (`organizations.parent_id`), BUKAN pola domain (kolom Indonesia camelCase +
+   ID bisnis string `prefix-uniqid`). Batasnya: tabel data warga tetap pola
+   lama, tabel infrastruktur platform mengikuti dokumen arsitektur. Alasan: ID
+   bisnis string lahir dari warisan PWA yang tidak berlaku untuk tabel baru,
+   dan `organization_id` akan dirujuk banyak tabel sehingga FK numerik asli
+   Laravel adalah jalur paling aman.
+2. **Seed hierarki DI DALAM migrasi, bukan DatabaseSeeder.** `DEPLOY.md`
+   menjadikan `db:seed` opsional di produksi; hierarki yang dititip di seeder
+   bisa tidak pernah ada di produksi dan fase berikutnya jatuh. Preseden:
+   backfill `users.keluarga_id`.
+3. **RT diderivasi dari data nyata** (`keluargas.rt` union `users.rt`,
+   dinormalisasi ke dua digit sehingga '1' dan '01' tidak jadi kembar), bukan
+   daftar tebakan. Diverifikasi dengan data uji: 01+1+03+05 menghasilkan 3 RT.
+4. **`desa.jabnet.id` SENGAJA tidak dimasukkan ke `domains`.** DNS-nya belum
+   ada, dan di arsitektur target belum diputuskan hostname itu milik level desa
+   atau sekadar nama baru portal RW 10. Memasukkannya sekarang berarti menebak
+   pemetaan tenant. `sukawarga10.jabnet.id` justru masuk (status `legacy`,
+   non-primary) supaya resolver B2 mengarahkannya ke RW 10, bukan 404.
+**Ditunda secara eksplisit:** nasib tabel `roles` mati baru relevan di E1
+(audit sempat menyebutnya prasyarat B1; itu terlalu ketat karena B1 tidak
+menyentuhnya). Uji MySQL tetap prasyarat sebelum fase yang mengubah index/JSON;
+belum bisa dijalankan di mesin ini karena PHP tanpa `pdo_mysql` (butuh root).
+
 ## 2026-08-15 - Alamat portal jadi setting sendiri, bukan turunan APP_URL
 **Konteks:** Link yang dikirim ke warga lewat WhatsApp ditulis tetap sebagai
 `sukawarga10.jabnet.id`, padahal produksi sudah pindah ke `paru.jabnet.id` dan

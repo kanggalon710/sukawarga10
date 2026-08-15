@@ -41,12 +41,19 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md` (planning only). Audit Phase A
 selesai 2026-08-15: `.ai/AUDIT-MULTITENANT.md` berisi inventori tabel tenant,
 asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
 
-- [ ] **Prasyarat B1:** jalankan suite tes di MySQL (juga tercatat di bawah),
-      dan putuskan nasib tabel `roles` yang mati (pakai ulang untuk
+- [x] **B1 selesai 2026-08-15:** tabel `organizations` + `domains` + seed
+      hierarki existing di migrasi `2026_08_15_000004`. Additive murni; 73 tes
+      lama tetap hijau, 6 tes baru di `tests/Feature/OrganisasiTest.php`.
+- [ ] **B2:** `TenantContext` service + middleware resolver hostname. Hostname
+      tak terdaftar → 404; `paru.jabnet.id` dan `sukawarga10.jabnet.id` sudah
+      terpetakan ke RW 10 di tabel `domains`. Perilaku produksi tidak boleh
+      berubah.
+- [ ] **Sebelum E1:** putuskan nasib tabel `roles` mati (pakai ulang untuk
       `user_role_assignments` atau drop) - catat di DECISIONS.
-- [ ] **B1:** tabel `organizations` + `domains` + seeder hierarki existing
-      (additive murni, nol perubahan perilaku).
-- [ ] Fase selanjutnya (B2-H) sesuai bagian 10 audit; jangan lompat ke scoping
+- [ ] **Sebelum fase yang mengubah index/JSON (C, F):** jalankan suite di MySQL.
+      Mesin dev: MariaDB aktif tapi PHP tanpa `pdo_mysql`; pasang dengan
+      `sudo dnf install -y php-mysqlnd`.
+- [ ] Fase selanjutnya (C-H) sesuai bagian 10 audit; jangan lompat ke scoping
       query sebelum context service ada.
 
 ## Belum dikerjakan

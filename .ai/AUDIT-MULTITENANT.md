@@ -195,8 +195,11 @@ Additive dulu, destructive belakangan. Nama tabel final belum dikunci (§43).
 Pemetaan Phase B-H dokumen ke langkah konkret repo ini, tiap langkah kecil,
 hijau, dan bisa dirilis sendiri:
 
-1. **B1 (additive murni, nol perubahan perilaku):** tabel `organizations` +
-   `domains` + seeder hierarki existing. Aplikasi belum membacanya.
+1. **B1 - SELESAI 2026-08-15** (migrasi `2026_08_15_000004`, tes
+   `OrganisasiTest`): tabel `organizations` + `domains` + seed hierarki
+   existing. Aplikasi belum membacanya. Catatan koreksi: prasyarat "keputusan
+   tabel `roles`" yang disebut di bawah ternyata baru relevan di E1, ditunda
+   eksplisit (lihat DECISIONS); prasyarat MySQL tetap berlaku untuk fase C/F.
 2. **B2:** `TenantContext` + middleware resolver, default ke RW 10 untuk semua
    hostname legacy. Perilaku produksi tidak berubah, tapi context mulai tersedia.
 3. **C:** kolom `organization_id` + backfill (semua baris = RW 10) + laporan
