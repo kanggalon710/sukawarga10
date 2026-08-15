@@ -90,6 +90,8 @@ masuk `.gitignore`. Kirim ke server lewat jalur terpisah. Lihat `DEPLOY.md`.
 | `.ai/HANDOFF.md` | **Mulai dari sini.** Keadaan terkini project, apa yang sudah/belum diverifikasi, dan jebakan yang perlu diketahui |
 | `AGENTS.md` | Aturan dan konvensi untuk siapa pun (termasuk AI agent) yang mengubah kode |
 | `DEPLOY.md` | Langkah deploy ke produksi |
+| `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md` | Visi arsitektur multi-desa (status: planning) |
+| `.ai/AUDIT-MULTITENANT.md` | Gap analysis single-RW menuju multi-tenant, hasil audit Phase A |
 | `.ai/PROGRESS.md` | Riwayat perubahan dan alasannya |
 | `.ai/TODO.md` | Pekerjaan yang belum selesai dan penghambatnya |
 | `.ai/DECISIONS.md` | Keputusan arsitektur beserta alasannya |

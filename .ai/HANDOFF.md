@@ -88,6 +88,13 @@ smoke test HTTP sungguhan termasuk login end-to-end.
 
 ## 5. Pekerjaan berikutnya
 
+**Arah besar:** project ini direncanakan berkembang jadi platform multi-desa.
+Visinya di `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md` (planning only, dokumen itu
+sendiri melarang refactor sebelum audit), dan auditnya SUDAH selesai:
+`.ai/AUDIT-MULTITENANT.md`. Kalau kamu diminta mengerjakan multi-tenant, mulai
+dari audit itu, jangan dari nol; implementasi belum dimulai dan menunggu
+keputusan pemilik project.
+
 Daftar lengkap dan alasannya ada di `.ai/TODO.md`. Ringkasnya, yang paling
 berdampak lebih dulu:
 

@@ -2,6 +2,25 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Audit Phase A multi-tenant (discovery, tanpa perubahan kode)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik project menambahkan `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`
+(visi platform multi-desa) yang §44-nya mewajibkan gap analysis sebelum satu
+baris pun di-refactor. Diminta dikerjakan bertahap; ini tahap pertamanya.
+**Perubahan:** Hanya dokumen. `.ai/AUDIT-MULTITENANT.md` baru berisi 10 bagian
+sesuai format §44: arsitektur saat ini, inventori 25 tabel dengan kolom scope
+aktualnya, alur otorisasi, 11 asumsi single-RW dengan bukti file:baris, asumsi
+domain, perubahan skema & kode yang dibutuhkan, risiko keamanan & migrasi, dan
+urutan fase. Rantai rujukan diperbarui (README, HANDOFF, TODO).
+**File:** .ai/AUDIT-MULTITENANT.md, AI_AGENT_MULTI_TENANT_ARCHITECTURE.md
+(commit terpisah), README.md, .ai/HANDOFF.md, .ai/TODO.md
+**Catatan:** Temuan yang tidak terduga: tabel `roles` sudah ada (json
+`permissions`, flag `rtFilter`) tapi nol rujukan di kode - kandidat pakai-ulang
+atau drop untuk `user_role_assignments`, harus diputuskan sebelum B1. Temuan
+baik: tidak ada logika hostname di mana pun, jadi resolver §14 bisa dibangun
+tanpa membongkar apa pun; `keluargas` bahkan sudah punya kolom `rw`/`kelurahan`/
+`kecamatan` (string hardcoded). Implementasi Phase B BELUM dimulai.
+
 ## 2026-08-15 - Alamat portal jadi pengaturan, dokumentasi ikut nama baru
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Diminta memperbarui berkas `.md` lain dan menyiapkan pindah domain ke

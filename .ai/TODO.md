@@ -35,6 +35,20 @@ Bukan pekerjaan kode, tapi jangan dilewat.
 - [ ] **Uji satu pembayaran sungguhan di produksi** setelah deploy, lalu cek
       kolom `kas` dan `transaksi_id` benar terisi.
 
+## Multi-tenant (menunggu keputusan mulai Phase B)
+
+Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md` (planning only). Audit Phase A
+selesai 2026-08-15: `.ai/AUDIT-MULTITENANT.md` berisi inventori tabel tenant,
+asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
+
+- [ ] **Prasyarat B1:** jalankan suite tes di MySQL (juga tercatat di bawah),
+      dan putuskan nasib tabel `roles` yang mati (pakai ulang untuk
+      `user_role_assignments` atau drop) - catat di DECISIONS.
+- [ ] **B1:** tabel `organizations` + `domains` + seeder hierarki existing
+      (additive murni, nol perubahan perilaku).
+- [ ] Fase selanjutnya (B2-H) sesuai bagian 10 audit; jangan lompat ke scoping
+      query sebelum context service ada.
+
 ## Belum dikerjakan
 
 - [x] ~~Dokumentasi masih menyebut SukaWarga10.~~ Selesai 2026-08-15: `README.md`,
