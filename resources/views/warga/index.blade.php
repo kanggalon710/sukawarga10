@@ -35,7 +35,7 @@
     </div>
 </div>
 
-@if(count($keluarga) > 0)
+@if($keluarga->total() > 0)
 
 {{-- Desktop Table --}}
 <div class="card warga-desktop-table" style="padding:0; overflow:hidden;">
@@ -45,7 +45,7 @@
             <tbody>
                 @foreach($keluarga as $i => $kk)
                 <tr>
-                    <td>{{ $i + 1 }}</td>
+                    <td>{{ $keluarga->firstItem() + $i }}</td>
                     <td><div class="list-name">{{ $kk->nama }}</div></td>
                     <td style="font-family:monospace; font-size:11px;">@if($kk->noKK){{ $kk->noKK }}@else<span style="color:var(--emas); font-family:inherit; font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Belum</span>@endif</td>
                     <td style="text-align:center; font-weight:700;">{{ $kk->rt }}</td>
@@ -96,6 +96,8 @@
     </a>
     @endforeach
 </div>
+
+@include('partials.pagination', ['paginator' => $keluarga])
 
 @else
 <div class="card" style="text-align:center; padding:40px;">

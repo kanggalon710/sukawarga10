@@ -6,14 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaksi extends Model
 {
+    // Harus cocok dengan kolom tabel `transaksis`. Sebelumnya daftar ini menyebut
+    // kolom yang tidak ada (keluarga_id, bulan, tahun, user_id) dan melewatkan kolom
+    // yang benar-benar ditulis controller, sehingga transaksi_id & kas dibuang diam-diam
+    // oleh mass assignment dan INSERT gagal (keduanya NOT NULL, transaksi_id UNIQUE).
     protected $fillable = [
-        'tanggal', 'jenis', 'kategori', 'keterangan', 'jumlah',
-        'keluarga_id', 'bulan', 'tahun', 'user_id',
-        // 'voided', 'voided_by', 'voided_at' are NOT fillable — only changed via explicit void action
+        'transaksi_id', 'tanggal', 'jenis', 'kas', 'kategori', 'keterangan',
+        'jumlah', 'refKeluargaId', 'periode', 'refNo', 'kwitansiNo', 'operator',
+        // 'voided', 'void_reason', 'void_by', 'void_at' sengaja TIDAK fillable —
+        // hanya boleh berubah lewat aksi void eksplisit di TransaksiController.
     ];
 
     protected $casts = [
         'voided' => 'boolean',
         'tanggal' => 'date',
+        'periode' => 'array', // kunci periode iuran, mis. ['JAN-M1','JAN-M2'] atau ['JAN','FEB']
     ];
 }

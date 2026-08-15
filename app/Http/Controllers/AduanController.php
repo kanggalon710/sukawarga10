@@ -41,7 +41,7 @@ class AduanController extends Controller
         $request->validate(['isi' => 'required']);
 
         $pelapor = $isWarga
-            ? ($user->nama ?? $user->username)
+            ? ($user->namaLengkap ?? $user->username)
             : $request->pelapor;
 
         $rt = $isWarga

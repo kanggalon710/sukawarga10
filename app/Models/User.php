@@ -11,9 +11,12 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    // Harus cocok dengan kolom tabel `users`. 'nama' dan 'noHP' dihapus dari
+    // daftar ini karena kolomnya tidak ada (nama lengkap = namaLengkap,
+    // nomor WA = wa) — menulis ke sana hanya dibuang diam-diam.
     protected $fillable = [
-        'user_id', 'username', 'nama', 'namaLengkap', 'pin',
-        'noHP', 'wa', 'rt', 'level', 'status', 'isDefault',
+        'user_id', 'username', 'namaLengkap', 'pin',
+        'wa', 'rt', 'keluarga_id', 'level', 'status', 'isDefault',
         'last_login_at', 'failed_login_count', 'locked_until',
     ];
 

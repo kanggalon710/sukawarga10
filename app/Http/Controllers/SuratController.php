@@ -106,7 +106,7 @@ class SuratController extends Controller
         if ($step === 'diajukan' && in_array($level, ['petugas_rt', 'superadmin', 'ketua_rw'])) {
             $surat->update([
                 'approval_step' => 'ttd_rt',
-                'rt_signed_by'  => $user->nama ?? $user->username,
+                'rt_signed_by'  => $user->namaLengkap ?? $user->username,
                 'rt_signed_at'  => now(),
             ]);
             AuditLogService::log('update', 'surat', "TTD RT surat {$surat->nomorSurat} oleh {$user->username}");
@@ -122,7 +122,7 @@ class SuratController extends Controller
         } elseif ($step === 'ttd_rt' && in_array($level, ['ketua_rw', 'superadmin'])) {
             $surat->update([
                 'approval_step' => 'ttd_rw',
-                'rw_signed_by'  => $user->nama ?? $user->username,
+                'rw_signed_by'  => $user->namaLengkap ?? $user->username,
                 'rw_signed_at'  => now(),
             ]);
             AuditLogService::log('update', 'surat', "TTD RW surat {$surat->nomorSurat} oleh {$user->username}");
@@ -139,7 +139,7 @@ class SuratController extends Controller
             $surat->update([
                 'approval_step' => 'selesai',
                 'status'        => 'selesai',
-                'sek_signed_by' => $user->nama ?? $user->username,
+                'sek_signed_by' => $user->namaLengkap ?? $user->username,
                 'sek_signed_at' => now(),
             ]);
             AuditLogService::log('update', 'surat', "Finalize surat {$surat->nomorSurat} oleh {$user->username}");
@@ -167,7 +167,7 @@ class SuratController extends Controller
         $surat->update([
             'approval_step'   => 'ditolak',
             'status'          => 'ditolak',
-            'rejected_by'     => $user->nama ?? $user->username,
+            'rejected_by'     => $user->namaLengkap ?? $user->username,
             'rejected_reason' => $request->alasan ?? 'Tidak ada alasan',
         ]);
 
@@ -185,9 +185,22 @@ class SuratController extends Controller
         return back()->with('success', "Surat {$surat->nomorSurat} ditolak.");
     }
 
+    /**
+     * Warga hanya boleh membuka surat miliknya sendiri. Tanpa ini, id di URL
+     * cukup untuk membaca surat warga lain (peran saja tidak menjamin kepemilikan).
+     */
+    private function pastikanBolehLihat(Surat $surat): void
+    {
+        $user = auth()->user();
+        if (($user->level ?? 'warga') === 'warga' && $surat->user_id !== $user->id) {
+            abort(403, 'Anda hanya dapat membuka surat milik sendiri.');
+        }
+    }
+
     public function show($id)
     {
         $surat = Surat::findOrFail($id);
+        $this->pastikanBolehLihat($surat);
         return response()->json($surat);
     }
 
@@ -213,6 +226,7 @@ class SuratController extends Controller
     public function cetak($id)
     {
         $surat = Surat::findOrFail($id);
+        $this->pastikanBolehLihat($surat);
         $settings = AppSetting::pluck('value', 'key')->toArray();
         return view('layanan.cetak_surat', compact('surat', 'settings'));
     }

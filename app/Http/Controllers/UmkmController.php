@@ -18,11 +18,23 @@ class UmkmController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'pemilik' => 'required', 'namaUsaha' => 'required',
+        // Kolom disebut satu per satu. Model ini $guarded = [], jadi $request->all()
+        // membuat kolom apa pun bisa diisi dari luar.
+        $validated = $request->validate([
+            'pemilik'   => 'required|string|max:100',
+            'namaUsaha' => 'required|string|max:150',
+            'rt'        => 'nullable|string|max:10',
+            'jenis'     => 'nullable|string|max:50',
+            'deskripsi' => 'nullable|string|max:2000',
+            'noHP'      => 'nullable|string|max:25',
+            'status'    => 'nullable|in:aktif,musiman,nonaktif',
         ]);
 
-        Umkm::create(array_merge($request->all(), ['umkm_id' => 'UMKM-' . uniqid()]));
+        $validated['umkm_id'] = 'UMKM-' . uniqid();
+        $validated['status'] = $validated['status'] ?? 'aktif';
+        $validated['noHP'] = normalizeWa($request->input('noHP'));
+
+        Umkm::create($validated);
         return back()->with('success', 'UMKM berhasil didaftarkan.');
     }
 

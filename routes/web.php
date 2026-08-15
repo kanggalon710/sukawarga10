@@ -78,21 +78,33 @@ Route::middleware('auth')->group(function () {
         ->name('laporan.tab');
 
     // Surat Menyurat
+    // Warga boleh mengajukan & melihat surat MILIKNYA SENDIRI (kepemilikan dicek
+    // di controller). Kelola & tanda tangan hanya untuk pengurus.
     Route::get('/surat', [SuratController::class, 'index'])->name('surat.index');
     Route::post('/surat', [SuratController::class, 'store'])->name('surat.store');
     Route::get('/surat/{id}/cetak', [SuratController::class, 'cetak'])->name('surat.cetak');
     Route::get('/surat/{id}', [SuratController::class, 'show'])->name('surat.show');
-    Route::put('/surat/{id}', [SuratController::class, 'update'])->name('surat.update');
-    Route::patch('/surat/{id}/status', [SuratController::class, 'updateStatus'])->name('surat.updateStatus');
-    Route::delete('/surat/{id}', [SuratController::class, 'destroy'])->name('surat.destroy');
-    Route::post('/surat/{id}/approve', [SuratController::class, 'approve'])->name('surat.approve');
-    Route::post('/surat/{id}/reject', [SuratController::class, 'reject'])->name('surat.reject');
+
+    // TTD/tolak: RT ke atas (tahap mana yang boleh ditandatangani dicek di controller)
+    Route::middleware('role:petugas_rt')->group(function () {
+        Route::post('/surat/{id}/approve', [SuratController::class, 'approve'])->name('surat.approve');
+        Route::post('/surat/{id}/reject', [SuratController::class, 'reject'])->name('surat.reject');
+    });
+
+    // Ubah/hapus surat: ketua RW ke atas
+    Route::middleware('role:ketua_rw')->group(function () {
+        Route::put('/surat/{id}', [SuratController::class, 'update'])->name('surat.update');
+        Route::patch('/surat/{id}/status', [SuratController::class, 'updateStatus'])->name('surat.updateStatus');
+        Route::delete('/surat/{id}', [SuratController::class, 'destroy'])->name('surat.destroy');
+    });
 
 
-    // UMKM Warga
+    // UMKM Warga — daftar boleh dilihat semua, pendataan & hapus hanya pengurus
     Route::get('/umkm', [UmkmController::class, 'index'])->name('umkm.index');
-    Route::post('/umkm', [UmkmController::class, 'store'])->name('umkm.store');
-    Route::delete('/umkm/{id}', [UmkmController::class, 'destroy'])->name('umkm.destroy');
+    Route::middleware('role:petugas_rt')->group(function () {
+        Route::post('/umkm', [UmkmController::class, 'store'])->name('umkm.store');
+        Route::delete('/umkm/{id}', [UmkmController::class, 'destroy'])->name('umkm.destroy');
+    });
 
     // Keuangan
     Route::get('/bukukas', [BukuKasController::class, 'index'])->name('bukukas.index');
@@ -108,13 +120,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/kas/sumbangan', [SumbanganController::class, 'store'])->name('kas.sumbangan.store');
 
     // Administrasi
+    // Warga boleh melapor & melihat aduannya sendiri; menindaklanjuti hanya pengurus.
     Route::get('/aduan', [AduanController::class, 'index'])->name('aduan.index');
     Route::post('/aduan', [AduanController::class, 'store'])->name('aduan.store');
-    Route::put('/aduan/{id}/status', [AduanController::class, 'updateStatus'])->name('aduan.updateStatus');
+    Route::middleware('role:petugas_rt')->group(function () {
+        Route::put('/aduan/{id}/status', [AduanController::class, 'updateStatus'])->name('aduan.updateStatus');
+    });
 
     Route::get('/kegiatan', [KegiatanController::class, 'index'])->name('kegiatan.index');
-    Route::post('/kegiatan', [KegiatanController::class, 'store'])->name('kegiatan.store');
-    Route::delete('/kegiatan/{id}', [KegiatanController::class, 'destroy'])->name('kegiatan.destroy');
+    Route::middleware('role:petugas_rt')->group(function () {
+        Route::post('/kegiatan', [KegiatanController::class, 'store'])->name('kegiatan.store');
+        Route::delete('/kegiatan/{id}', [KegiatanController::class, 'destroy'])->name('kegiatan.destroy');
+    });
 
     // MPWA
     Route::get('/mpwa', [MpwaController::class, 'index'])->name('mpwa.index');
@@ -158,7 +175,9 @@ Route::middleware('auth')->group(function () {
     });
 
     // Global Search API (parameterized to prevent SQL injection)
-    Route::get('/search', function (\Illuminate\Http\Request $request) {
+    // Hanya pengurus: hasilnya memuat nama + nomor HP seluruh warga, jadi tidak
+    // boleh terbuka untuk akun level warga.
+    Route::middleware('role:petugas_rt')->get('/search', function (\Illuminate\Http\Request $request) {
         $q = $request->get('q', '');
         if (strlen($q) < 2) return response()->json([]);
         $results = \App\Models\Keluarga::where('nama', 'like', '%' . str_replace(['%', '_'], ['\%', '\_'], $q) . '%')

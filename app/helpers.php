@@ -48,11 +48,12 @@ if (!function_exists('userCan')) {
 
         $perms = getMenuPermissions();
 
-        // If level not found in permissions config, grant full access (safety fallback)
-        if (!isset($perms[$level])) return true;
+        // Level yang tidak dikenal DITOLAK. Sebelumnya di sini `return true`
+        // (fail-open), sehingga level salah ketik atau level baru yang belum
+        // didaftarkan otomatis mendapat akses penuh ke seluruh menu.
+        if (!isset($perms[$level])) return false;
 
-        $allowed = $perms[$level] ?? [];
-        return in_array($menuKey, $allowed);
+        return in_array($menuKey, $perms[$level], true);
     }
 }
 

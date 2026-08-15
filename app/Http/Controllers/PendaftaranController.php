@@ -38,8 +38,9 @@ class PendaftaranController extends Controller
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($p, &$username, &$generatedPin) {
             // Create Keluarga
+            $keluargaId = 'kk_' . uniqid();
             \App\Models\Keluarga::create([
-                'keluarga_id'     => 'kk_' . uniqid(),
+                'keluarga_id'     => $keluargaId,
                 'noKK'            => $p->no_kk,
                 'nik'             => $p->nik,
                 'nama'            => $p->nama_lengkap,
@@ -48,7 +49,7 @@ class PendaftaranController extends Controller
                 'rw'              => '10',
                 'kelurahan'       => 'Sukakarya',
                 'kecamatan'       => 'Tarogong Kidul',
-                'noHP'            => $p->no_wa,
+                'noHP'            => normalizeWa($p->no_wa), // satu format nomor di seluruh aplikasi
                 'jumlahAnggota'   => 1,
                 'status'          => 'aktif',
                 'ikutSampah'      => true,
@@ -72,7 +73,8 @@ class PendaftaranController extends Controller
                 'pin'         => \Illuminate\Support\Facades\Hash::make($generatedPin),
                 'level'       => 'warga',
                 'rt'          => $p->rt,
-                'wa'          => $p->no_wa,
+                'wa'          => normalizeWa($p->no_wa),
+                'keluarga_id' => $keluargaId, // pengikat kepemilikan halaman Profil Saya
                 'isDefault'   => false,
                 'status'      => 'aktif',
             ]);

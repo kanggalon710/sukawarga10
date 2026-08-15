@@ -21,7 +21,9 @@ class KeluargaController extends Controller
         if ($request->filter === 'belum_kk') {
             $query->where(function ($q) { $q->whereNull('noKK')->orWhere('noKK', ''); });
         }
-        $keluarga = $query->get();
+        // Dipaginasi supaya halaman tidak ikut membesar seiring bertambahnya KK.
+        // withQueryString() menjaga filter rt/q/status saat pindah halaman.
+        $keluarga = $query->paginate(50)->withQueryString();
         return view('warga.index', compact('keluarga'));
     }
 

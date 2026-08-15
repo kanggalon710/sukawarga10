@@ -216,9 +216,9 @@
             <div style="margin-bottom:14px;">
                 <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama Pemohon *</label>
                 @if($isWarga)
-                <input type="hidden" name="pemohon" value="{{ $user->nama ?? $user->username }}">
+                <input type="hidden" name="pemohon" value="{{ $user->namaLengkap ?? $user->username }}">
                 <div style="padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:var(--abu); color:var(--text2);">
-                    {{ $user->nama ?? $user->username }}
+                    {{ $user->namaLengkap ?? $user->username }}
                 </div>
                 @else
                 <select name="pemohon" required

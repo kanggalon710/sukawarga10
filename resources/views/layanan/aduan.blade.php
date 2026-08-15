@@ -221,10 +221,10 @@ $katIcon = match($a->kategori) {
             @csrf
             @if($isWarga)
             {{-- Warga: auto-filled pelapor --}}
-            <input type="hidden" name="pelapor" value="{{ $user->nama ?? $user->username }}">
+            <input type="hidden" name="pelapor" value="{{ $user->namaLengkap ?? $user->username }}">
             <input type="hidden" name="rt" value="{{ $user->rt ?? '' }}">
             <div style="margin-bottom:14px; padding:10px 12px; background:var(--abu); border-radius:var(--radius-sm); font-size:13px;">
-                <strong>{{ $user->nama ?? $user->username }}</strong> — RT {{ $user->rt ?? '-' }}
+                <strong>{{ $user->namaLengkap ?? $user->username }}</strong> — RT {{ $user->rt ?? '-' }}
             </div>
             @else
             {{-- Pengurus: search pelapor --}}

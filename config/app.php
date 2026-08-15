@@ -65,7 +65,10 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // WIB, bukan UTC. Perhitungan "bulan ini" pada tagihan iuran dan stempel
+    // waktu audit memakai zona waktu aplikasi; dengan UTC, pembayaran yang
+    // dicatat sebelum pukul 07.00 WIB tanggal 1 masih terhitung bulan sebelumnya.
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------

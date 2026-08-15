@@ -86,9 +86,8 @@
                 @if(userCan('pendaftaran'))
                 <a href="{{ route('pendaftaran.index') }}" class="nav-item {{ request()->routeIs('pendaftaran.*') ? 'active' : '' }}" style="position:relative;">
                     <i class="fas fa-user-clock nav-icon"></i> Pendaftaran
-                    @php $pending = \App\Models\Pendaftaran::where('status','pending')->count(); @endphp
-                    @if($pending > 0)
-                    <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:var(--merah, #e53e3e); color:white; font-size:10px; font-weight:700; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center;">{{ $pending }}</span>
+                    @if(($pendaftaranPending ?? 0) > 0)
+                    <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:var(--merah, #e53e3e); color:white; font-size:10px; font-weight:700; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center;" aria-label="{{ $pendaftaranPending }} pendaftaran menunggu verifikasi">{{ $pendaftaranPending }}</span>
                     @endif
                 </a>
                 @endif
@@ -193,11 +192,14 @@
                     </div>
                 </div>
                 <div class="header-right">
+                    @if(auth()->user()->level !== 'warga')
+                    {{-- Pencarian global memuat data seluruh warga, jadi hanya untuk pengurus --}}
                     <div class="header-search">
                         <i class="fas fa-search header-search-icon"></i>
                         <input type="text" id="globalSearch" placeholder="Cari warga..." autocomplete="off">
                         <div class="search-dropdown" id="searchDropdown"></div>
                     </div>
+                    @endif
                     <div style="position:relative;">
                         <div class="header-avatar" id="avatarBtn" style="cursor:pointer;" title="{{ Auth::user()->namaLengkap ?? 'Admin' }}">
                             {{ strtoupper(substr(Auth::user()->namaLengkap ?? 'A', 0, 1)) }}

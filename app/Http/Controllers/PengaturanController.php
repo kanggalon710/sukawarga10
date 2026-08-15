@@ -14,12 +14,52 @@ class PengaturanController extends Controller
         return view('admin.pengaturan', compact('settings'));
     }
 
+    /**
+     * Key yang boleh ditulis lewat form Pengaturan.
+     *
+     * Whitelist, bukan blacklist: tabel app_settings ikut menentukan otorisasi
+     * (`role_permissions`) dan ambang kemiskinan, jadi menerima key apa pun dari
+     * request berarti siapa pun yang bisa membuka halaman ini bisa menaikkan
+     * haknya sendiri. `role_permissions` hanya lewat Manajemen Akun (superadmin),
+     * `mpwa_templates` & `notif_*` hanya lewat halaman MPWA.
+     */
+    private const KEY_DIIZINKAN = [
+        'nama_rw', 'ketua_rw', 'kelurahan', 'kecamatan', 'kabupaten',
+        'nama_operator', 'tahun_aktif',
+        'tarif_sampah', 'tarif_padaringan', 'garis_kemiskinan',
+        'mpwa_api_key', 'mpwa_sender', 'mpwa_api_url',
+    ];
+
     public function update(Request $request)
     {
         $tab = $request->input('_active_tab', 'tarif');
-        foreach ($request->except(['_token', '_active_tab']) as $key => $value) {
-            AppSetting::updateOrCreate(['key' => $key], ['value' => $value]);
+
+        $validated = $request->validate([
+            'nama_rw'          => 'nullable|string|max:100',
+            'ketua_rw'         => 'nullable|string|max:100',
+            'kelurahan'        => 'nullable|string|max:100',
+            'kecamatan'        => 'nullable|string|max:100',
+            'kabupaten'        => 'nullable|string|max:100',
+            'nama_operator'    => 'nullable|string|max:100',
+            'tahun_aktif'      => 'nullable|integer|min:2000|max:2100',
+            'tarif_sampah'     => 'nullable|integer|min:0',
+            'tarif_padaringan' => 'nullable|integer|min:0',
+            'garis_kemiskinan' => 'nullable|integer|min:0',
+            'mpwa_api_key'     => 'nullable|string|max:255',
+            'mpwa_sender'      => 'nullable|string|max:50',
+            'mpwa_api_url'     => 'nullable|url|max:255',
+        ]);
+
+        foreach (self::KEY_DIIZINKAN as $key) {
+            if (!array_key_exists($key, $validated)) continue;
+            AppSetting::updateOrCreate(['key' => $key], ['value' => $validated[$key]]);
         }
+
+        \App\Services\AuditLogService::log(
+            'update', 'pengaturan',
+            'Ubah pengaturan: ' . implode(', ', array_keys(array_intersect_key($validated, array_flip(self::KEY_DIIZINKAN))))
+        );
+
         return redirect()->route('pengaturan.index', ['tab' => $tab])
                          ->with('success', 'Pengaturan berhasil disimpan.');
     }
@@ -33,42 +73,38 @@ class PengaturanController extends Controller
             return back()->with('error', 'Konfirmasi salah. Ketik "RESET" untuk melanjutkan.');
         }
 
-        DB::beginTransaction();
+        // TIDAK dibungkus transaksi: TRUNCATE memicu implicit commit di MySQL,
+        // jadi beginTransaction/rollback di sini hanya memberi rasa aman palsu.
+        // Operasi ini memang tidak bisa dibatalkan; konfirmasi "RESET" adalah
+        // satu-satunya penjaga. Urutan dijaga dari tabel anak ke tabel induk.
+        $tabel = [
+            'iuran_sampahs', 'iuran_padaringans', 'setor_sampahs',
+            'transaksis', 'pengeluarans', 'sumbangans',
+            'aduans', 'surats', 'kegiatans', 'umkms',
+            'pendaftarans', 'anggotas', 'keluargas', 'audit_logs',
+        ];
+
         try {
-            // Order matters: delete children first, then parents
-            DB::table('iuran_sampahs')->truncate();
-            DB::table('iuran_padaringans')->truncate();
-            DB::table('setor_sampahs')->truncate();
-            DB::table('transaksis')->truncate();
-            DB::table('pengeluarans')->truncate();
-            DB::table('sumbangans')->truncate();
-            DB::table('aduans')->truncate();
-            DB::table('surats')->truncate();
-            DB::table('kegiatans')->truncate();
-            DB::table('umkms')->truncate();
-            DB::table('pendaftarans')->truncate();
-            DB::table('anggotas')->truncate();
-            DB::table('keluargas')->truncate();
-            DB::table('audit_logs')->truncate();
-
-            DB::commit();
-
-            // Log the reset action
-            if (class_exists(\App\Models\AuditLog::class)) {
-                \App\Models\AuditLog::create([
-                    'user_id' => auth()->id(),
-                    'aksi' => 'reset_data',
-                    'deskripsi' => 'Seluruh data operasional direset oleh ' . (auth()->user()->name ?? 'admin'),
-                    'ip' => $request->ip(),
-                ]);
+            foreach ($tabel as $t) {
+                DB::table($t)->truncate();
             }
-
-            return redirect()->route('pengaturan.index', ['tab' => 'data'])
-                             ->with('success', 'Semua data operasional berhasil direset.');
         } catch (\Exception $e) {
-            DB::rollback();
             return back()->with('error', 'Gagal reset data: ' . $e->getMessage());
         }
+
+        // Ditulis SETELAH truncate, supaya jejaknya tidak ikut terhapus.
+        // Lewat AuditLogService, bukan AuditLog::create langsung: skema audit_logs
+        // tidak punya kolom user_id/ip, dan penulisan langsung sebelumnya selalu
+        // melempar exception sehingga reset yang berhasil dilaporkan sebagai gagal.
+        $user = auth()->user();
+        \App\Services\AuditLogService::log(
+            'reset_data', 'pengaturan',
+            'Seluruh data operasional direset oleh ' . ($user->namaLengkap ?? $user->username ?? 'admin')
+            . ' (IP: ' . $request->ip() . ')'
+        );
+
+        return redirect()->route('pengaturan.index', ['tab' => 'data'])
+                         ->with('success', 'Semua data operasional berhasil direset.');
     }
 
     /**

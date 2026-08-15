@@ -13,7 +13,8 @@ use App\Services\MpwaService;
 
 class MpwaController extends Controller
 {
-    const MPWA_BASE = 'https://mpwa.jabnet.id';
+    // Base URL & footer gateway TIDAK didefinisikan ulang di sini —
+    // sumber tunggalnya MpwaService (lihat MpwaService::baseUrl() & ::FOOTER).
 
     // ── Default / builtin templates ───────────────────────────────────────────
     const DEFAULT_TEMPLATES = [
@@ -108,12 +109,12 @@ class MpwaController extends Controller
         if (!$sender) return response()->json(['success' => false, 'message' => 'Nomor Pengirim belum dikonfigurasi di Pengaturan.']);
         if (!$testNo) return response()->json(['success' => false, 'message' => 'Nomor tujuan test tidak valid.']);
 
-        $resp = Http::timeout(20)->post(self::MPWA_BASE . '/send-message', [
+        $resp = Http::timeout(20)->post(MpwaService::baseUrl() . '/send-message', [
             'api_key' => $apiKey,
             'sender'  => $sender,
             'number'  => $testNo,
             'message' => "✅ *Test Koneksi MPWA*\n\nSukaWarga10 berhasil terhubung ke gateway WhatsApp!\n_Pesan ini dikirim otomatis oleh sistem._",
-            'footer'  => 'SukaWarga10 • RW 10 Sukakarya',
+            'footer'  => MpwaService::FOOTER,
         ]);
 
         $body = $resp->json();
@@ -187,7 +188,7 @@ class MpwaController extends Controller
                     'sender'  => $sender,
                     'number'  => $number,
                     'message' => $msg,
-                    'footer'  => 'SukaWarga10 • RW 10 Sukakarya',
+                    'footer'  => MpwaService::FOOTER,
                 ];
 
                 // Use button endpoint if buttons exist
@@ -198,7 +199,7 @@ class MpwaController extends Controller
                     $endpoint = '/send-message';
                 }
 
-                $resp = Http::timeout(15)->post(self::MPWA_BASE . $endpoint, $payload);
+                $resp = Http::timeout(15)->post(MpwaService::baseUrl() . $endpoint, $payload);
                 $body = $resp->json();
                 if ($resp->successful() && (($body['status'] ?? false) || isset($body['id']))) {
                     $sent++;

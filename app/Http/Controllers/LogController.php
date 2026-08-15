@@ -8,7 +8,9 @@ class LogController extends Controller
 {
     public function index()
     {
-        $logs = AuditLog::orderByDesc('tanggal')->limit(200)->get();
+        // Dipaginasi, bukan limit(200) diam-diam: audit_logs tumbuh terus dan
+        // batas tersembunyi membuat log lama tampak tidak pernah ada.
+        $logs = AuditLog::orderByDesc('tanggal')->paginate(50)->withQueryString();
         return view('admin.log', compact('logs'));
     }
 }

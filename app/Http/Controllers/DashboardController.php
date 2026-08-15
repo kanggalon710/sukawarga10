@@ -23,50 +23,85 @@ class DashboardController extends Controller
 
         // Core stats
         $totalKK = Keluarga::where('status', 'aktif')->count();
-        // Jiwa = kepala KK aktif + anggota (live count) — satu definisi, konsisten dgn Laporan & accessor
         $kkAktifIds = Keluarga::where('status', 'aktif')->pluck('keluarga_id');
-        $totalJiwa = $totalKK + \App\Models\Anggota::whereIn('keluarga_id', $kkAktifIds)->count();
 
-        // Saldo per kas
+        // Seluruh anggota KK aktif diambil SEKALI lalu dipakai ulang untuk jiwa,
+        // demografi per RT, dan indeks kesejahteraan di bawah.
+        $agByKK = \App\Models\Anggota::whereIn('keluarga_id', $kkAktifIds)
+            ->get(['keluarga_id', 'pekerjaan', 'statusPekerjaan', 'penghasilan'])
+            ->groupBy('keluarga_id');
+
+        // Jiwa = kepala KK aktif + anggota — satu definisi, konsisten dgn Laporan & accessor
+        $totalJiwa = $totalKK + $agByKK->flatten()->count();
+
+        // --- Agregat transaksi ---
+        // Tiga query menggantikan ~24 query yang sebelumnya dijalankan di dalam loop
+        // (per jenis kas, per bulan). Baris tahun berjalan dipakai ulang untuk saldo,
+        // ringkasan bulanan, dan grafik tren.
         $kasTypes = ['umum', 'sampah', 'padaringan'];
-        $saldos = [];
-        foreach ($kasTypes as $kas) {
-            $masuk = Transaksi::where('kas', $kas)->whereYear('tanggal', $tahun)->where('jenis', 'masuk')->where('voided', false)->sum('jumlah');
-            $keluar = Transaksi::where('kas', $kas)->whereYear('tanggal', $tahun)->where('jenis', 'keluar')->where('voided', false)->sum('jumlah');
-            $saldos[$kas] = $masuk - $keluar;
-        }
-        $saldos['total'] = array_sum($saldos);
+
+        $ringkasSaldo = function ($rows) use ($kasTypes) {
+            $hasil = [];
+            foreach ($kasTypes as $kas) {
+                $baris = $rows->where('kas', $kas);
+                $hasil[$kas] = (int) $baris->where('jenis', 'masuk')->sum('jumlah')
+                             - (int) $baris->where('jenis', 'keluar')->sum('jumlah');
+            }
+            $hasil['total'] = array_sum($hasil);
+            return $hasil;
+        };
+
+        $trxTahunIni = Transaksi::where('voided', false)->whereYear('tanggal', $tahun)
+            ->get(['tanggal', 'jenis', 'kas', 'jumlah']);
+
+        $saldos = $ringkasSaldo($trxTahunIni);
 
         // Saldo KUMULATIF (all-time, non-void) — saldo kas riil bersifat akumulatif lintas tahun,
         // bukan di-reset per tahun. Dipakai untuk kartu "Saldo Kas" agar akuntansinya benar.
-        $saldoKumulatif = [];
-        foreach ($kasTypes as $kas) {
-            $m = Transaksi::where('kas', $kas)->where('jenis', 'masuk')->where('voided', false)->sum('jumlah');
-            $k = Transaksi::where('kas', $kas)->where('jenis', 'keluar')->where('voided', false)->sum('jumlah');
-            $saldoKumulatif[$kas] = $m - $k;
-        }
-        $saldoKumulatif['total'] = array_sum($saldoKumulatif);
+        $saldoKumulatif = $ringkasSaldo(
+            Transaksi::where('voided', false)
+                ->selectRaw('kas, jenis, SUM(jumlah) as jumlah')
+                ->groupBy('kas', 'jenis')->get()
+        );
 
-        // Pemasukan/Pengeluaran bulan ini
-        $pemasukanBulanIni = Transaksi::whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulanIni)->where('jenis', 'masuk')->where('voided', false)->sum('jumlah');
-        $pengeluaranBulanIni = Transaksi::whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulanIni)->where('jenis', 'keluar')->where('voided', false)->sum('jumlah');
+        // Ringkasan per bulan dari baris yang sudah diambil
+        $totalBulan = fn($rows, $bulan, $jenis) => (int) $rows
+            ->where('jenis', $jenis)
+            ->filter(fn($t) => (int) $t->tanggal->month === (int) $bulan)
+            ->sum('jumlah');
+
+        $pemasukanBulanIni = $totalBulan($trxTahunIni, $bulanIni, 'masuk');
+        $pengeluaranBulanIni = $totalBulan($trxTahunIni, $bulanIni, 'keluar');
 
         // Bulan lalu — untuk delta MoM (tangani batas pergantian tahun)
         $blnLalu = $bulanIni == 1 ? 12 : $bulanIni - 1;
         $thnLalu = $bulanIni == 1 ? ((int)$tahun - 1) : $tahun;
-        $pemasukanBulanLalu = Transaksi::whereYear('tanggal', $thnLalu)->whereMonth('tanggal', $blnLalu)->where('jenis', 'masuk')->where('voided', false)->sum('jumlah');
-        $pengeluaranBulanLalu = Transaksi::whereYear('tanggal', $thnLalu)->whereMonth('tanggal', $blnLalu)->where('jenis', 'keluar')->where('voided', false)->sum('jumlah');
+        $trxBulanLalu = $thnLalu == $tahun
+            ? $trxTahunIni
+            : Transaksi::where('voided', false)->whereYear('tanggal', $thnLalu)
+                ->get(['tanggal', 'jenis', 'kas', 'jumlah']);
+        $pemasukanBulanLalu = $totalBulan($trxBulanLalu, $blnLalu, 'masuk');
+        $pengeluaranBulanLalu = $totalBulan($trxBulanLalu, $blnLalu, 'keluar');
 
-        // Tunggakan: KK yang ikut sampah tapi belum bayar bulan ini (any week)
-        $kkSampah = Keluarga::where('status', 'aktif')->where('ikutSampah', true)->get();
-        $kkBayarSampahIds = IuranSampah::where('tahun', $tahun)->get()->filter(function($i) use ($bulanKey) {
-            $weeks = $i->weeks ?? [];
-            foreach ($weeks as $key => $val) {
+        // Data iuran tahun berjalan diambil sekali, dipakai untuk tunggakan DAN
+        // tingkat pembayaran per RT di bawah (sebelumnya di-query dua kali).
+        $iuranSampahAll = IuranSampah::where('tahun', $tahun)->get()->keyBy('keluarga_id');
+
+        // Satu definisi "sudah lunas bulan ini", dipakai di semua perhitungan sampah.
+        $lunasBulanIni = function ($keluargaId) use ($iuranSampahAll, $bulanKey) {
+            $iur = $iuranSampahAll[$keluargaId] ?? null;
+            if (!$iur) return false;
+            foreach ($iur->weeks ?? [] as $key => $val) {
                 if (str_starts_with($key, $bulanKey) && $val === 'lunas') return true;
             }
             return false;
-        })->pluck('keluarga_id')->toArray();
-        $tunggakanSampahIds = $kkSampah->pluck('keluarga_id')->diff($kkBayarSampahIds)->toArray();
+        };
+
+        // Tunggakan: KK yang ikut sampah tapi belum bayar bulan ini (any week)
+        $kkSampah = Keluarga::where('status', 'aktif')->where('ikutSampah', true)->get();
+        $tunggakanSampahIds = $kkSampah
+            ->reject(fn($k) => $lunasBulanIni($k->keluarga_id))
+            ->pluck('keluarga_id')->values()->toArray();
         $tunggakanSampah = count($tunggakanSampahIds);
 
         $kkPadaringan = Keluarga::where('status', 'aktif')->where('ikutPadaringan', true)->get();
@@ -79,33 +114,27 @@ class DashboardController extends Controller
         // DISTINCT KK yang menunggak di minimal 1 jenis iuran
         $tunggakanDistinct = count(array_unique(array_merge($tunggakanSampahIds, $tunggakanPadaringanIds)));
 
-        // Tren Kas (6 bulan)
+        // Tren Kas (6 bulan) — dari baris yang sudah diambil di atas, tanpa query per bulan
         $trenKas = [];
         $namaBulan = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
         $semester = $bulanIni <= 6 ? range(1, 6) : range(7, 12);
         foreach ($semester as $m) {
-            $masuk = Transaksi::whereYear('tanggal', $tahun)->whereMonth('tanggal', $m)->where('jenis', 'masuk')->where('voided', false)->sum('jumlah');
-            $keluar = Transaksi::whereYear('tanggal', $tahun)->whereMonth('tanggal', $m)->where('jenis', 'keluar')->where('voided', false)->sum('jumlah');
-            $trenKas[] = ['bulan' => $namaBulan[$m], 'masuk' => (int)$masuk, 'keluar' => (int)$keluar];
+            $trenKas[] = [
+                'bulan' => $namaBulan[$m],
+                'masuk' => $totalBulan($trxTahunIni, $m, 'masuk'),
+                'keluar' => $totalBulan($trxTahunIni, $m, 'keluar'),
+            ];
         }
 
-        // Tingkat Pembayaran per RT
+        // Tingkat Pembayaran per RT — dikelompokkan dari koleksi $kkSampah yang sudah
+        // diambil di atas, bukan satu query per RT.
         $rts = Keluarga::where('status', 'aktif')->select('rt')->distinct()->orderBy('rt')->pluck('rt');
         $pembayaranRT = [];
-        $iuranSampahAll = IuranSampah::where('tahun', $tahun)->get()->keyBy('keluarga_id');
+        $kkSampahByRT = $kkSampah->groupBy('rt');
         foreach ($rts as $rt) {
-            $kkRT = Keluarga::where('rt', $rt)->where('status', 'aktif')->where('ikutSampah', true)->get();
+            $kkRT = $kkSampahByRT->get($rt, collect());
             $totalKKRT = $kkRT->count();
-            $lunasRT = 0;
-            foreach ($kkRT as $k) {
-                $iur = $iuranSampahAll[$k->keluarga_id] ?? null;
-                if ($iur) {
-                    $weeks = $iur->weeks ?? [];
-                    foreach ($weeks as $key => $val) {
-                        if (str_starts_with($key, $bulanKey) && $val === 'lunas') { $lunasRT++; break; }
-                    }
-                }
-            }
+            $lunasRT = $kkRT->filter(fn($k) => $lunasBulanIni($k->keluarga_id))->count();
             $pembayaranRT[] = [
                 'rt' => $rt, 'total_kk' => $totalKKRT, 'lunas' => $lunasRT,
                 'persentase' => $totalKKRT > 0 ? round($lunasRT / $totalKKRT * 100) : 0,
@@ -126,12 +155,17 @@ class DashboardController extends Controller
         $avgPengeluaranBulanan = $pengeluaran6bln / 6;
         $runwayBulan = $avgPengeluaranBulanan > 0 ? round($saldoKumulatif['total'] / $avgPengeluaranBulanan, 1) : null;
 
-        // Demografi per RT
+        // Profil Sosial — seluruh KK aktif diambil sekali, dipakai juga oleh
+        // demografi per RT dan indeks kesejahteraan di bawah.
+        $allKK = Keluarga::where('status', 'aktif')->get();
+
+        // Demografi per RT — dikelompokkan di memori, bukan 2 query per RT
+        $allKKByRT = $allKK->groupBy('rt');
         $demografiRT = [];
         foreach ($rts as $rt) {
-            $kkIdsRT = Keluarga::where('rt', $rt)->where('status', 'aktif')->pluck('keluarga_id');
-            $jmlKK = $kkIdsRT->count();
-            $jmlAnggota = \App\Models\Anggota::whereIn('keluarga_id', $kkIdsRT)->count();
+            $kkRT = $allKKByRT->get($rt, collect());
+            $jmlKK = $kkRT->count();
+            $jmlAnggota = $kkRT->sum(fn($k) => $agByKK->get($k->keluarga_id, collect())->count());
             $demografiRT[] = [
                 'rt' => $rt,
                 'kk' => $jmlKK,
@@ -139,8 +173,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // Profil Sosial
-        $allKK = Keluarga::where('status', 'aktif')->get();
         $bansosCount = 0; $rentanCount = 0;
         foreach ($allKK as $k) {
             $bansos = $k->bansos ?? [];
@@ -161,7 +193,7 @@ class DashboardController extends Controller
         $rtlh = 0; $rentanEkonomi = 0; $sanitasiTakLayak = 0; $bpjsCov = 0; $airAman = 0; $inklusiKeuangan = 0;
         $tanpaPekerja = 0; $bawahGaris = 0;
         $garis = garisKemiskinan();
-        $agByKK = \App\Models\Anggota::whereIn('keluarga_id', $kkAktifIds)->get()->groupBy('keluarga_id');
+        // $agByKK sudah diambil di awal method — tidak di-query ulang di sini.
         $dindingTakLayak = ['Bambu', 'Papan', 'Tembok tdk/plester'];
         foreach ($allKK as $k) {
             // Ekonomi rumah tangga: hitung SEMUA pekerja dalam KK (bukan hanya kepala keluarga)

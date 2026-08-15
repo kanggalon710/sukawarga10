@@ -7,13 +7,20 @@ use App\Models\Keluarga;
 
 class ProfilWargaController extends Controller
 {
+    /**
+     * KK milik user yang sedang login.
+     *
+     * Dicari lewat kunci eksplisit `users.keluarga_id`, bukan lewat kecocokan
+     * nama seperti sebelumnya — dua warga bernama sama membuat orang bisa
+     * membuka dan mengubah data KK orang lain. Akun yang belum tertaut
+     * mendapat null, dan pemanggilnya menolak dengan pesan yang jelas.
+     */
     private function findKeluarga()
     {
-        $user = auth()->user();
-        return Keluarga::with('anggota')
-            ->where('nama', $user->namaLengkap)
-            ->orWhere('noHP', $user->wa)
-            ->first();
+        $keluargaId = auth()->user()->keluarga_id;
+        if (!$keluargaId) return null;
+
+        return Keluarga::with('anggota')->where('keluarga_id', $keluargaId)->first();
     }
 
     private function calcCompletion($kk)

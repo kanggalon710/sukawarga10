@@ -3,10 +3,15 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\AppSetting;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
+/**
+ * NotificationService — PENYALURAN notifikasi (siapa yang dikirimi).
+ *
+ * Pengirimannya sendiri milik MpwaService. Sebelumnya kelas ini punya
+ * implementasi HTTP-nya sendiri dengan endpoint, cara auth, dan normalisasi
+ * nomor yang berbeda (hanya menangani awalan 08, sehingga nomor 8xx dan +62
+ * salah kirim). Satu aturan pengiriman, satu tempat.
+ */
 class NotificationService
 {
     /**
@@ -14,31 +19,7 @@ class NotificationService
      */
     public static function sendWA(string $phone, string $message): bool
     {
-        try {
-            $apiKey = AppSetting::where('key', 'mpwa_api_key')->value('value');
-            $sender = AppSetting::where('key', 'mpwa_sender')->value('value');
-            $apiUrl = AppSetting::where('key', 'mpwa_api_url')->value('value') ?: 'https://mpwa.jabnet.id';
-
-            if (!$apiKey || !$sender) {
-                Log::warning('NotificationService: MPWA not configured');
-                return false;
-            }
-
-            $phone = preg_replace('/[^0-9]/', '', $phone);
-            if (str_starts_with($phone, '08')) $phone = '62' . substr($phone, 1);
-
-            $res = Http::withHeaders(['Authorization' => $apiKey])
-                ->post("$apiUrl/api/send-message", [
-                    'sender'  => $sender,
-                    'number'  => $phone,
-                    'message' => $message,
-                ]);
-
-            return $res->successful();
-        } catch (\Exception $e) {
-            Log::error('NotificationService WA error: ' . $e->getMessage());
-            return false;
-        }
+        return MpwaService::send($phone, $message);
     }
 
     /**
@@ -46,8 +27,7 @@ class NotificationService
      */
     public static function isEnabled(string $key): bool
     {
-        $val = AppSetting::where('key', $key)->value('value');
-        return ($val ?? '1') == '1';
+        return MpwaService::isEnabled($key);
     }
 
     /**

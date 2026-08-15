@@ -5,10 +5,10 @@
 
 @section('content')
 <div class="toolbar">
-    <div class="toolbar-left"><span style="font-size:13px; font-weight:600;">{{ count($logs) }} log tercatat</span></div>
+    <div class="toolbar-left"><span style="font-size:13px; font-weight:600;">{{ $logs->total() }} log tercatat</span></div>
 </div>
 
-@if(count($logs) > 0)
+@if($logs->total() > 0)
 <div class="card" style="padding:0; overflow:hidden;">
     <div class="data-table-wrapper">
         <table class="data-table">
@@ -30,6 +30,7 @@
         </table>
     </div>
 </div>
+@include('partials.pagination', ['paginator' => $logs])
 @else
 <div class="card" style="text-align:center; padding:40px;">
     <i class="fas fa-history" style="font-size:48px; color:var(--abu3); margin-bottom:16px;"></i>

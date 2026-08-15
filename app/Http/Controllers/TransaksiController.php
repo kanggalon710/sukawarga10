@@ -57,11 +57,13 @@ class TransaksiController extends Controller
         $existingDates = $iuran->weekDates ?? [];
 
         $periodLabels = [];
+        $periodKeys = [];
         foreach($mingguList as $m) {
             $key = $bulanKey . '-M' . $m;
             $existingWeeks[$key] = 'lunas';
             $existingDates[$key] = $request->tanggal_bayar;
             $periodLabels[] = $bulanKey . ' Minggu-' . $m;
+            $periodKeys[] = $key;
         }
         $iuran->weeks = $existingWeeks;
         $iuran->weekDates = $existingDates;
@@ -76,6 +78,7 @@ class TransaksiController extends Controller
             'keterangan' => 'Iuran Sampah ' . implode(', ', $periodLabels) . ' — ' . $keluarga->nama . ' (RT ' . $keluarga->rt . ')',
             'jumlah' => $totalBayar,
             'refKeluargaId' => $keluarga_id,
+            'periode' => $periodKeys, // dipakai saat void, supaya tidak perlu parsing keterangan
             'operator' => auth()->user()->username ?? 'admin',
         ]);
 
@@ -144,6 +147,7 @@ class TransaksiController extends Controller
             'keterangan' => 'Iuran Padaringan ' . implode(', ', $bulanList) . ' ' . $tahun . ' — ' . $keluarga->nama . ' (RT ' . $keluarga->rt . ')',
             'jumlah' => $totalBayar,
             'refKeluargaId' => $keluarga_id,
+            'periode' => array_values($bulanList), // dipakai saat void
             'operator' => auth()->user()->username ?? 'admin',
         ]);
 
@@ -181,13 +185,15 @@ class TransaksiController extends Controller
         // Rollback iuran status if applicable
         $this->rollbackIuranStatus($transaksi);
 
-        // Mark as voided
-        $transaksi->update([
+        // Mark as voided.
+        // forceFill (bukan update) karena kolom void sengaja tidak fillable —
+        // update() tunduk pada $fillable, jadi lewat jalur itu nilainya dibuang diam-diam.
+        $transaksi->forceFill([
             'voided' => true,
             'void_reason' => $request->void_reason,
             'void_by' => $user->username,
             'void_at' => now(),
-        ]);
+        ])->save();
 
         // Audit log
         try {
@@ -215,12 +221,8 @@ class TransaksiController extends Controller
             if ($iuran) {
                 $weeks = $iuran->weeks ?? [];
                 $weekDates = $iuran->weekDates ?? [];
-                // Parse period from keterangan: "Iuran Sampah JAN Minggu-1, JAN Minggu-2 — Nama"
-                if (preg_match_all('/([A-Z]{3})\s*Minggu-(\d)/', $trx->keterangan, $matches, PREG_SET_ORDER)) {
-                    foreach ($matches as $m) {
-                        $key = $m[1] . '-M' . $m[2];
-                        unset($weeks[$key], $weekDates[$key]);
-                    }
+                foreach ($this->periodeTransaksi($trx, 'sampah') as $key) {
+                    unset($weeks[$key], $weekDates[$key]);
                 }
                 $iuran->weeks = $weeks;
                 $iuran->weekDates = $weekDates;
@@ -231,17 +233,44 @@ class TransaksiController extends Controller
             if ($iuran) {
                 $months = $iuran->months ?? [];
                 $monthDates = $iuran->monthDates ?? [];
-                $bulanAll = ['JAN','FEB','MAR','APR','MEI','JUN','JUL','AGU','SEP','OKT','NOV','DES'];
-                foreach ($bulanAll as $b) {
-                    if (str_contains($trx->keterangan, $b)) {
-                        unset($months[$b], $monthDates[$b]);
-                    }
+                foreach ($this->periodeTransaksi($trx, 'padaringan') as $key) {
+                    unset($months[$key], $monthDates[$key]);
                 }
                 $iuran->months = $months;
                 $iuran->monthDates = $monthDates;
                 $iuran->save();
             }
         }
+    }
+
+    /**
+     * Kunci periode yang harus dibuka lagi saat transaksi dibatalkan.
+     *
+     * Sumber utama: kolom `periode` yang ditulis saat pembayaran. Parsing teks
+     * `keterangan` hanya fallback untuk baris lama yang dibuat sebelum kolom itu
+     * ada — cara itu rapuh (untuk padaringan, nama warga yang memuat "MEI" atau
+     * "AGU" ikut cocok), jadi jangan dipakai untuk data baru.
+     */
+    private function periodeTransaksi(Transaksi $trx, string $jenisKas): array
+    {
+        if (is_array($trx->periode) && $trx->periode !== []) {
+            return $trx->periode;
+        }
+
+        $keterangan = (string) $trx->keterangan;
+
+        if ($jenisKas === 'sampah') {
+            preg_match_all('/([A-Z]{3})\s*Minggu-(\d)/', $keterangan, $matches, PREG_SET_ORDER);
+            return array_map(fn($m) => $m[1] . '-M' . $m[2], $matches);
+        }
+
+        // Padaringan: batasi pencarian ke segmen periode saja ("Iuran Padaringan <periode> — <nama>"),
+        // supaya kode bulan yang kebetulan ada di nama warga tidak ikut terbaca.
+        $segmen = explode('—', $keterangan)[0];
+        $segmen = str_ireplace('Iuran Padaringan', '', $segmen);
+        $bulanAll = ['JAN','FEB','MAR','APR','MEI','JUN','JUL','AGU','SEP','OKT','NOV','DES'];
+
+        return array_values(array_filter($bulanAll, fn($b) => str_contains($segmen, $b)));
     }
 
     // --- MANAJEMEN KAS ---
@@ -269,6 +298,7 @@ class TransaksiController extends Controller
         return back()->with('success', 'Pengeluaran dicatat. No. Bukti: ' . $noBukti);
     }
 
-    public function setorIndex() { return view('kas.setor'); }
-    public function sumbanganIndex() { return view('kas.sumbangan'); }
+    // setorIndex()/sumbanganIndex() dihapus: tidak dirujuk rute mana pun dan
+    // mengembalikan view tanpa data. Halaman itu dilayani SetorSampahController
+    // dan SumbanganController.
 }

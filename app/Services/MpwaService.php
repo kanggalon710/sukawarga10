@@ -28,6 +28,12 @@ class MpwaService
         return AppSetting::where('key', 'mpwa_sender')->value('value') ?? '';
     }
 
+    /** Base URL gateway; bisa ditimpa lewat AppSetting `mpwa_api_url`. */
+    public static function baseUrl(): string
+    {
+        return rtrim(AppSetting::where('key', 'mpwa_api_url')->value('value') ?: self::BASE_URL, '/');
+    }
+
     /**
      * Send a single WhatsApp text message.
      * Returns true on success, false on failure (fire-and-forget — never blocks user).
@@ -51,7 +57,7 @@ class MpwaService
         }
 
         try {
-            $resp = Http::timeout(12)->post(self::BASE_URL . '/send-message', [
+            $resp = Http::timeout(12)->post(self::baseUrl() . '/send-message', [
                 'api_key' => $apiKey,
                 'sender'  => $sender,
                 'number'  => $number,
