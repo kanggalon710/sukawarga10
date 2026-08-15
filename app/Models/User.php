@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MilikOrganisasi;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,7 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, MilikOrganisasi, Notifiable;
 
     // Harus cocok dengan kolom tabel `users`. 'nama' dan 'noHP' dihapus dari
     // daftar ini karena kolomnya tidak ada (nama lengkap = namaLengkap,

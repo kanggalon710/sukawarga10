@@ -2,6 +2,33 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Phase C multi-tenant: kolom organization_id + cap otomatis
+**Agen:** claude | **Status:** selesai (verifikasi MySQL menunggu akses root)
+**Kenapa:** Lanjutan B2. Data tenant butuh kolom kepemilikan sebelum query bisa
+di-scope (E2), dan baris BARU harus langsung tercap sejak sekarang - kalau
+tidak, backfill hari ini langsung basi begitu ada insert pertama pasca deploy.
+**Perubahan:**
+- Migrasi `2026_08_15_000006`: `organization_id` (nullable + index eksplisit)
+  di 12 tabel tenant, lalu backfill seluruh baris existing ke RW 10 dengan
+  laporan jumlah per tabel. `anggotas` dan `iuran_*` sengaja tidak: scope
+  diturunkan lewat `keluarga_id` (§20).
+- Trait `MilikOrganisasi` di 12 model. Aturan cap saat create: ada context
+  request → SELALU dari context, menimpa kiriman client (10 dari 12 model
+  ber-`$guarded=[]`, jadi tanpa penimpaan organization_id bisa disuntik lewat
+  form); tanpa context (konsol) → nilai eksplisit dihormati, kalau kosong dan
+  tepat satu RW aktif → pakai itu, lebih dari satu → null (berhenti menebak).
+- 8 tes baru `tests/Feature/KepemilikanOrganisasiTest.php`, termasuk tes
+  reflektif yang gagal bila ada model tenant kehilangan trait.
+**File:** database/migrations/2026_08_15_000006_add_organization_id_to_tenant_tables.php,
+app/Models/Concerns/MilikOrganisasi.php, 12 model di app/Models/,
+tests/Feature/KepemilikanOrganisasiTest.php
+**Catatan:** 96 tes lulus (88 lama tak tersentuh). Backfill diuji di DB berisi
+data: 3 keluargas + 1 users tertaut, nol baris tanpa org; rollback bersih.
+Pint dibandingkan baseline HEAD: nol penyimpangan baru. Akun seeder tidak
+tercap (DatabaseSeeder pakai WithoutModelEvents) dan itu disengaja: `jabnet`
+calon akun platform, penetapan org-nya urusan E1. MySQL: MariaDB lokal aktif
+tapi butuh dua perintah root dari pemilik mesin (tercatat di TODO).
+
 ## 2026-08-15 - Phase B2 multi-tenant: TenantContext + resolver hostname
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Lanjutan B1. Aplikasi butuh satu tempat resmi yang tahu "request

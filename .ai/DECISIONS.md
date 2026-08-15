@@ -3,6 +3,28 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Phase C: cap organization_id lewat model event, bukan edit 11 controller
+**Konteks:** Setelah kolom `organization_id` ada, setiap insert baru harus
+mengisinya. 10 dari 12 model tenant ber-`$guarded = []` sehingga nilai dari
+form bisa ikut masuk ke create().
+**Opsi:** (a) edit setiap pemanggilan create di 11 controller, (b) default di
+level DB, (c) satu trait dengan hook `creating`.
+**Pilihan:** (c) trait `MilikOrganisasi`, dengan aturan: context request ada →
+SELALU dicap dari context dan MENIMPA kiriman client; tanpa context → nilai
+eksplisit dihormati, fallback ke satu-satunya RW aktif, dan berhenti menebak
+begitu RW lebih dari satu.
+**Alasan:** (a) diff raksasa yang pasti bolong satu-dua tempat dan tidak
+melindungi pemanggil baru; (b) FK default tidak bisa dinamis per tenant.
+Penimpaan paksa saat ada context adalah keputusan keamanannya: client tidak
+pernah menentukan tenant, dan tanpa itu `$guarded = []` jadi jalur suntikan.
+Konsekuensi yang diterima: alur "platform staff membuat data untuk tenant
+lain lewat HTTP" belum bisa - memang belum ada, dan kalau nanti ada harus
+lewat jalur eksplisit yang ber-otorisasi, bukan lewat form field.
+Tanpa FK constraint DB pada 12 kolom baru: SQLite tidak bisa menambah FK ke
+tabel existing, dan constraint yang hanya hidup di MySQL berarti dev dan
+produksi berperilaku beda; integritas dijaga trait + tes (preseden
+`users.keluarga_id`).
+
 ## 2026-08-15 - Phase B2: localhost jadi domain terdaftar, bukan pengecualian kode
 **Konteks:** Resolver menolak hostname tak terdaftar dengan 404 (§14). Suite
 tes dan `artisan serve` memakai `localhost`, jadi harus ada jalan masuk dev.

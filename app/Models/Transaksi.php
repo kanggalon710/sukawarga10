@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MilikOrganisasi;
 use Illuminate\Database\Eloquent\Model;
 
 class Transaksi extends Model
 {
+    use MilikOrganisasi;
+
     // Harus cocok dengan kolom tabel `transaksis`. Sebelumnya daftar ini menyebut
     // kolom yang tidak ada (keluarga_id, bulan, tahun, user_id) dan melewatkan kolom
     // yang benar-benar ditulis controller, sehingga transaksi_id & kas dibuang diam-diam

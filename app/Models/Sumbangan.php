@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MilikOrganisasi;
 use Illuminate\Database\Eloquent\Model;
 
 class Sumbangan extends Model
 {
+    use MilikOrganisasi;
+
     protected $guarded = [];
 
     //

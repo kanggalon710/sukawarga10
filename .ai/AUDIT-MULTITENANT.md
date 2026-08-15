@@ -205,8 +205,10 @@ hijau, dan bisa dirilis sendiri:
    terdaftar → context terisi, tak terdaftar → 404 tanpa fallback, `/up` bebas.
    Catatan: `localhost`/`127.0.0.1` didaftarkan resmi sebagai domain `dev`,
    bukan dikecualikan di kode.
-3. **C:** kolom `organization_id` + backfill (semua baris = RW 10) + laporan
-   verifikasi. Masih additive.
+3. **C - SELESAI 2026-08-15** (migrasi `2026_08_15_000006`, trait
+   `MilikOrganisasi`, tes `KepemilikanOrganisasiTest`): kolom + backfill +
+   cap otomatis baris baru dari TenantContext (menimpa kiriman client).
+   Verifikasi MySQL masih menunggu akses root pemilik mesin.
 4. **E1:** `user_role_assignments` + backfill dari `users.level`, `CheckRole`
    membaca assignment dengan fallback ke level lama selama transisi.
 5. **E2:** scoping query per controller, satu controller per PR, masing-masing

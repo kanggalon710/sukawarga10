@@ -48,9 +48,20 @@ asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
       `ResolveTenant` di grup web. Hostname tak terdaftar/nonaktif → 404 tanpa
       fallback; `localhost`/`127.0.0.1` terdaftar resmi status `dev` (migrasi
       `2026_08_15_000005`). 9 tes di `TenantResolverTest`.
-- [ ] **C:** kolom `organization_id` + backfill (semua baris existing = RW 10)
-      + laporan verifikasi. Additive. Controller mulai MEMBACA TenantContext
-      di sini. PERHATIAN: butuh uji MySQL dulu (lihat butir prasyarat).
+- [x] **C selesai 2026-08-15** (kecuali verifikasi MySQL): kolom
+      `organization_id` + backfill di 12 tabel (migrasi `2026_08_15_000006`),
+      trait `MilikOrganisasi` mengecap baris baru dari TenantContext dan
+      menimpa kiriman client. 8 tes di `KepemilikanOrganisasiTest`.
+- [ ] **Verifikasi MySQL untuk B1+B2+C** (wajib sebelum deploy fase ini).
+      MariaDB lokal aktif; yang kurang cuma akses root pemilik mesin:
+      `sudo dnf install -y php-mysqlnd` lalu buat DB uji
+      (`sudo mariadb -e "CREATE DATABASE paru_test; CREATE USER 'paru_test'@'localhost' IDENTIFIED BY 'paru_test'; GRANT ALL ON paru_test.* TO 'paru_test'@'localhost';"`),
+      lalu jalankan suite dengan `DB_CONNECTION=mysql DB_DATABASE=paru_test
+      DB_USERNAME=paru_test DB_PASSWORD=paru_test DB_HOST=127.0.0.1`.
+      Sekalian menutup TODO lama `whereJsonContains` di MySQL.
+- [ ] **E1:** `user_role_assignments` + backfill dari `users.level`,
+      `CheckRole` membaca assignment dengan fallback level lama. Prasyarat:
+      keputusan tabel `roles` mati (butir di bawah).
 - [ ] **Deploy berikutnya:** setelah migrasi B1+B2 masuk produksi, verifikasi
       `https://paru.jabnet.id` tetap 200 dan host asing/IP langsung ke server
       kini 404. Kalau operator perlu hostname tambahan (mis. akses via IP
