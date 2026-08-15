@@ -76,7 +76,7 @@
 <div class="surat-wrapper">
     {{-- KOP SURAT --}}
     <div class="kop-rw">
-        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo RW 10 Sukakarya" class="kop-logo">
+        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
         <div class="kop-teks">
             <h2>RUKUN WARGA {{ $rw }}</h2>
             <h3>{{ $kel }}</h3>

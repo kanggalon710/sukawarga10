@@ -77,9 +77,13 @@ Bukan pekerjaan kode, tapi jangan dilewat.
 - [ ] **Belum diuji di MySQL.** Seluruh verifikasi memakai SQLite. Yang perlu
       diperhatikan khusus: kolom `transaksis.periode` bertipe `json`, dan
       `whereJsonContains` dipakai di tes.
-- [ ] **UI belum dicek di 360/768/1280px** setelah perubahan ini. Yang berubah
-      secara visual hanya dua hal: navigasi pagination (baru) dan kotak pencarian
-      global yang kini disembunyikan untuk level warga.
+- [ ] **UI baru sebagian dicek di 360/768/1280px.** Sudah: halaman login
+      (dipotret lewat headless Chrome, bersih di ketiga lebar). Belum: navigasi
+      pagination, kotak pencarian global yang kini disembunyikan untuk warga, dan
+      blok Identitas Aplikasi di halaman Pengaturan.
+      Caranya: `php artisan serve --port=8124`, lalu
+      `google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars`
+      `--screenshot=out.png --window-size=360,900 http://127.0.0.1:8124/<rute>`.
 - [ ] **Cakupan tes masih di jalur utama.** Belum tertutup: importir CSV
       (`ImportAnggota`, `ImportPendataanKeluarga`), ekspor, alur approval surat
       bertingkat, dan `LaporanController`.

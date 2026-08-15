@@ -34,7 +34,7 @@
   </g>
 
   <!-- Typography -->
-  <text x="250" y="415" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" fill="#0f7a4d" text-anchor="middle" letter-spacing="-0.5">Kampung<tspan fill="#f59e0b"> Paru</tspan></text>
+  <text x="250" y="415" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" fill="#0f7a4d" text-anchor="middle" letter-spacing="-0.5">Portal<tspan fill="#f59e0b"> Desa</tspan></text>
   
   <!-- Marking -->
   <text x="250" y="445" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#64748b" text-anchor="middle" letter-spacing="1">by PT Arkanova Cipta Inovasi</text>

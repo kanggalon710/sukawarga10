@@ -2,6 +2,24 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Teks logo jadi "Portal Desa" (generik, bukan nama instansi)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Teks nama masih tergambar di dalam `logo-sukawarga.svg`, dan itu satu
+satunya identitas yang tidak bisa diganti lewat Pengaturan karena bentuknya
+gambar. Diisi nama generik supaya berkas logo yang sama tetap benar untuk project
+turunan, sementara nama instansinya dibawa `namaAplikasi()` di h1 halaman login.
+**Perubahan:** Satu elemen `<text>` di SVG. Tidak ada gambar yang di-generate:
+teksnya diedit langsung sebagai vektor, jadi tajam di ukuran berapa pun dan
+hurufnya persis. `alt` hero login jadi "Logo Portal Desa" karena alt menjelaskan
+gambarnya, bukan nama yang bisa berubah. Sekalian `alt` kop surat yang masih
+menyebut "RW 10 Sukakarya" diarahkan ke `$rw`/`$kel` dari Pengaturan.
+**File:** public/logo-sukawarga.svg, resources/views/auth/login.blade.php,
+resources/views/layanan/cetak_surat.blade.php
+**Catatan:** Diperiksa: `og-image.png`, `icon-512.png`, dan `logo-sukawarga-icon.svg`
+tidak memuat teks sama sekali, jadi tidak ada aset raster yang perlu dibuat ulang.
+Halaman login dipotret di 360/768/1280px lewat headless Chrome: tidak ada yang
+meluber, bertumpuk, atau terpotong. `composer test` 72 lulus.
+
 ## 2026-08-15 - Ganti nama jadi Kampung Paru, identitas ditarik ke Pengaturan
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Diminta pemilik project. Nama lama tertulis tetap di 8 berkas, jadi

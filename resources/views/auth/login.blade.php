@@ -223,7 +223,9 @@
 
         {{-- ── HERO ── --}}
         <div class="hero">
-            <img src="{{ asset('logo-sukawarga.svg') }}" alt="Logo {{ namaAplikasi() }}" class="hero-logo" style="width:160px; height:auto; box-shadow:none; background:transparent; border-radius:0; padding:0;">
+            {{-- alt menyebut "Portal Desa" karena teks itu memang tergambar di dalam SVG-nya,
+                 bukan nama instansi yang bisa diganti lewat Pengaturan. --}}
+            <img src="{{ asset('logo-sukawarga.svg') }}" alt="Logo Portal Desa" class="hero-logo" style="width:160px; height:auto; box-shadow:none; background:transparent; border-radius:0; padding:0;">
             <h1>{{ namaAplikasi() }}</h1>
             <div class="loc-badge">
                 <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
