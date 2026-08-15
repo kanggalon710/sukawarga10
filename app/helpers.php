@@ -31,6 +31,11 @@ if (!function_exists('identitasAplikasi')) {
             'nama_aplikasi' => 'Kampung Paru',
             'tagline_aplikasi' => "Portal warga Kampung Paru.\nData keluarga, iuran, dan surat dalam satu tempat.",
             'lokasi_singkat' => 'Garut, Jawa Barat',
+            // Rencana pindah ke desa.jabnet.id. Bawaannya tetap paru.jabnet.id
+            // karena itu yang sudah hidup; desa.jabnet.id belum resolve, dan
+            // alamat mati di pesan WhatsApp lebih buruk daripada alamat lama.
+            // Saat DNS siap, ganti lewat Pengaturan tanpa menyentuh kode.
+            'alamat_portal' => 'paru.jabnet.id',
         ];
 
         try {
@@ -72,6 +77,21 @@ if (!function_exists('lokasiSingkat')) {
     function lokasiSingkat(): string
     {
         return identitasAplikasi()['lokasi_singkat'];
+    }
+}
+
+if (!function_exists('alamatPortal')) {
+    /**
+     * Alamat portal tanpa skema (mis. `paru.jabnet.id`), untuk ditulis di pesan
+     * WhatsApp. Override via AppSetting `alamat_portal`.
+     *
+     * Sengaja TIDAK diambil dari `APP_URL`: di mesin lokal nilainya
+     * `http://localhost:8000`, dan salah setel di produksi berarti warga
+     * menerima link yang tidak bisa dibuka.
+     */
+    function alamatPortal(): string
+    {
+        return identitasAplikasi()['alamat_portal'];
     }
 }
 

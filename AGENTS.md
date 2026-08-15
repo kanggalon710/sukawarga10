@@ -1,4 +1,4 @@
-# AGENTS.md - SukaWarga10
+# AGENTS.md - Kampung Paru
 
 Aturan khusus project ini. Aturan universal ada di standar global agent.
 Kalau bertabrakan, file ini yang menang.
@@ -10,9 +10,11 @@ Kalau bertabrakan, file ini yang menang.
 
 ## Apa ini
 
-Sistem informasi & billing komunitas **RW 10 Kel. Sukakarya, Kec. Tarogong Kidul,
-Garut**. Produksi: `https://sukawarga10.jabnet.id`. Data nyata ~101 KK / ~280 jiwa.
-Bukan demo, bukan proyek latihan: uang iuran warga dan data pribadi ada di dalamnya.
+Sistem informasi & billing komunitas warga. Produksi: `https://paru.jabnet.id`
+(rencana pindah ke `desa.jabnet.id`, lihat `DEPLOY.md`). Instansi yang dilayani
+sekarang: **RW 10 Kel. Sukakarya, Kec. Tarogong Kidul, Garut**, data nyata ~101 KK
+/ ~280 jiwa. Bukan demo, bukan proyek latihan: uang iuran warga dan data pribadi
+ada di dalamnya.
 
 ## Stack
 
@@ -113,12 +115,18 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    `$request->all()`.
 7. **Kepemilikan data warga** diikat lewat `users.keluarga_id`, bukan kecocokan
    nama. Jangan pernah mencari KK milik seseorang lewat `nama`.
-8. **Nama aplikasi jangan ditulis tetap.** Pakai `namaAplikasi()`,
-   `taglineAplikasi()`, dan `lokasiSingkat()` di `app/helpers.php`; nilainya dari
-   `app_settings` dengan bawaan di helper. Ini yang membuat project turunan untuk
-   kampung lain cukup ganti lewat menu Pengaturan. Dikunci oleh
-   `tests/Feature/HalamanUtamaTest.php`. Konstanta tidak bisa memanggil fungsi,
-   jadi teks yang menyebut nama komunitas ditaruh di method, bukan `const`.
+8. **Identitas aplikasi jangan ditulis tetap.** Pakai `namaAplikasi()`,
+   `taglineAplikasi()`, `lokasiSingkat()`, dan `alamatPortal()` di
+   `app/helpers.php`; nilainya dari `app_settings` dengan bawaan di helper. Ini
+   yang membuat project turunan untuk kampung lain cukup ganti lewat menu
+   Pengaturan. Dikunci oleh `tests/Feature/HalamanUtamaTest.php` dan
+   `tests/Feature/OtorisasiTest.php`. Konstanta tidak bisa memanggil fungsi, jadi
+   teks yang menyebut nama komunitas ditaruh di method, bukan `const`.
+9. **Alamat portal bukan `APP_URL`.** `alamatPortal()` mengembalikan nama host
+   saja (mis. `paru.jabnet.id`) dan ditempel apa adanya ke pesan WhatsApp.
+   Sengaja tidak dari `APP_URL` karena di lokal nilainya `http://localhost:8000`,
+   dan salah setel berarti warga menerima link yang tidak bisa dibuka. Nilainya
+   divalidasi sebagai nama host (tanpa skema, tanpa path) di `PengaturanController`.
 
 ## Konvensi kode
 

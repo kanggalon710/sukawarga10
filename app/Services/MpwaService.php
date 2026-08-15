@@ -197,7 +197,7 @@ class MpwaService
              . "   PIN      : *{$pin}*\n\n"
              . "⚠️ *SIMPAN PIN INI BAIK-BAIK!*\n"
              . "PIN Anda bersifat unik dan rahasia. Jangan bagikan kepada siapapun.\n\n"
-             . "🌐 Akses portal di: sukawarga10.jabnet.id\n\n"
+             . "🌐 Akses portal di: " . alamatPortal() . "\n\n"
              . "_Jika lupa PIN, gunakan fitur 'Lupa PIN' di halaman login._\n\n"
              . "🏘️ Selamat bergabung di komunitas " . namaAplikasi() . "!\n"
              . self::tandaTangan();
@@ -266,7 +266,7 @@ class MpwaService
              . "   PIN Baru : *{$newPin}*\n\n"
              . "⚠️ *SIMPAN PIN INI BAIK-BAIK!*\n"
              . "Jangan bagikan PIN kepada siapapun.\n\n"
-             . "🌐 Login di: sukawarga10.jabnet.id\n\n"
+             . "🌐 Login di: " . alamatPortal() . "\n\n"
              . self::tandaTangan();
         return self::send($noWa, $msg);
     }

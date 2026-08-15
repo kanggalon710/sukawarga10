@@ -2,6 +2,32 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Alamat portal jadi pengaturan, dokumentasi ikut nama baru
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Diminta memperbarui berkas `.md` lain dan menyiapkan pindah domain ke
+`desa.jabnet.id`. Saat memeriksa domainnya, ketahuan link di pesan WhatsApp masih
+menunjuk `sukawarga10.jabnet.id`, padahal produksi sudah di `paru.jabnet.id`.
+Jadi ini bukan sekadar persiapan: ada link yang memang sudah salah.
+**Perubahan:**
+- Key keempat `alamat_portal` di `app_settings` (helper `alamatPortal()`),
+  menggantikan domain yang ditulis tetap di `MpwaService` (2 tempat) dan
+  `ProfilWargaController` (1 tempat).
+- Divalidasi sebagai nama host: skema dan path ditolak, karena nilainya ditempel
+  apa adanya ke pesan WhatsApp.
+- README ditulis ulang, `AGENTS.md`/`DEPLOY.md`/`.ai/HANDOFF.md`/`.env.example`
+  ikut nama dan domain baru. `DEPLOY.md` dapat bagian "Pindah domain" berisi
+  urutan DNS dulu baru aplikasi.
+**File:** app/helpers.php, app/Services/MpwaService.php,
+app/Http/Controllers/{PengaturanController,ProfilWargaController}.php,
+resources/views/admin/pengaturan.blade.php, tests/Feature/OtorisasiTest.php,
+README.md, AGENTS.md, DEPLOY.md, .env.example, .ai/HANDOFF.md
+**Catatan:** Dicek langsung, bukan diasumsikan: `paru.jabnet.id` resolve ke
+103.194.47.165 dan menjawab 302; `sukawarga10.jabnet.id` resolve ke
+103.194.46.164 (server BERBEDA, kemungkinan deployment lama) dan juga masih
+hidup; `desa.jabnet.id` belum resolve sama sekali. Karena itu bawaannya
+`paru.jabnet.id`, bukan `desa.jabnet.id`: alamat mati di pesan ke warga lebih
+buruk daripada alamat lama. `composer test` 73 lulus.
+
 ## 2026-08-15 - Teks logo jadi "Portal Desa" (generik, bukan nama instansi)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Teks nama masih tergambar di dalam `logo-sukawarga.svg`, dan itu satu

@@ -1,7 +1,8 @@
-# SukaWarga10
+# Kampung Paru
 
-Sistem informasi dan billing komunitas **RW 10, Kelurahan Sukakarya, Kecamatan
-Tarogong Kidul, Garut**. Produksi: [sukawarga10.jabnet.id](https://sukawarga10.jabnet.id).
+Sistem informasi dan billing komunitas warga. Produksi berjalan di
+[paru.jabnet.id](https://paru.jabnet.id) untuk RW 10, Kelurahan Sukakarya,
+Kecamatan Tarogong Kidul, Garut.
 
 Menangani data warga (KK dan anggota keluarga), iuran sampah mingguan, iuran
 padaringan bulanan, buku kas RW, surat menyurat berjenjang, aduan warga, UMKM,
@@ -38,6 +39,36 @@ menimpa PIN yang sudah diganti.
 | `php artisan migrate` | Terapkan migrasi (produksi: `--force`) |
 | `php artisan import:keluarga <csv>` | Impor data KK |
 | `php artisan import:anggota <csv>` | Impor data anggota keluarga |
+
+## Identitas aplikasi bisa diganti tanpa menyentuh kode
+
+Nama, tagline, lokasi, dan alamat portal disimpan di tabel `app_settings` dan
+diubah lewat **Pengaturan > Info RW > Identitas Aplikasi**:
+
+| Key | Bawaan | Tampil di |
+|---|---|---|
+| `nama_aplikasi` | Kampung Paru | judul halaman, sidebar, login, meta OG, pesan WhatsApp |
+| `tagline_aplikasi` | Portal warga Kampung Paru. (2 baris) | hero halaman login |
+| `lokasi_singkat` | Garut, Jawa Barat | badge login, footer dan kop pesan WhatsApp |
+| `alamat_portal` | paru.jabnet.id | link yang dikirim ke warga lewat WhatsApp |
+
+Nilai bawaannya ada di `app/helpers.php`, jadi instalasi baru langsung jalan
+tanpa satu baris pun di `app_settings`. Untuk memakai project ini bagi kampung
+lain, tidak perlu mengedit kode: jalankan `composer setup`, lalu ganti keempat
+nilai di atas dan data RW di menu Pengaturan.
+
+Identitas RW untuk kop surat (`nama_rw`, `kelurahan`, `kecamatan`, `kabupaten`,
+`ketua_rw`) juga sudah berupa pengaturan, bukan literal di kode.
+
+Satu-satunya identitas yang berbentuk gambar adalah `public/logo-sukawarga.svg`.
+Teks di dalamnya sengaja generik ("Portal Desa") supaya tetap benar untuk desa
+mana pun; nama instansinya dibawa oleh `nama_aplikasi` di halaman login.
+
+## Domain
+
+Produksi saat ini di `paru.jabnet.id`. Rencananya pindah ke `desa.jabnet.id`;
+per 2026-08-15 domain itu belum resolve. Langkah pindahnya ada di `DEPLOY.md`
+bagian "Pindah domain", dan tidak butuh perubahan kode.
 
 ## Peran pengguna
 

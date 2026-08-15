@@ -13,13 +13,14 @@ riwayat kronologis; baca kalau butuh konteks sejarah, bukan untuk orientasi.
 
 | | |
 |---|---|
-| Commit | `f53e138` |
+| Commit | terakhir dicatat `36c0e57`; kalau `git log -1` sudah lain, halaman ini tertinggal |
 | Branch | `main` dan `dev` sama-sama di commit itu, sinkron dengan `origin` |
 | Remote | `git@github.com:kanggalon710/sukawarga10.git` (SSH, bukan HTTPS) |
-| Tes | 69 lulus, 116 assertion (`composer test`) |
+| Tes | 73 lulus, 137 assertion (`composer test`) |
 | Working tree | bersih |
 
-Produksi berjalan di `https://sukawarga10.jabnet.id` dengan MySQL. Ini sistem
+Produksi berjalan di `https://paru.jabnet.id` dengan MySQL (rencana pindah ke
+`desa.jabnet.id`, langkahnya di `DEPLOY.md` bagian "Pindah domain"). Ini sistem
 yang dipakai sungguhan: ada uang iuran warga dan data pribadi (NIK, No. KK,
 alamat, nomor HP) di dalamnya. Perlakukan setiap perubahan sesuai bobot itu.
 
@@ -60,7 +61,7 @@ Jangan pernah mencari KK milik seseorang lewat kolom `nama`.
 ```bash
 composer install
 composer setup        # .env + sqlite + migrate + seed (aman diulang)
-composer test         # harus 69 lulus sebelum kamu mengubah apa pun
+composer test         # harus 73 lulus sebelum kamu mengubah apa pun
 php artisan serve
 ```
 
@@ -73,15 +74,16 @@ project dan semuanya gitignored. Kalau `composer test` tidak hijau sejak awal,
 Jangan mengulang verifikasi yang sudah ada; jangan pula menganggap yang belum
 sebagai sudah.
 
-**Sudah:** 69 tes (jalur uang, void, otorisasi tiap peran, kepemilikan, helper
-domain, render 20 halaman); Pint bersih untuk seluruh berkas yang dibuat pada
+**Sudah:** 73 tes (jalur uang, void, otorisasi tiap peran, kepemilikan, helper
+domain, identitas aplikasi, render 20 halaman); Pint bersih untuk seluruh berkas yang dibuat pada
 2026-08-15; migrasi `up` dan `down` diuji; migrasi bersih dari database kosong;
 smoke test HTTP sungguhan termasuk login end-to-end.
 
 **Belum:**
 - **MySQL.** Semua verifikasi memakai SQLite. Titik rawan: kolom
   `transaksis.periode` bertipe `json` dan `whereJsonContains` dipakai di tes.
-- **Tampilan di 360/768/1280px** setelah perubahan 2026-08-15.
+- **Tampilan di 360/768/1280px** untuk sebagian besar halaman. Yang sudah:
+  halaman login (dipotret lewat headless Chrome, bersih di ketiga lebar).
 - **Uji peran dengan akun `warga` sungguhan di produksi.**
 
 ## 5. Pekerjaan berikutnya
@@ -107,6 +109,12 @@ berdampak lebih dulu:
 - **Kolom domain memakai camelCase** (`namaLengkap`, `noHP`, `ikutSampah`,
   `tanggalLahirKK`), beda dari konvensi snake_case Laravel. Ikuti yang ada,
   jangan "dirapikan".
+- **Nama "Kampung Paru" bukan literal di kode.** Nama, tagline, lokasi, dan
+  alamat portal datang dari `app_settings` lewat `namaAplikasi()`,
+  `taglineAplikasi()`, `lokasiSingkat()`, dan `alamatPortal()` di
+  `app/helpers.php`, dengan nilai bawaan di helper itu sendiri. Jangan menulis
+  ulang namanya di Blade atau di service; ada tes yang menggagalkannya. Ini yang
+  membuat project ini bisa dipakai desa lain tanpa mengedit kode.
 - **`app_settings` bukan sekadar preferensi.** Tabel itu ikut menentukan
   otorisasi (`role_permissions`) dan ambang kemiskinan. Form Pengaturan memakai
   whitelist key; jangan diubah jadi menerima `$request->all()`.

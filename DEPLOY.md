@@ -1,30 +1,31 @@
-# Deploy ke Production — SukaWarga10
+# Deploy ke Production - Kampung Paru
 
 Paket ini berisi seluruh perubahan + data terbaru (101 KK RW-10 + 280 anggota, nomor WA ter-normalisasi).
 Production memakai **MySQL** (`jabnet_rw10`). Data dibawa lewat artisan importer (DB-agnostic), bukan file SQLite.
 
 ## 0. Sebelum mulai
-- Server sudah punya `.env` sendiri (MySQL) — paket ini **tidak menyertakan `.env`**, jadi konfigurasi produksi aman.
-- **Tidak ada variabel `.env` baru** yang perlu ditambah.
+- Server sudah punya `.env` sendiri (MySQL) - paket ini **tidak menyertakan `.env`**, jadi konfigurasi produksi aman.
+- **Tidak ada variabel `.env` baru** yang perlu ditambah. Identitas aplikasi
+  (nama, tagline, lokasi, alamat portal) diatur lewat menu Pengaturan, bukan `.env`.
 - **Backup database produksi dulu** (mysqldump) sebelum migrate/import.
 
 ## 1. Upload kode
 Pull dari git ATAU upload & extract arsip ini ke folder aplikasi, lalu:
 ```bash
-cd /var/www/sukawarga10        # sesuaikan path
+cd /var/www/paru               # sesuaikan path
 composer install --no-dev --optimize-autoloader
 ```
-> `node_modules`/`npm build` TIDAK diperlukan — CSS dimuat langsung dari `public/css/styles.css` & `public/css/bi-report.css`.
+> `node_modules`/`npm build` TIDAK diperlukan - CSS dimuat langsung dari `public/css/styles.css` & `public/css/bi-report.css`.
 
 ## 2. Migrasi database (skema + perbaikan data)
 ```bash
 php artisan migrate --force
 ```
 Menjalankan migrasi baru:
-- `..._add_demografi_to_anggotas` — kolom anggota (pendidikan, status kawin, agama, dll)
-- `..._add_params_to_keluargas` — kolom keluarga (daya listrik, internet, tanggungan, rawan bencana, kesehatan)
-- `..._migrate_keluarga_canonical_format` — rapikan sanitasi/bansos ke format kanonik (idempotent)
-- `..._normalize_wa_numbers` — normalisasi semua nomor WA lama → `62xxxx` (idempotent)
+- `..._add_demografi_to_anggotas` - kolom anggota (pendidikan, status kawin, agama, dll)
+- `..._add_params_to_keluargas` - kolom keluarga (daya listrik, internet, tanggungan, rawan bencana, kesehatan)
+- `..._migrate_keluarga_canonical_format` - rapikan sanitasi/bansos ke format kanonik (idempotent)
+- `..._normalize_wa_numbers` - normalisasi semua nomor WA lama → `62xxxx` (idempotent)
 
 ## 3. Muat data warga (101 KK + 280 anggota)
 
@@ -38,8 +39,8 @@ Menjalankan migrasi baru:
 php artisan import:keluarga "database/seed-data/keluarga.csv" --fresh
 php artisan import:anggota  "database/seed-data/anggota.csv"  --fresh
 ```
-- `import:keluarga` — 95 KK RW-10 (+6 baris non-RW10 ikut), tulis kolom kanonik + bansos boolean + noHP ter-normalisasi.
-- `import:anggota` — 280 anggota di-link ke KK induk via No.KK; baris "Kepala Keluarga" melengkapi tgl lahir + jenis kelamin KK (tidak dobel).
+- `import:keluarga` - 95 KK RW-10 (+6 baris non-RW10 ikut), tulis kolom kanonik + bansos boolean + noHP ter-normalisasi.
+- `import:anggota` - 280 anggota di-link ke KK induk via No.KK; baris "Kepala Keluarga" melengkapi tgl lahir + jenis kelamin KK (tidak dobel).
 
 ## 4. Akun login
 Importer tidak membuat akun. Pastikan akun admin produksi ada. Bila perlu seed admin default:
@@ -56,9 +57,39 @@ chmod -R ug+rw storage bootstrap/cache
 ```
 
 ## 6. Verifikasi
-- Buka `https://sukawarga10.jabnet.id` → login → **Dashboard** (101 KK, indeks kesejahteraan terisi).
+- Buka `https://paru.jabnet.id` → login → **Dashboard** (101 KK, indeks kesejahteraan terisi).
 - **Laporan → Demografi** → piramida penduduk + section Pendidikan & Kesehatan aktif.
 - **Pengaturan → WhatsApp API** → isi API key & sender MPWA → test koneksi → broadcast (nomor otomatis `62xxxx`).
+
+## 7. Pindah domain (paru.jabnet.id → desa.jabnet.id)
+
+Domain produksi saat ini `paru.jabnet.id`. Rencananya pindah ke
+`desa.jabnet.id`; per 2026-08-15 domain itu **belum resolve**, jadi jangan
+diarahkan sebelum DNS-nya jadi. Tidak ada perubahan kode yang diperlukan.
+
+Urutan yang benar, DNS dulu baru aplikasi:
+
+1. **Buat DNS `desa.jabnet.id`** mengarah ke server yang sama, lalu terbitkan
+   sertifikat TLS-nya. Pastikan `https://desa.jabnet.id` sudah membuka aplikasi.
+2. **Tambahkan domain baru ke konfigurasi web server** sebagai `ServerAlias` /
+   `server_name` tambahan, jangan langsung menggantikan yang lama. Selama masa
+   transisi keduanya harus hidup, karena warga masih memegang link lama dari
+   pesan WhatsApp yang sudah terkirim.
+3. **Ubah `APP_URL`** di `.env` produksi jadi `https://desa.jabnet.id`, lalu
+   `php artisan config:clear && php artisan config:cache`.
+4. **Ubah "Alamat Portal"** di menu **Pengaturan > Info RW > Identitas Aplikasi**
+   jadi `desa.jabnet.id`. Ini yang menentukan link di pesan WhatsApp ke warga.
+   Isi nama domain saja, tanpa `https://` dan tanpa garis miring; form menolak
+   nilai yang memakai skema atau path.
+5. **Uji satu pesan sungguhan**: Pengaturan > WhatsApp API > test koneksi, lalu
+   periksa link di pesan yang masuk sudah memakai domain baru dan bisa dibuka.
+6. **Biarkan `paru.jabnet.id` hidup** dengan redirect 301 ke domain baru,
+   setidaknya sampai satu siklus tagihan penuh berlalu.
+
+Catatan: `sukawarga10.jabnet.id` masih hidup di IP yang berbeda
+(103.194.46.164) dan kemungkinan deployment lama. Pastikan tidak ada warga yang
+masih diarahkan ke sana, dan matikan atau redirect kalau memang sudah tidak
+dipakai.
 
 ## Ringkasan fitur yang dideploy
 Redesign UI (1 font Source Sans 3) · Dashboard indeks kesejahteraan · fix dual-write data · BI Laporan (ranked-bar/KPI/piramida diverging/tabel) · form warga lengkap (anggota demografis, kesehatan, daya listrik dll) · importer KK & anggota · **normalisasi nomor WA otomatis** (insert + broadcast MPWA).

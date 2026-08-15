@@ -99,7 +99,7 @@ class ProfilWargaController extends Controller
                         "✅ Penyaluran bantuan sosial yang tepat sasaran\n" .
                         "✅ Pendataan kependudukan yang akurat\n" .
                         "✅ Pelayanan administrasi yang lebih cepat\n\n" .
-                        "Ayo lengkapi sekarang di: sukawarga10.jabnet.id 💪"
+                        "Ayo lengkapi sekarang di: " . alamatPortal() . " 💪"
                     );
                 } catch (\Exception $e) {}
             }

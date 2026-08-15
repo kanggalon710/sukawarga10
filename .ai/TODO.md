@@ -37,12 +37,23 @@ Bukan pekerjaan kode, tapi jangan dilewat.
 
 ## Belum dikerjakan
 
-- [ ] **Dokumentasi masih menyebut SukaWarga10.** `README.md`, `AGENTS.md`,
-      `DEPLOY.md`, `.ai/HANDOFF.md`, dan `APP_NAME` di `.env.example` belum ikut
-      berganti nama, begitu juga nama berkas aset (`logo-sukawarga.svg`,
-      `logo-sukawarga-icon.svg`) dan nama repo. Sengaja di luar cakupan rename
-      2026-08-15 atas pilihan pemilik project. Domain `sukawarga10.jabnet.id`
-      memang tetap karena itu DNS sungguhan.
+- [x] ~~Dokumentasi masih menyebut SukaWarga10.~~ Selesai 2026-08-15: `README.md`,
+      `AGENTS.md`, `DEPLOY.md`, `.ai/HANDOFF.md`, dan `.env.example` sudah ikut.
+- [ ] **Nama berkas aset dan nama repo masih "sukawarga".**
+      `public/logo-sukawarga.svg`, `public/logo-sukawarga-icon.svg`, dan repo
+      `kanggalon710/sukawarga10`. Isi logonya sudah generik ("Portal Desa"),
+      hanya nama berkasnya yang belum. Mengganti nama berkas berarti menyentuh 5
+      rujukan `asset()` sekaligus memastikan cache browser dan PWA tidak memegang
+      yang lama, jadi dijadikan pekerjaan tersendiri.
+- [ ] **Pindah domain ke `desa.jabnet.id`.** Langkah lengkap ada di `DEPLOY.md`
+      bagian "Pindah domain". Penghambat: per 2026-08-15 `desa.jabnet.id` belum
+      resolve, sedangkan `paru.jabnet.id` hidup di 103.194.47.165. Tidak ada
+      perubahan kode yang diperlukan; setelah DNS jadi, cukup ubah `APP_URL` dan
+      setting `alamat_portal` lewat menu Pengaturan.
+- [ ] **`sukawarga10.jabnet.id` masih hidup** di IP berbeda (103.194.46.164),
+      kemungkinan deployment lama. Pastikan tidak ada warga yang masih diarahkan
+      ke sana; matikan atau redirect kalau sudah tidak dipakai. Pesan WhatsApp
+      lama yang sudah terkirim masih memuat alamat itu.
 - [ ] **Form Pengaturan belum ramah mobile.** Seluruh field memakai
       `grid-template-columns:1fr 1fr` inline (tetap 2 kolom di 360px), tinggi
       input sekitar 40px (di bawah 44px), dan `font-size:14px` yang memicu zoom

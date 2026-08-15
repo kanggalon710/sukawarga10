@@ -3,6 +3,24 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Alamat portal jadi setting sendiri, bukan turunan APP_URL
+**Konteks:** Link yang dikirim ke warga lewat WhatsApp ditulis tetap sebagai
+`sukawarga10.jabnet.id`, padahal produksi sudah pindah ke `paru.jabnet.id` dan
+rencananya pindah lagi ke `desa.jabnet.id`.
+**Opsi:** (a) ganti literalnya jadi `desa.jabnet.id`, (b) turunkan dari
+`config('app.url')`, (c) setting sendiri `alamat_portal`.
+**Pilihan:** (c), bawaan `paru.jabnet.id`.
+**Alasan:** (a) mengirim warga ke alamat mati, karena `desa.jabnet.id` belum
+resolve per hari ini (dicek, bukan diasumsikan). (b) kelihatan paling rapi tapi
+paling rapuh: di mesin lokal `APP_URL` bernilai `http://localhost:8000`, dan satu
+kesalahan setel di produksi langsung berubah jadi link rusak di pesan ke ratusan
+warga, tanpa gejala di layar mana pun. (c) memisahkan "alamat yang dipakai
+framework" dari "alamat yang dibaca manusia di WhatsApp", dan membuat pindah
+domain jadi satu isian form. Nilainya divalidasi sebagai nama host supaya tidak
+ada yang mengisi `https://...` lalu menghasilkan link ganda skema.
+**Konsekuensi:** ada dua tempat yang harus diubah saat pindah domain (`APP_URL`
+dan setting ini). Itu disengaja, dan urutannya ditulis di `DEPLOY.md`.
+
 ## 2026-08-15 - Identitas aplikasi jadi data (app_settings), bukan literal di kode
 **Konteks:** Permintaan mengganti nama SukaWarga10 jadi Kampung Paru. Namanya
 tertulis tetap di 8 berkas (layout, login, manifest, logo, 2 controller, service

@@ -166,11 +166,33 @@ class OtorisasiTest extends TestCase
             'nama_aplikasi' => 'Kampung Uji',
             'tagline_aplikasi' => "Baris satu.\nBaris dua.",
             'lokasi_singkat' => 'Tasikmalaya',
+            'alamat_portal' => 'desa.jabnet.id',
         ])->assertRedirect();
 
         $this->assertSame('Kampung Uji', AppSetting::where('key', 'nama_aplikasi')->value('value'));
         $this->assertSame("Baris satu.\nBaris dua.", AppSetting::where('key', 'tagline_aplikasi')->value('value'));
         $this->assertSame('Tasikmalaya', AppSetting::where('key', 'lokasi_singkat')->value('value'));
+        $this->assertSame('desa.jabnet.id', AppSetting::where('key', 'alamat_portal')->value('value'));
+    }
+
+    /**
+     * Nilainya ditempel apa adanya ke pesan WhatsApp, jadi skema dan path harus
+     * ditolak di batas masuk supaya link yang diterima warga tidak rusak.
+     */
+    public function test_alamat_portal_menolak_skema_dan_path(): void
+    {
+        // Akun dibuat sekali di luar loop: helper user() menulis baris baru tiap
+        // dipanggil, dan username-nya unik.
+        $ketua = $this->user('ketua_rw');
+
+        foreach (['https://desa.jabnet.id', 'desa.jabnet.id/login', 'bukan domain'] as $nilai) {
+            $this->actingAs($ketua)->post('/pengaturan', [
+                '_active_tab' => 'info',
+                'alamat_portal' => $nilai,
+            ])->assertSessionHasErrors('alamat_portal');
+        }
+
+        $this->assertNull(AppSetting::where('key', 'alamat_portal')->value('value'));
     }
 
     public function test_warga_tidak_bisa_membuka_halaman_pengaturan(): void
