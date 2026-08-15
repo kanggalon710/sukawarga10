@@ -211,8 +211,11 @@ hijau, dan bisa dirilis sendiri:
    Verifikasi MySQL SELESAI: 96 tes lulus di MariaDB 11.8.8, termasuk
    `whereJsonContains` yang lama tertunda; rollback ketiga migrasi
    multi-tenant diuji turun-naik di MySQL.
-4. **E1:** `user_role_assignments` + backfill dari `users.level`, `CheckRole`
-   membaca assignment dengan fallback ke level lama selama transisi.
+4. **E1 - SELESAI 2026-08-15** (migrasi `2026_08_15_000007`, tes
+   `PeranScopeTest`): katalog peran generik + assignment ber-scope; CheckRole,
+   userCan, dan helper izin User membaca level efektif dengan fallback
+   `users.level`. Tabel `roles` lama di-rename `roles_legacy_pwa`. Fallback
+   wajib dipensiunkan sebelum tenant kedua dibuka (tercatat di TODO).
 5. **E2:** scoping query per controller, satu controller per PR, masing-masing
    dengan tes isolasi §37 (`RW A tidak bisa baca/ubah/hapus milik RW B`).
    Mulai dari jalur uang (`TransaksiController`) karena taruhannya tertinggi.

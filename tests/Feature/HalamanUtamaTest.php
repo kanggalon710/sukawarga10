@@ -150,6 +150,11 @@ class HalamanUtamaTest extends TestCase
      * Dashboard dulunya menjalankan puluhan query karena ada query di dalam loop
      * (6 untuk saldo, 6 untuk saldo kumulatif, 12 untuk tren bulanan, plus 3 query
      * per RT). Sekarang jumlahnya tetap dan tidak ikut tumbuh saat RT bertambah.
+     *
+     * Rincian plafon: 16 query dashboard + 2 resolver tenant (Phase B2:
+     * domains + organizations) + 2 level efektif (Phase E1: assignment; peta
+     * induk hanya bila user punya assignment). Kalau menaikkan plafon ini,
+     * tulis komponen barunya - dan ingat penjaga strukturalnya tes di bawah.
      */
     public function test_dashboard_tidak_menjalankan_query_di_dalam_loop(): void
     {
@@ -158,8 +163,8 @@ class HalamanUtamaTest extends TestCase
         $jumlahQuery = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        $this->assertLessThan(
-            20,
+        $this->assertLessThanOrEqual(
+            21,
             $jumlahQuery,
             "Dashboard menjalankan {$jumlahQuery} query — indikasi query di dalam loop muncul lagi."
         );

@@ -15,17 +15,13 @@ class CheckRole
             return redirect()->route('login');
         }
 
-        $userLevel = $user->level ?? 'warga';
+        // Phase E1: assignment ber-scope (user, peran, organisasi) menang bila
+        // ada yang relevan dengan tenant request ini; tanpa assignment, jatuh
+        // ke users.level supaya perilaku lama utuh selama transisi.
+        $userLevel = $user->levelEfektif();
 
-        // Define role hierarchy — higher roles can access lower role pages
-        $hierarchy = [
-            'superadmin' => 5,
-            'admin' => 5,
-            'ketua_rw' => 4,
-            'bendahara' => 3,
-            'petugas_rt' => 2,
-            'warga' => 1,
-        ];
+        // Hierarki level: sumber tunggalnya User::LEVEL_POWER.
+        $hierarchy = \App\Models\User::LEVEL_POWER;
 
         $userPower = $hierarchy[$userLevel] ?? 0;
         $requiredPower = 0;

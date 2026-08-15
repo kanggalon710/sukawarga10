@@ -65,9 +65,22 @@ asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
       Fedora 44 berversi 8.5 dan menimpa modul 8.4 (sudah pernah terjadi dan
       dipulihkan dari RPM php 8.4.24 fc43). Driver pdo_mysql kini terpasang
       dari ekstraksi fc43.
-- [ ] **E1:** `user_role_assignments` + backfill dari `users.level`,
-      `CheckRole` membaca assignment dengan fallback level lama. Prasyarat:
-      keputusan tabel `roles` mati (butir di bawah).
+- [x] **E1 selesai 2026-08-15:** katalog peran generik + `user_role_assignments`
+      (migrasi `2026_08_15_000007`), CheckRole/userCan/helper izin membaca
+      level efektif (assignment ber-scope, fallback `users.level`). Tabel
+      `roles` lama di-rename ke `roles_legacy_pwa` - **drop manual setelah
+      produksi dipastikan tidak menyimpan baris berharga.**
+- [ ] **Pensiunkan fallback `users.level`** saat tenant kedua sungguhan
+      dibuka: fallback membuat level lama berlaku di SEMUA tenant, aman
+      selama single-tenant, bocor begitu multi. Sekalian: user BARU yang
+      dibuat lewat Manajemen Akun belum otomatis dapat assignment (masih
+      mengandalkan fallback) - AkunController perlu memasang assignment saat
+      pembuatan akun sebelum fallback dicabut.
+- [ ] **E2:** scoping query per controller (satu controller per PR) + tes
+      isolasi §37. Mulai dari jalur uang (`TransaksiController`). Perhatian:
+      perbandingan `$user->level` mentah masih tersebar di beberapa controller
+      (mis. `SuratController::index`) - ganti ke `levelEfektif()` saat
+      controller-nya disentuh.
 - [ ] **Deploy berikutnya:** setelah migrasi B1+B2 masuk produksi, verifikasi
       `https://paru.jabnet.id` tetap 200 dan host asing/IP langsung ke server
       kini 404. Kalau operator perlu hostname tambahan (mis. akses via IP

@@ -128,7 +128,10 @@ if (!function_exists('userCan')) {
         $user = auth()->user();
         if (!$user) return false;
 
-        $level = $user->level ?? 'warga';
+        // Phase E1: menu mengikuti level efektif (assignment ber-scope dengan
+        // fallback users.level), sama dengan CheckRole - kalau tidak, hak dari
+        // assignment lolos middleware tapi menunya tidak pernah tampil.
+        $level = $user->levelEfektif();
 
         // Admin-like levels always get full access.
         // Daftarnya diambil dari User::LEVEL_ADMIN, bukan ditulis ulang di sini,

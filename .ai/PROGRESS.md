@@ -2,6 +2,48 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Phase E1 multi-tenant: peran generik + assignment ber-scope
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Lanjutan C, disetujui pemilik project termasuk rekomendasi tidak
+memakai ulang tabel `roles` era PWA. Otorisasi harus bisa menjawab "peran apa,
+DI organisasi mana", bukan cuma level global - fondasi §8-§10 dokumen arsitektur.
+**Perubahan:**
+- Migrasi `2026_08_15_000007`: tabel `roles` lama di-RENAME ke
+  `roles_legacy_pwa` (bukan drop - produksi mungkin masih menyimpan baris),
+  tabel `roles` baru (katalog 6 peran generik dengan kolom `legacy_level`
+  sebagai jembatan transisi) + `user_role_assignments` (user, role, org,
+  unik bertiga), backfill dari `users.level`: superadmin/admin →
+  super_admin@platform, ketua_rw → rw_admin@RW10, bendahara → rw_finance@RW10,
+  warga → warga@RW10, petugas_rt → rt_admin@RT-nya (yang RT-nya tak
+  ditemukan dilewati dengan peringatan, fallback tetap melindungi).
+- `User::levelEfektif()`: assignment relevan (organisasi di rantai leluhur
+  ATAU subtree tenant) yang terkuat menang; tanpa assignment jatuh ke
+  `users.level`. Maksimal 2 query konstan; memo per request dititip di
+  TenantContext (memo di instance model bocor antar request dalam tes).
+- CheckRole, `userCan()`, dan seluruh helper izin User (isSuperAdmin, canVoid,
+  canManageFinance, dst) membaca level efektif - tanpa ini hak dari assignment
+  lolos middleware tapi ditolak cek lapis kedua di controller (ditemukan lewat
+  tes yang gagal di AkunController).
+- Seeder memasang super_admin@platform untuk akun bawaan, idempoten.
+- Hierarki level pindah ke `User::LEVEL_POWER` (satu sumber, CheckRole impor).
+- 8 tes baru `tests/Feature/PeranScopeTest.php`: assignment mengangkat hak,
+  assignment tenant lain TIDAK berlaku di sini, platform berlaku ke bawah,
+  rt_admin berlaku di RW induknya tapi tidak naik jadi pengurus RW, fallback,
+  pemilihan terkuat, seeder idempoten.
+**File:** database/migrations/2026_08_15_000007_rebuild_roles_and_add_assignments.php,
+app/Models/{User,Role,UserRoleAssignment}.php, app/Http/Middleware/CheckRole.php,
+app/Services/TenantContext.php, app/helpers.php, database/seeders/DatabaseSeeder.php,
+tests/Feature/{PeranScopeTest,HalamanUtamaTest}.php
+**Catatan:** 104 tes lulus di SQLite DAN MariaDB 11.8.8; rollback E1 diuji
+turun-naik di keduanya; backfill diuji di DB berisi data (petugas_rt '05'
+tertaut ke RT05, tabel legacy utuh). Plafon tes hitung-query Dashboard
+dinaikkan 20→21 SECARA EKSPLISIT dengan rincian komponen di komentarnya
+(2 resolver B2 + 2 level efektif E1); penjaga strukturalnya (jumlah query
+konstan saat RT bertambah) tetap lulus tanpa diubah. Insiden selama kerja:
+grep berpola salah mematikan artisan via SIGPIPE di tengah migrasi scratch,
+meninggalkan kolom separuh terpasang - pengingat bahwa DDL SQLite tidak
+transaksional; scratch diperbaiki manual, bukan bug migrasinya.
+
 ## 2026-08-15 - Verifikasi MySQL: 96 tes lulus di MariaDB 11.8.8
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Gerbang wajib sebelum fase multi-tenant boleh deploy: seluruh

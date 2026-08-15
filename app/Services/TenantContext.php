@@ -22,10 +22,27 @@ class TenantContext
 
     private ?Organization $organization = null;
 
+    /** @var array<int|string, string> memo level efektif per user, umur satu request */
+    private array $levelEfektif = [];
+
+    /**
+     * Memo level efektif per user (Phase E1). Ditaruh di sini, bukan di model,
+     * karena instance ini scoped per request sehingga memo tidak pernah bocor
+     * antar request.
+     */
+    public function ingatLevelEfektif(int|string $userKey, \Closure $hitung): string
+    {
+        return $this->levelEfektif[$userKey] ??= $hitung();
+    }
+
     public function tetapkan(Domain $domain): void
     {
         $this->domain = $domain;
         $this->organization = $domain->organization;
+        // Di produksi instance ini baru tiap request; di proses tes container
+        // dipakai ulang antar request, jadi memo direset di sini (tetapkan
+        // dipanggil resolver tepat sekali di awal tiap request).
+        $this->levelEfektif = [];
     }
 
     public function sudahDitetapkan(): bool

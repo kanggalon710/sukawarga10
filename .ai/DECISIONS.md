@@ -3,6 +3,30 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Phase E1: tabel roles lama di-rename, bukan drop; legacy_level sebagai jembatan
+**Konteks:** E1 butuh katalog peran baru. Tabel `roles` era PWA (rtFilter,
+readOnly, permissions json) mati total di kode tapi mungkin masih menyimpan
+baris di produksi. Pemilik project menyetujui rekomendasi "jangan pakai ulang".
+**Keputusan:**
+1. **Rename ke `roles_legacy_pwa`, bukan DROP.** Nol kehilangan data; drop
+   manual setelah produksi dipastikan kosong. `down()` mengembalikan nama.
+2. **Kolom `roles.legacy_level`** memetakan tiap peran generik ke level lama,
+   sehingga CheckRole cukup menerjemahkan assignment → level → hierarki yang
+   sudah teruji. Alternatifnya (sistem permission granular penuh, §11) berarti
+   menulis ulang seluruh pengecekan sekaligus - terlalu besar untuk satu fase
+   dan tidak bisa dirilis bertahap. Kolom ini mati bersama `users.level` saat
+   fallback dipensiunkan.
+3. **Fallback ke `users.level`** bila user tanpa assignment relevan: membuat
+   E1 nol-perubahan-perilaku untuk semua akun existing dan akun baru. Bahaya
+   yang disadari: fallback berlaku lintas tenant, jadi WAJIB dicabut sebelum
+   tenant kedua dibuka (tercatat di TODO dengan prasyaratnya).
+4. **Helper izin User (isSuperAdmin dst) ikut membaca level efektif.** Tanpa
+   ini assignment lolos middleware tapi ditolak cek lapis kedua di controller
+   (AkunController) - ditemukan lewat tes, bukan tebakan.
+5. **Memo level efektif dititip di TenantContext** (scoped per request), bukan
+   di instance model: instance user hidup melintasi request dalam proses tes
+   dan memonya membuat pengukuran query request kedua salah.
+
 ## 2026-08-15 - Phase C: cap organization_id lewat model event, bukan edit 11 controller
 **Konteks:** Setelah kolom `organization_id` ada, setiap insert baru harus
 mengisinya. 10 dari 12 model tenant ber-`$guarded = []` sehingga nilai dari

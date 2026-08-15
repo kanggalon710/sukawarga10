@@ -1,0 +1,143 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Organization;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\UserRoleAssignment;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
+
+/**
+ * Phase E1 multi-tenant: peran + scope menggantikan level global.
+ * Prinsipnya: assignment yang relevan dengan tenant request MENANG; tanpa
+ * assignment, users.level tetap berlaku (jembatan transisi); assignment di
+ * tenant LAIN tidak memberi hak apa-apa di sini.
+ */
+class PeranScopeTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function buatUser(string $level, string $username): User
+    {
+        return User::create([
+            'user_id' => "u_{$username}", 'username' => $username,
+            'namaLengkap' => ucfirst($username), 'pin' => Hash::make('123456'),
+            'level' => $level, 'status' => 'aktif',
+        ]);
+    }
+
+    private function pasang(User $user, string $slug, Organization $org): void
+    {
+        UserRoleAssignment::create([
+            'user_id' => $user->id,
+            'role_id' => Role::where('slug', $slug)->value('id'),
+            'organization_id' => $org->id,
+        ]);
+    }
+
+    private function rw(): Organization
+    {
+        return Organization::where('slug', 'rw-10-sukakarya')->first();
+    }
+
+    public function test_katalog_peran_tertanam_dengan_padanan_level(): void
+    {
+        $peta = Role::pluck('legacy_level', 'slug');
+
+        $this->assertSame('superadmin', $peta['super_admin']);
+        $this->assertSame('ketua_rw', $peta['rw_admin']);
+        $this->assertSame('bendahara', $peta['rw_finance']);
+        $this->assertSame('petugas_rt', $peta['rt_admin']);
+        $this->assertSame('warga', $peta['warga']);
+        // Tidak boleh ada peran bernama desa/RW tertentu (§8 anti-pattern).
+        $this->assertTrue(Role::all()->every(fn ($r) => ! str_contains($r->slug, 'sukakarya')));
+    }
+
+    public function test_assignment_memberi_hak_melebihi_level_lama(): void
+    {
+        // Level tersimpan warga, tapi dipasang rw_admin di tenant ini:
+        // assignment yang menentukan, bukan kolom level.
+        $user = $this->buatUser('warga', 'naikperan');
+        $this->pasang($user, 'rw_admin', $this->rw());
+
+        $this->actingAs($user)->get('/pengaturan')->assertOk();
+    }
+
+    public function test_assignment_di_tenant_lain_tidak_berlaku_di_sini(): void
+    {
+        $rwLain = Organization::create([
+            'parent_id' => Organization::where('slug', 'sukakarya')->value('id'),
+            'type' => Organization::TYPE_RW, 'name' => 'RW 99',
+            'code' => 'RW99', 'slug' => 'rw-99-sukakarya',
+        ]);
+
+        $user = $this->buatUser('warga', 'adminsana');
+        $this->pasang($user, 'rw_admin', $rwLain);
+
+        // rw_admin di RW 99 tetap warga biasa di tenant RW 10.
+        $this->actingAs($user)->get('/pengaturan')->assertForbidden();
+    }
+
+    public function test_super_admin_platform_berlaku_di_tenant_bawahannya(): void
+    {
+        $user = $this->buatUser('warga', 'stafplatform');
+        $this->pasang($user, 'super_admin', Organization::where('slug', 'platform')->first());
+
+        // Platform adalah leluhur RW 10, jadi assignment-nya relevan di sini.
+        $this->actingAs($user)->get('/akun')->assertOk();
+    }
+
+    public function test_rt_admin_berlaku_di_tenant_rw_induknya(): void
+    {
+        $rt = Organization::create([
+            'parent_id' => $this->rw()->id, 'type' => Organization::TYPE_RT,
+            'name' => 'RT 01', 'code' => 'RT01', 'slug' => 'rt-01-rw-10-sukakarya',
+        ]);
+        $user = $this->buatUser('warga', 'pengurusrt');
+        $this->pasang($user, 'rt_admin', $rt);
+
+        // /search dijaga role:petugas_rt; rt_admin di RT bawahan RW 10 lolos.
+        $this->actingAs($user)->get('/search?q=uji')->assertOk();
+        // Tapi tidak ikut naik jadi pengurus RW.
+        $this->actingAs($user)->get('/pengaturan')->assertForbidden();
+    }
+
+    public function test_tanpa_assignment_jatuh_ke_level_lama(): void
+    {
+        // Jembatan transisi: user lama tanpa assignment berperilaku persis
+        // seperti sebelum E1.
+        $user = $this->buatUser('bendahara', 'bendaharalama');
+
+        $this->actingAs($user)->get('/bukukas')->assertOk();
+        $this->actingAs($user)->get('/akun')->assertForbidden();
+    }
+
+    public function test_diambil_yang_terkuat_bila_assignment_lebih_dari_satu(): void
+    {
+        $rt = Organization::create([
+            'parent_id' => $this->rw()->id, 'type' => Organization::TYPE_RT,
+            'name' => 'RT 02', 'code' => 'RT02', 'slug' => 'rt-02-rw-10-sukakarya',
+        ]);
+        $user = $this->buatUser('warga', 'duaperan');
+        $this->pasang($user, 'rt_admin', $rt);
+        $this->pasang($user, 'rw_admin', $this->rw());
+
+        $this->assertSame('ketua_rw', $user->levelEfektifUntuk($this->rw()));
+    }
+
+    public function test_seeder_memasang_super_admin_untuk_akun_bawaan(): void
+    {
+        $this->seed();
+
+        $admin = User::where('username', 'admin')->first();
+        $this->assertNotNull($admin);
+        $this->assertSame('superadmin', $admin->levelEfektifUntuk($this->rw()));
+
+        // Diulang tidak menggandakan assignment.
+        $this->seed();
+        $this->assertSame(1, UserRoleAssignment::where('user_id', $admin->id)->count());
+    }
+}
