@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Cetak Surat — ' . $surat->nomorSurat)
+@section('title', 'Cetak Surat · ' . $surat->nomorSurat)
 
 @section('content')
 <style>
@@ -14,7 +14,11 @@
     border: 1px solid var(--abu2); border-radius: 8px; font-family: 'Times New Roman', serif;
     font-size: 14px; line-height: 1.8; color: #222;
 }
-.kop-rw { text-align: center; border-bottom: 3px double #333; padding-bottom: 12px; margin-bottom: 24px; }
+.kop-rw { display: flex; align-items: center; gap: 16px; text-align: center; border-bottom: 3px double #333; padding-bottom: 12px; margin-bottom: 24px; }
+.kop-logo { width: 68px; height: 68px; flex-shrink: 0; }
+.kop-teks { flex: 1; }
+/* Cetak: pastikan logo ikut tercetak (bukan dianggap latar) */
+@media print { .kop-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 .kop-rw h2 { font-size: 18px; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
 .kop-rw h3 { font-size: 14px; margin: 2px 0 0; font-weight: normal; }
 .kop-rw .alamat { font-size: 11px; color: #555; margin-top: 4px; }
@@ -72,11 +76,14 @@
 <div class="surat-wrapper">
     {{-- KOP SURAT --}}
     <div class="kop-rw">
-        <h2>RUKUN WARGA {{ $rw }}</h2>
-        <h3>{{ $kel }}</h3>
-        <div class="alamat">
-            Kecamatan {{ $kec }} — {{ $kab }}<br>
-            {{ $alamatRW }}
+        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo RW 10 Sukakarya" class="kop-logo">
+        <div class="kop-teks">
+            <h2>RUKUN WARGA {{ $rw }}</h2>
+            <h3>{{ $kel }}</h3>
+            <div class="alamat">
+                Kecamatan {{ $kec }} · {{ $kab }}<br>
+                {{ $alamatRW }}
+            </div>
         </div>
     </div>
 

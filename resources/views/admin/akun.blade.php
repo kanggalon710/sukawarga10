@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Manajemen Akun')
 @section('page-title', 'Manajemen Akun')
-@section('page-subtitle', 'Kelola pengguna sistem — pengurus & warga')
+@section('page-subtitle', 'Kelola pengguna sistem · pengurus & warga')
 
 @section('content')
 @php

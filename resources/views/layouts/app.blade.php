@@ -13,10 +13,16 @@
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <meta name="theme-color" content="#0f7a4d">
     <meta name="description" content="Sistem informasi & keuangan komunitas RW 10 Sukakarya, Tarogong Kidul, Garut.">
-    <meta property="og:title" content="SukaWarga10 — RW 10 Sukakarya">
-    <meta property="og:description" content="Data warga, iuran, dan laporan demografi RW 10 Sukakarya.">
+    <meta property="og:title" content="SukaWarga10 · RW 10 Sukakarya">
+    <meta property="og:description" content="Data warga, iuran, dan laporan demografi RW 10 Sukakarya, Tarogong Kidul, Garut.">
     <meta property="og:image" content="{{ asset('og-image.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Ilustrasi permukiman RW 10 Sukakarya di kaki pegunungan Garut">
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:site_name" content="SukaWarga10">
+    <meta name="twitter:card" content="summary_large_image">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

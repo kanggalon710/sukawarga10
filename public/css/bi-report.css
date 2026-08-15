@@ -270,9 +270,113 @@
 /* aksesibilitas */
 .bi-jump a:focus-visible, .bi-data-toggle > summary:focus-visible { outline: 2px solid var(--bi-rank1a); outline-offset: 2px; }
 
+/* ══════════════ 10B. KOMPONEN DASHBOARD ══════════════
+   Dashboard memakai sistem yang SAMA dengan Laporan (bi-* + t-*). */
+.bi-page { display: flex; flex-direction: column; gap: 16px; }
+.bi-grid-2 { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; }
+.bi-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+/* Kartu panel (pembungkus section dashboard) */
+.bi-card { background: var(--bi-surface); border: 1px solid var(--bi-border); border-radius: var(--bi-r); box-shadow: var(--bi-sh-1); overflow: hidden; }
+
+/* Delta pill (naik/turun vs periode lalu) */
+.bi-delta { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: var(--fs-2xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bi-delta--up { color: var(--bi-good-a); background: #e9f6ef; }
+.bi-delta--down { color: #b3261e; background: #fdecea; }
+.bi-delta--flat { color: var(--bi-muted); background: var(--bi-surface-2); }
+
+/* Ringkasan keuangan 3 kolom */
+.bi-finbar { display: grid; grid-template-columns: repeat(3, 1fr); }
+.bi-finbar__cell { padding: 2px 20px; border-left: 1px solid var(--bi-border); }
+.bi-finbar__cell:first-child { border-left: 0; padding-left: 0; }
+.bi-finbar__val { display: block; margin-top: 3px; font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bi-finbar__sub { display: block; margin-top: 4px; font-size: var(--fs-2xs); color: var(--bi-muted); }
+
+/* Chart kolom bersumbu nilai */
+.bi-chart { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+.bi-chart__y { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; height: 190px; font-size: var(--fs-2xs); color: var(--bi-muted); font-variant-numeric: tabular-nums; }
+.bi-chart__main { display: flex; flex-direction: column; min-width: 0; }
+.bi-chart__area { position: relative; height: 190px; border-left: 1px solid var(--bi-border); border-bottom: 1px solid var(--bi-border); }
+.bi-chart__grid { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--bi-border); }
+.bi-chart__bars { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-around; }
+.bi-chart__group { display: flex; align-items: flex-end; justify-content: center; gap: 3px; flex: 1; height: 100%; }
+.bi-chart__bar { width: 15px; border-radius: 3px 3px 0 0; min-height: 2px; transition: height .8s var(--bi-ease), filter .16s var(--bi-ease); }
+.bi-chart__group:hover .bi-chart__bar { filter: brightness(1.08); }
+.bi-chart__bar--in { background: linear-gradient(180deg, #43a047, #2e7d50); }
+.bi-chart__bar--out { background: linear-gradient(180deg, #ef5350, #d32f2f); }
+.bi-chart__x { display: flex; justify-content: space-around; margin-top: 6px; }
+.bi-chart__x span { flex: 1; text-align: center; font-size: var(--fs-2xs); color: var(--bi-muted); font-weight: 600; }
+
+/* Daftar baris (demografi / profil sosial / transaksi) */
+.bi-list { display: flex; flex-direction: column; }
+.bi-drow { display: flex; align-items: center; gap: 12px; padding: 10px 8px; margin: 0 -8px; border-bottom: 1px solid #f1f5f9; border-radius: var(--bi-r-sm); transition: background .16s var(--bi-ease); }
+.bi-drow:last-child { border-bottom: 0; }
+.bi-drow:hover { background: var(--bi-surface-2); }
+.bi-drow__icon { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-size: var(--fs-base); flex-shrink: 0; }
+.bi-drow__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.bi-drow__title { font-size: var(--fs-sm); font-weight: 600; color: var(--bi-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bi-drow__meta { font-size: var(--fs-2xs); color: var(--bi-muted); }
+.bi-drow__val { font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ══════════════ 10D. POLA BI: STAT STRIP, EXCEPTION, COVERAGE ══════════════
+   Prinsip: hierarki (bukan N kartu seragam), konteks (target/pembanding),
+   exception-based (yang perlu tindakan naik ke atas), data-ink tinggi. */
+
+/* Stat strip: angka utama tanpa kotak, dipisah garis rambut */
+.bi-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--bi-surface); border: 1px solid var(--bi-border); border-radius: var(--bi-r); box-shadow: var(--bi-sh-1); overflow: hidden; }
+.bi-stat-cell { padding: 16px 20px; border-left: 1px solid var(--bi-border); }
+.bi-stat-cell:first-child { border-left: 0; }
+.bi-stat-cell__val { font-size: var(--fs-2xl); font-weight: 800; line-height: 1.05; letter-spacing: -.02em; color: var(--bi-ink); font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 6px; }
+.bi-stat-cell__val small { font-size: var(--fs-sm); font-weight: 600; color: var(--bi-muted); letter-spacing: 0; }
+.bi-stat-cell__lbl { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--bi-muted); margin-top: 6px; }
+.bi-stat-cell__ctx { font-size: var(--fs-2xs); color: var(--bi-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* Baris exception: yang perlu tindakan */
+.bi-issue { display: grid; grid-template-columns: 3px 1fr auto; gap: 14px; align-items: center; padding: 12px 8px; margin: 0 -8px; border-radius: var(--bi-r-sm); border-bottom: 1px solid #f1f5f9; transition: background .16s var(--bi-ease); }
+.bi-issue:last-of-type { border-bottom: 0; }
+.bi-issue:hover { background: var(--bi-surface-2); }
+.bi-issue__sev { align-self: stretch; border-radius: 2px; min-height: 34px; }
+.bi-issue__sev--tinggi { background: #d64545; }
+.bi-issue__sev--sedang { background: var(--bi-ok); }
+.bi-issue__sev--rendah { background: var(--bi-rest); }
+.bi-issue__body { min-width: 0; }
+.bi-issue__name { font-size: var(--fs-sm); font-weight: 700; color: var(--bi-ink); }
+.bi-issue__why { font-size: var(--fs-2xs); color: var(--bi-muted); margin-top: 2px; }
+.bi-issue__num { text-align: right; white-space: nowrap; }
+.bi-issue__count { font-size: var(--fs-lg); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--bi-ink); line-height: 1; }
+.bi-issue__pct { font-size: var(--fs-2xs); color: var(--bi-muted); font-variant-numeric: tabular-nums; margin-top: 3px; }
+
+/* Baris cakupan dengan penanda target */
+.bi-cov { display: grid; grid-template-columns: 1fr 130px 62px; gap: 14px; align-items: center; padding: 11px 8px; margin: 0 -8px; border-radius: var(--bi-r-sm); transition: background .16s var(--bi-ease); }
+.bi-cov:hover { background: var(--bi-surface-2); }
+.bi-cov__name { font-size: var(--fs-sm); font-weight: 600; color: var(--bi-ink); }
+.bi-cov__sub { font-size: var(--fs-2xs); color: var(--bi-muted); margin-top: 1px; }
+/* display:block wajib. Elemen span bersifat inline sehingga width diabaikan. */
+.bi-cov__track { display: block; position: relative; height: 9px; background: var(--bi-track); border-radius: 5px; overflow: visible; }
+.bi-cov__fill { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--bi-good-a), var(--bi-good-b)); width: 0; transition: width .8s var(--bi-ease); }
+.bi-cov__fill--low { background: var(--bi-ok); }
+/* penanda target: konteks yang membedakan BI dari sekadar bar */
+.bi-cov__target { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--bi-ink-2); opacity: .55; border-radius: 1px; }
+.bi-cov__val { text-align: right; font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--bi-ink); }
+.bi-cov-legend { display: flex; align-items: center; gap: 7px; font-size: var(--fs-2xs); color: var(--bi-muted); margin-top: 12px; }
+.bi-cov-legend i { display: inline-block; width: 2px; height: 11px; background: var(--bi-ink-2); opacity: .55; }
+
+@media (max-width: 720px) {
+    .bi-cov { grid-template-columns: 1fr 84px 50px; gap: 10px; }
+    .bi-stat-cell { border-left: 0; border-top: 1px solid var(--bi-border); }
+    .bi-stat-cell:first-child { border-top: 0; }
+}
+
 /* ══════════════ 11. RESPONSIF ══════════════ */
+@media (max-width: 1024px) {
+    .bi-grid-2, .bi-grid-3 { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 720px) {
     .bi-block { padding: 16px; }
+    .bi-finbar { grid-template-columns: 1fr; }
+    .bi-finbar__cell { border-left: 0; border-top: 1px solid var(--bi-border); padding: 10px 0; }
+    .bi-finbar__cell:first-child { border-top: 0; padding-top: 0; }
     .bi-head { padding: 15px 16px; gap: 11px; }
     .bi-row { grid-template-columns: 104px 1fr 70px; gap: 10px; }
     .bi-row__track { height: 20px; }

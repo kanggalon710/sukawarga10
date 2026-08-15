@@ -50,7 +50,7 @@
 </div>
 @else
 <div class="card" style="text-align:center; padding:40px;">
-    <i class="fas fa-store" style="font-size:48px; color:var(--abu3); margin-bottom:16px;"></i>
+    <img src="{{ asset('empty-state.png') }}" alt="" aria-hidden="true" class="blank-state__art" width="176" height="176">
     <h3 style="color:var(--text2);">Belum Ada UMKM</h3>
     <p style="color:var(--text3); font-size:13px;">Daftarkan usaha melalui tombol di atas.</p>
 </div>

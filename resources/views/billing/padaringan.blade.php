@@ -23,7 +23,7 @@
             <div style="width:36px; height:36px; border-radius:8px; background:var(--biru-pale); display:flex; align-items:center; justify-content:center;"><i class="fas fa-file-invoice-dollar" style="color:var(--biru);"></i></div>
             <div>
                 <div style="font-weight:700; font-size:15px; color:var(--text);">Form Pencatatan</div>
-                <div style="font-size:11px; color:var(--text3);">Jurnal Penerimaan Kas — Iuran Padaringan</div>
+                <div style="font-size:11px; color:var(--text3);">Jurnal Penerimaan Kas · Iuran Padaringan</div>
             </div>
         </div>
 
@@ -50,7 +50,7 @@
                 </div>
                 <div id="wargaData" style="display:none;">
                     @foreach($keluargas as $k)
-                    <div data-id="{{ $k->keluarga_id }}" data-nama="{{ $k->nama }}" data-rt="{{ $k->rt }}" data-hp="{{ $k->noHP ?? '' }}">{{ $k->nama }} — RT {{ $k->rt }}</div>
+                    <div data-id="{{ $k->keluarga_id }}" data-nama="{{ $k->nama }}" data-rt="{{ $k->rt }}" data-hp="{{ $k->noHP ?? '' }}">{{ $k->nama }} · RT {{ $k->rt }}</div>
                     @endforeach
                 </div>
             </div>
@@ -123,7 +123,7 @@
         <!-- Status Pembayaran -->
         <div class="card" style="padding:0; overflow:hidden;">
             <div style="padding:14px 18px; background:var(--abu); border-bottom:1.5px solid var(--abu2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <div style="font-weight:700; font-size:14px;"><i class="fas fa-clipboard-check" style="color:var(--biru); margin-right:6px;"></i>Status Pembayaran — Tahun {{ $tahun }}</div>
+                <div style="font-weight:700; font-size:14px;"><i class="fas fa-clipboard-check" style="color:var(--biru); margin-right:6px;"></i>Status Pembayaran · Tahun {{ $tahun }}</div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input type="text" id="tableSearch" placeholder="🔍 Cari..." oninput="filterTable(this.value)"
                         style="padding:7px 10px; border:1.5px solid var(--abu2); border-radius:8px; font-size:12px; outline:none; width:120px; max-width:40vw;">
@@ -176,7 +176,7 @@
         @if(count($riwayat) > 0)
         <div class="card" style="padding:0; overflow:hidden; margin-top:16px;">
             <div style="padding:14px 18px; background:var(--abu); border-bottom:1.5px solid var(--abu2);">
-                <div style="font-weight:700; font-size:14px;"><i class="fas fa-book" style="color:var(--biru); margin-right:6px;"></i>Jurnal Penerimaan — Tahun {{ $tahun }}</div>
+                <div style="font-weight:700; font-size:14px;"><i class="fas fa-book" style="color:var(--biru); margin-right:6px;"></i>Jurnal Penerimaan · Tahun {{ $tahun }}</div>
             </div>
             <div class="data-table-wrapper">
                 <table class="data-table">
@@ -237,13 +237,13 @@ function filterWarga(q) {
     if (!hits.length) { dd.innerHTML='<div style="padding:12px;font-size:13px;color:var(--text3);">Tidak ditemukan</div>'; dd.style.display='block'; return; }
     dd.innerHTML = hits.slice(0,50).map(w =>
         `<div onclick="selectWarga('${w.id}','${w.nama.replace(/'/g,"\\'")}',' ${w.rt}','${w.hp}')" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--abu2);" onmouseover="this.style.background='var(--abu)'" onmouseout="this.style.background='white'">
-            <span style="font-weight:600;">${w.nama}</span> <span style="font-size:11px;color:var(--text3);">— RT ${w.rt}</span>
+            <span style="font-weight:600;">${w.nama}</span> <span style="font-size:11px;color:var(--text3);">- RT ${w.rt}</span>
         </div>`
     ).join('');
     dd.style.display='block';
 }
 function selectWarga(id, nama, rt, hp) {
-    document.getElementById('wargaSearch').value = nama+' — RT '+rt;
+    document.getElementById('wargaSearch').value = nama+' · RT '+rt;
     document.getElementById('wargaSelect').value = id;
     document.getElementById('wargaDropdown').style.display='none';
     loadWargaStatus();

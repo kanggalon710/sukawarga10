@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Profil Saya')
 @section('page-title', 'Profil Data Keluarga')
-@section('page-subtitle'){{ $kk->nama }} — RT {{ $kk->rt }}@endsection
+@section('page-subtitle'){{ $kk->nama }} · RT {{ $kk->rt }}@endsection
 
 @section('content')
 
@@ -18,7 +18,7 @@
         <div style="font-size:11px; color:var(--text3); margin-top:6px;">
             @if($completion < 50) ⚠️ Data masih kurang lengkap. Mohon lengkapi data Anda.
             @elseif($completion < 75) 📝 Tinggal sedikit lagi! Lengkapi hingga 75% untuk mendapat notifikasi apresiasi.
-            @elseif($completion < 100) 🎉 Hebat! Tinggal sedikit lagi menuju 100% — data lengkap = pelayanan optimal!
+            @elseif($completion < 100) 🎉 Hebat! Tinggal sedikit lagi menuju 100% · data lengkap = pelayanan optimal!
             @else 🏆 Data Anda sudah 100% lengkap. Terima kasih, warga teladan! ⭐
             @endif
         </div>

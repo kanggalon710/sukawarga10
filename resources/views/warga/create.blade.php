@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Tambah Warga')
 @section('page-title', 'Tambah Data Keluarga')
-@section('page-subtitle', 'Form pendataan keluarga baru — 5 tahap')
+@section('page-subtitle', 'Form pendataan keluarga baru · 5 tahap')
 
 @section('content')
 
@@ -115,7 +115,7 @@
                 <div class="f-group">
                     <label class="f-label">RT <span class="req">*</span></label>
                     <select name="rt" id="fRT" required class="f-input">
-                        <option value="">— Pilih RT —</option>
+                        <option value="">- Pilih RT -</option>
                         @for($i=1;$i<=6;$i++)
                         <option value="{{ str_pad($i,2,'0',STR_PAD_LEFT) }}">RT {{ str_pad($i,2,'0',STR_PAD_LEFT) }}</option>
                         @endfor
@@ -161,10 +161,10 @@
             <div class="f-group">
                 <label class="f-label">No. HP / WhatsApp</label>
                 <input type="tel" name="noHP" id="fNoHP" class="f-input"
-                    placeholder="08xxxx — nomor aktif untuk notifikasi WA"
+                    placeholder="08xxxx · nomor aktif untuk notifikasi WA"
                     inputmode="tel" autocomplete="tel"
                     oninput="this.value=this.value.replace(/[^0-9+\-\s]/g,'')">
-                <span class="f-hint">ℹ Untuk notifikasi WhatsApp. Format bebas (08xx / 62xx / +62xx) — otomatis dirapikan ke 62xxxx</span>
+                <span class="f-hint">ℹ Untuk notifikasi WhatsApp. Format bebas (08xx / 62xx / +62xx) · otomatis dirapikan ke 62xxxx</span>
             </div>
 
             {{-- Alamat --}}
@@ -218,7 +218,7 @@
             <div class="form-section-icon" style="background:var(--biru-pale);">🏠</div>
             <div>
                 <div style="font-weight:800; font-size:16px;">Kondisi Rumah & Sanitasi</div>
-                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional — untuk data sosial ekonomi</div>
+                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional · untuk data sosial ekonomi</div>
             </div>
         </div>
         <div style="display:grid; gap:14px;">
@@ -299,7 +299,7 @@
             <div class="form-section-icon" style="background:var(--emas-muda);">💼</div>
             <div>
                 <div style="font-weight:800; font-size:16px;">Ekonomi & Aset</div>
-                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional — profil ekonomi keluarga</div>
+                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional · profil ekonomi keluarga</div>
             </div>
         </div>
         <div style="display:grid; gap:14px;">
@@ -345,7 +345,7 @@
             <div class="form-section-icon" style="background:var(--merah-pale);">🤝</div>
             <div>
                 <div style="font-weight:800; font-size:16px;">Bansos, Kelompok Rentan & Program</div>
-                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional — data sosial & pendaftaran iuran</div>
+                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional · data sosial & pendaftaran iuran</div>
             </div>
         </div>
         <div style="display:grid; gap:18px;">
@@ -421,7 +421,7 @@
             <div class="form-section-icon" style="background:#ede7f6;">📁</div>
             <div>
                 <div style="font-weight:800; font-size:16px;">Dokumen & Foto</div>
-                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional — upload scan KK, foto rumah, dan dokumen PBB</div>
+                <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional · upload scan KK, foto rumah, dan dokumen PBB</div>
             </div>
         </div>
         <div style="display:grid; gap:16px;">

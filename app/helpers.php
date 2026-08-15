@@ -43,8 +43,10 @@ if (!function_exists('userCan')) {
 
         $level = $user->level ?? 'warga';
 
-        // Admin-like levels always get full access
-        if (in_array(strtolower($level), ['superadmin', 'super_admin', 'admin'])) return true;
+        // Admin-like levels always get full access.
+        // Daftarnya diambil dari User::LEVEL_ADMIN, bukan ditulis ulang di sini,
+        // supaya hanya ada satu sumber kebenaran untuk "setara superadmin".
+        if (in_array(strtolower($level), \App\Models\User::LEVEL_ADMIN, true)) return true;
 
         $perms = getMenuPermissions();
 

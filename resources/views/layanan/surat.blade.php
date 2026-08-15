@@ -153,7 +153,7 @@
 </div>
 @else
 <div class="card" style="text-align:center; padding:40px 20px;">
-    <i class="fas fa-envelope-open-text" style="font-size:48px; color:var(--abu3); margin-bottom:16px; display:block;"></i>
+    <img src="{{ asset('empty-state.png') }}" alt="" aria-hidden="true" class="blank-state__art" width="176" height="176">
     <h3 style="color:var(--text2); margin-bottom:8px;">{{ $isWarga ? 'Belum Ada Pengajuan Surat' : 'Belum Ada Surat' }}</h3>
     <p style="color:var(--text3); font-size:13px; max-width:400px; margin:0 auto 20px;">
         {{ $isWarga ? 'Ajukan surat administrasi seperti SKD, SKTM, SKP, dan lainnya. Surat akan diproses oleh RT → RW → Sekretaris.' : 'Buat surat administrasi warga.' }}
@@ -186,24 +186,24 @@
                 <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Jenis Surat *</label>
                 <select name="kodeSurat" id="jenisSurat" required onchange="onJenisChange()"
                     style="width:100%; padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:white;">
-                    <option value="">— Pilih Jenis Surat —</option>
+                    <option value="">- Pilih Jenis Surat -</option>
                     <optgroup label="📋 Kependudukan">
-                        <option value="SKD">SKD — Surat Keterangan Domisili</option>
-                        <option value="SKP">SKP — Surat Keterangan Pindah</option>
-                        <option value="SKK">SKK — Surat Keterangan Kematian</option>
-                        <option value="SKL">SKL — Surat Keterangan Kelahiran</option>
-                        <option value="SKN">SKN — Surat Pengantar Nikah</option>
+                        <option value="SKD">SKD · Surat Keterangan Domisili</option>
+                        <option value="SKP">SKP · Surat Keterangan Pindah</option>
+                        <option value="SKK">SKK · Surat Keterangan Kematian</option>
+                        <option value="SKL">SKL · Surat Keterangan Kelahiran</option>
+                        <option value="SKN">SKN · Surat Pengantar Nikah</option>
                     </optgroup>
                     <optgroup label="💼 Sosial & Ekonomi">
-                        <option value="SKTM">SKTM — Surat Keterangan Tidak Mampu</option>
-                        <option value="SKU">SKU — Surat Keterangan Usaha</option>
-                        <option value="SPB">SPB — Surat Pengantar Bantuan (KIP/PKH/BPNT)</option>
+                        <option value="SKTM">SKTM · Surat Keterangan Tidak Mampu</option>
+                        <option value="SKU">SKU · Surat Keterangan Usaha</option>
+                        <option value="SPB">SPB · Surat Pengantar Bantuan (KIP/PKH/BPNT)</option>
                     </optgroup>
                     <optgroup label="🛡️ Administrasi & Keamanan">
-                        <option value="SKCK">SKCK — Surat Pengantar SKCK</option>
-                        <option value="SKBB">SKBB — Surat Keterangan Berkelakuan Baik</option>
-                        <option value="SKI">SKI — Surat Keterangan Izin Keramaian</option>
-                        <option value="SKKB">SKKB — Surat Keterangan Kehilangan Barang</option>
+                        <option value="SKCK">SKCK · Surat Pengantar SKCK</option>
+                        <option value="SKBB">SKBB · Surat Keterangan Berkelakuan Baik</option>
+                        <option value="SKI">SKI · Surat Keterangan Izin Keramaian</option>
+                        <option value="SKKB">SKKB · Surat Keterangan Kehilangan Barang</option>
                     </optgroup>
                     <option value="LAIN">📝 Lainnya</option>
                 </select>
@@ -223,10 +223,10 @@
                 @else
                 <select name="pemohon" required
                     style="width:100%; padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:white;">
-                    <option value="">— Pilih Warga Terdaftar —</option>
+                    <option value="">- Pilih Warga Terdaftar -</option>
                     @foreach($wargaList as $w)
                     <option value="{{ $w->kepala_keluarga ?? $w->nama }}">
-                        {{ $w->kepala_keluarga ?? $w->nama }} — RT {{ $w->rt }}
+                        {{ $w->kepala_keluarga ?? $w->nama }} · RT {{ $w->rt }}
                     </option>
                     @endforeach
                     <option value="__luar__">⚠️ Warga Luar / Tidak Terdaftar</option>
@@ -273,18 +273,18 @@
                 <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Jenis Surat</label>
                 <select name="kodeSurat" id="editKode"
                     style="width:100%; padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:white;">
-                    <option value="SKD">SKD — Surat Keterangan Domisili</option>
-                    <option value="SKTM">SKTM — Surat Keterangan Tidak Mampu</option>
-                    <option value="SKP">SKP — Surat Keterangan Pindah</option>
-                    <option value="SKU">SKU — Surat Keterangan Usaha</option>
-                    <option value="SKCK">SKCK — Surat Pengantar SKCK</option>
-                    <option value="SKK">SKK — Surat Keterangan Kematian</option>
-                    <option value="SKL">SKL — Surat Keterangan Kelahiran</option>
-                    <option value="SKN">SKN — Surat Pengantar Nikah</option>
-                    <option value="SKBB">SKBB — Surat Keterangan Berkelakuan Baik</option>
-                    <option value="SPB">SPB — Surat Pengantar Bantuan</option>
-                    <option value="SKI">SKI — Surat Izin Keramaian</option>
-                    <option value="SKKB">SKKB — Surat Keterangan Kehilangan Barang</option>
+                    <option value="SKD">SKD · Surat Keterangan Domisili</option>
+                    <option value="SKTM">SKTM · Surat Keterangan Tidak Mampu</option>
+                    <option value="SKP">SKP · Surat Keterangan Pindah</option>
+                    <option value="SKU">SKU · Surat Keterangan Usaha</option>
+                    <option value="SKCK">SKCK · Surat Pengantar SKCK</option>
+                    <option value="SKK">SKK · Surat Keterangan Kematian</option>
+                    <option value="SKL">SKL · Surat Keterangan Kelahiran</option>
+                    <option value="SKN">SKN · Surat Pengantar Nikah</option>
+                    <option value="SKBB">SKBB · Surat Keterangan Berkelakuan Baik</option>
+                    <option value="SPB">SPB · Surat Pengantar Bantuan</option>
+                    <option value="SKI">SKI · Surat Izin Keramaian</option>
+                    <option value="SKKB">SKKB · Surat Keterangan Kehilangan Barang</option>
                     <option value="LAIN">Lainnya</option>
                 </select>
             </div>
