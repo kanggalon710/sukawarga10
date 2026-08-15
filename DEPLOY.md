@@ -44,7 +44,7 @@ php artisan import:anggota  "database/seed-data/anggota.csv"  --fresh
 ## 4. Akun login
 Importer tidak membuat akun. Pastikan akun admin produksi ada. Bila perlu seed admin default:
 ```bash
-php artisan db:seed --class=DatabaseSeeder --force   # admin / 123456 (GANTI PIN setelah login!)
+php artisan db:seed --class=DatabaseSeeder --force   # admin / 463696 (GANTI PIN setelah login!)
 ```
 
 ## 5. Optimasi + bersihkan cache

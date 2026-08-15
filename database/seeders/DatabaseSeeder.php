@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'admin',
                 'user_id' => 'admin_id_01',
                 'namaLengkap' => 'Administrator',
-                'pin' => '123456',
+                'pin' => '463696',
                 'level' => 'admin',
                 'isDefault' => true,
             ],
