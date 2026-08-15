@@ -3,6 +3,24 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Phase E2: isolasi tenant lewat global scope opt-in, bukan where manual
+**Konteks:** Jalur uang memakai `findOrFail` polos; §21 menuntut setiap query
+resource tenant menjawab scope-nya.
+**Opsi:** (a) sisipkan `where('organization_id',...)` manual di tiap query
+per controller, (b) global scope otomatis di SEMUA 12 model sekaligus lewat
+MilikOrganisasi, (c) global scope di trait terpisah `ScopedKeOrganisasi`,
+dipasang model demi model bersama tes isolasinya.
+**Pilihan:** (c), dimulai dari `Transaksi` + `Keluarga`.
+**Alasan:** (a) adalah pola yang pasti bolong satu tempat dan tidak melindungi
+query baru - persis kelas bug yang §21 peringatkan. (b) meledakkan blast
+radius: `User` TIDAK boleh di-scope baca (login mencari username lintas
+tenant, dan akun seeder ber-organization_id null akan lenyap), `AuditLog`
+level platform juga bukan kandidat. Dengan (c), tiap area diaktifkan sadar,
+bersama tes isolasinya, dan model yang memang tidak boleh tersaring tidak
+pernah tersentuh. Konsekuensi yang diterima: sampai semua area terpasang,
+model yang belum ber-scope masih polos - daftarnya eksplisit di TODO, bukan
+diasumsikan aman.
+
 ## 2026-08-15 - Phase E1: tabel roles lama di-rename, bukan drop; legacy_level sebagai jembatan
 **Konteks:** E1 butuh katalog peran baru. Tabel `roles` era PWA (rtFilter,
 readOnly, permissions json) mati total di kode tapi mungkin masih menyimpan

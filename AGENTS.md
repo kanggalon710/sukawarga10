@@ -122,7 +122,14 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    Pengaturan. Dikunci oleh `tests/Feature/HalamanUtamaTest.php` dan
    `tests/Feature/OtorisasiTest.php`. Konstanta tidak bisa memanggil fungsi, jadi
    teks yang menyebut nama komunitas ditaruh di method, bukan `const`.
-9. **Alamat portal bukan `APP_URL`.** `alamatPortal()` mengembalikan nama host
+9. **Isolasi tenant lewat global scope, dan HANYA hidup di Eloquent.**
+   Model ber-trait `ScopedKeOrganisasi` (mulai dari `Transaksi`, `Keluarga`)
+   otomatis tersaring ke tenant request; `DB::table()` TIDAK ikut tersaring,
+   jadi query resource tenant wajib lewat model. Butuh lintas tenant secara
+   sadar? `Model::withoutGlobalScope('organisasi')` dengan komentar alasan.
+   Dijaga `tests/Feature/IsolasiTenantTest.php`; model baru yang diberi scope
+   wajib ditambahkan ke tes itu.
+10. **Alamat portal bukan `APP_URL`.** `alamatPortal()` mengembalikan nama host
    saja (mis. `paru.jabnet.id`) dan ditempel apa adanya ke pesan WhatsApp.
    Sengaja tidak dari `APP_URL` karena di lokal nilainya `http://localhost:8000`,
    dan salah setel berarti warga menerima link yang tidak bisa dibuka. Nilainya

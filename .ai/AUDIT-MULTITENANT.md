@@ -216,9 +216,11 @@ hijau, dan bisa dirilis sendiri:
    userCan, dan helper izin User membaca level efektif dengan fallback
    `users.level`. Tabel `roles` lama di-rename `roles_legacy_pwa`. Fallback
    wajib dipensiunkan sebelum tenant kedua dibuka (tercatat di TODO).
-5. **E2:** scoping query per controller, satu controller per PR, masing-masing
-   dengan tes isolasi §37 (`RW A tidak bisa baca/ubah/hapus milik RW B`).
-   Mulai dari jalur uang (`TransaksiController`) karena taruhannya tertinggi.
+5. **E2 - tahap 1 SELESAI 2026-08-15** (trait `ScopedKeOrganisasi`, tes
+   `IsolasiTenantTest`): jalur uang terisolasi lewat global scope di
+   `Transaksi` + `Keluarga` (IDOR by-id → 404). Lanjutan: area demi area
+   (Surat, Aduan, dst) dengan pola yang sama - pasang trait + kasus tes
+   isolasi; `DB::table` untuk resource tenant diganti Eloquent.
 6. **F:** `app_settings` per org + inheritance platform→desa→RW + feature flags.
    `identitasAplikasi()` sudah menyiapkan bentuk API-nya.
 7. **D:** domain tenant kedua yang sesungguhnya (desa/RW baru) baru dibuka di

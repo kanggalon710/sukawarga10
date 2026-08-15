@@ -2,6 +2,38 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Phase E2 tahap 1: isolasi tenant jalur uang (global scope)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Query jalur uang memakai `findOrFail` polos (bayar sampah/
+padaringan, void) - persis pola IDOR §21 begitu tenant kedua ada. Menyisipkan
+`where` manual per query adalah pola yang paling gampang bolong, jadi dipilih
+global scope opt-in per model.
+**Perubahan:**
+- Trait `ScopedKeOrganisasi`: global scope membaca TenantContext, menyaring
+  ke `organization_id` RW tenant; di konsol (context kosong) tidak menyaring
+  supaya importer tetap bekerja. Nama tabel dikualifikasi untuk join.
+- Dipasang di `Transaksi` dan `Keluarga`. Efeknya menjalar ke SEMUA pembaca
+  kedua model itu (billing, buku kas, dashboard, laporan, warga) termasuk
+  `findOrFail`: baris tenant lain otomatis 404.
+- `IuranSampah`/`IuranPadaringan` belum di-scope (tidak punya kolom org;
+  scope-nya turunan keluarga). Aman transitif: tampilannya selalu di-join ke
+  keluargas yang tersaring, dan jalur tulisnya lewat `Keluarga::findOrFail`
+  yang tersaring. Dicatat sebagai penyempurnaan E2 berikutnya.
+- 8 tes `tests/Feature/IsolasiTenantTest.php`: daftar warga/billing/buku kas
+  bersih dari milik tenant lain, IDOR by-id 404, bayar untuk KK asing 404
+  tanpa transaksi tercipta, void transaksi asing 404 tanpa perubahan, konsol
+  tetap melihat semua, escape hatch `withoutGlobalScope` eksplisit.
+- Aturan baru di AGENTS.md: query resource tenant wajib lewat Eloquent karena
+  `DB::table()` tidak tersaring scope.
+**File:** app/Models/Concerns/ScopedKeOrganisasi.php,
+app/Models/{Transaksi,Keluarga}.php, tests/Feature/IsolasiTenantTest.php, AGENTS.md
+**Catatan:** 112 tes lulus di SQLite DAN MariaDB 11.8.8 (8 baru); 104 tes lama
+tak tersentuh membuktikan nol perubahan perilaku untuk tenant tunggal. Dua
+kegagalan di tengah jalan adalah data uji saya (nama param `minggu` dan field
+wajib validasi), bukan bug kode. Yang BELUM di-scope: Surat, Aduan, Umkm,
+Kegiatan, Pengeluaran, Sumbangan, SetorSampah, Pendaftaran, AuditLog, plus
+pembaca `DB::table` di PengaturanController/LaporanController - lanjutan E2.
+
 ## 2026-08-15 - Phase E1 multi-tenant: peran generik + assignment ber-scope
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Lanjutan C, disetujui pemilik project termasuk rekomendasi tidak

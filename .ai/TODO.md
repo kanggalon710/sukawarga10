@@ -76,11 +76,21 @@ asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
       dibuat lewat Manajemen Akun belum otomatis dapat assignment (masih
       mengandalkan fallback) - AkunController perlu memasang assignment saat
       pembuatan akun sebelum fallback dicabut.
-- [ ] **E2:** scoping query per controller (satu controller per PR) + tes
-      isolasi §37. Mulai dari jalur uang (`TransaksiController`). Perhatian:
-      perbandingan `$user->level` mentah masih tersebar di beberapa controller
-      (mis. `SuratController::index`) - ganti ke `levelEfektif()` saat
-      controller-nya disentuh.
+- [x] **E2 tahap 1 (jalur uang) selesai 2026-08-15:** global scope
+      `ScopedKeOrganisasi` di `Transaksi` + `Keluarga`; findOrFail lintas
+      tenant otomatis 404. 8 tes di `IsolasiTenantTest`.
+- [ ] **E2 lanjutan, area per area** (pasang trait + tambah kasus di
+      IsolasiTenantTest per area): Surat, Aduan, Umkm, Kegiatan, Pengeluaran,
+      Sumbangan, SetorSampah, Pendaftaran, AuditLog. Sekalian per area:
+      ganti `$user->level` mentah ke `levelEfektif()` (mis.
+      `SuratController::index`), dan ganti pembaca `DB::table` resource tenant
+      ke Eloquent (PengaturanController::removeDuplicates, sebagian
+      LaporanController) karena DB::table tidak tersaring scope.
+- [ ] **Iuran belum ber-scope langsung** (`iuran_sampahs`/`iuran_padaringans`
+      tanpa kolom org; aman transitif lewat keluarga yang tersaring).
+      Saat menyentuh area billing lagi, pertimbangkan scope turunan
+      (whereHas keluarga) atau kolom org sendiri.
+- [ ] **AppSetting & MPWA per-tenant adalah Phase F**, jangan dicampur ke E2.
 - [ ] **Deploy berikutnya:** setelah migrasi B1+B2 masuk produksi, verifikasi
       `https://paru.jabnet.id` tetap 200 dan host asing/IP langsung ke server
       kini 404. Kalau operator perlu hostname tambahan (mis. akses via IP

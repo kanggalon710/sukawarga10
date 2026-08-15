@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\MilikOrganisasi;
+use App\Models\Concerns\ScopedKeOrganisasi;
 use Illuminate\Database\Eloquent\Model;
 
 class Keluarga extends Model
 {
-    use MilikOrganisasi;
+    // ScopedKeOrganisasi: seluruh pembacaan otomatis dibatasi tenant request
+    // (Phase E2, jalur uang) - dijaga tests/Feature/IsolasiTenantTest.php.
+    use MilikOrganisasi, ScopedKeOrganisasi;
 
     protected $guarded = [];
     protected $casts = [
