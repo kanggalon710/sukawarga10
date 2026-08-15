@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>@yield('title', 'SukaWarga10') - Billing RW 10</title>
+    <title>@yield('title', 'Portal Warga') - {{ namaAplikasi() }}</title>
 
     {{-- Identitas & ikon aplikasi --}}
     <link rel="icon" type="image/svg+xml" href="{{ asset('logo-sukawarga-icon.svg') }}">
@@ -12,16 +12,16 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <meta name="theme-color" content="#0f7a4d">
-    <meta name="description" content="Sistem informasi & keuangan komunitas RW 10 Sukakarya, Tarogong Kidul, Garut.">
-    <meta property="og:title" content="SukaWarga10 · RW 10 Sukakarya">
-    <meta property="og:description" content="Data warga, iuran, dan laporan demografi RW 10 Sukakarya, Tarogong Kidul, Garut.">
+    <meta name="description" content="Sistem informasi & keuangan komunitas {{ namaAplikasi() }}, {{ lokasiSingkat() }}.">
+    <meta property="og:title" content="{{ namaAplikasi() }} · {{ lokasiSingkat() }}">
+    <meta property="og:description" content="Data warga, iuran, dan laporan demografi {{ namaAplikasi() }}, {{ lokasiSingkat() }}.">
     <meta property="og:image" content="{{ asset('og-image.png') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Ilustrasi permukiman RW 10 Sukakarya di kaki pegunungan Garut">
+    <meta property="og:image:alt" content="Ilustrasi permukiman {{ namaAplikasi() }} di kaki pegunungan Garut">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="id_ID">
-    <meta property="og:site_name" content="SukaWarga10">
+    <meta property="og:site_name" content="{{ namaAplikasi() }}">
     <meta name="twitter:card" content="summary_large_image">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,7 +41,7 @@
                 <div class="sidebar-logo">
                     <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo" class="sidebar-logo-icon">
                     <div>
-                        <span class="sidebar-logo-title">SukaWarga10</span>
+                        <span class="sidebar-logo-title">{{ namaAplikasi() }}</span>
                         <span class="sidebar-logo-subtitle">Billing System</span>
                     </div>
                 </div>

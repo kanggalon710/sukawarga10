@@ -652,7 +652,7 @@ function updateButtonPreview() {
     });
     previewBtns.innerHTML = html;
     previewBtns.style.display = inputs.length ? '' : 'none';
-    previewFooter.textContent = 'SukaWarga10 • RW 10 Sukakarya';
+    previewFooter.textContent = @json(\App\Services\MpwaService::footer());
     previewFooter.style.display = inputs.length ? '' : 'none';
 }
 </script>

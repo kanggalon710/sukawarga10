@@ -14,7 +14,30 @@ use App\Models\AppSetting;
 class MpwaService
 {
     const BASE_URL = 'https://mpwa.jabnet.id';
-    const FOOTER   = 'SukaWarga10 • RW 10 Sukakarya, Garut';
+
+    /**
+     * Footer pesan WhatsApp.
+     *
+     * Dulu konstanta berisi nama & lokasi yang ditulis tetap. Sekarang ikut
+     * identitas aplikasi supaya pengurus (dan project turunan untuk kampung
+     * lain) cukup mengganti lewat menu Pengaturan, tanpa menyentuh kode.
+     */
+    public static function footer(): string
+    {
+        return namaAplikasi() . ' • ' . lokasiSingkat();
+    }
+
+    /** Baris kop pesan: "Portal <nama> · <lokasi>". */
+    private static function kop(): string
+    {
+        return 'Portal ' . namaAplikasi() . ' · ' . lokasiSingkat();
+    }
+
+    /** Tanda tangan pesan ke warga. */
+    private static function tandaTangan(): string
+    {
+        return '🙏 Pengurus ' . namaAplikasi();
+    }
 
     /** Read API key from DB, fallback empty (will fail gracefully). */
     public static function apiKey(): string
@@ -62,7 +85,7 @@ class MpwaService
                 'sender'  => $sender,
                 'number'  => $number,
                 'message' => $message,
-                'footer'  => self::FOOTER,
+                'footer'  => self::footer(),
             ]);
 
             $body = $resp->json();
@@ -100,7 +123,7 @@ class MpwaService
     ): bool {
         if (!$noWa || !self::isEnabled('notif_bayar_sampah')) return false;
         $msg = "✅ *BUKTI PEMBAYARAN IURAN SAMPAH*\n"
-             . "RW 10 Sukakarya, Garut\n"
+             . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "📋 No. Bukti  : *{$noBukti}*\n"
              . "📅 Tanggal    : {$tanggal}\n"
@@ -110,7 +133,7 @@ class MpwaService
              . "💵 Dibayar    : *Rp " . number_format($jumlah, 0, ',', '.') . "*\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "_Terima kasih atas pembayaran Anda. Bukti ini sah sebagai tanda terima._\n\n"
-             . "🙏 Pengurus RW 10 Sukakarya";
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 
@@ -133,7 +156,7 @@ class MpwaService
              . "💵 Dibayar    : *Rp " . number_format($jumlah, 0, ',', '.') . "*\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "_Terima kasih atas kepercayaan dan partisipasi Anda._\n\n"
-             . "🙏 Pengurus RW 10 Sukakarya";
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 
@@ -145,7 +168,7 @@ class MpwaService
     ): bool {
         if (!$noWa || !self::isEnabled('notif_daftar_submitted')) return false;
         $msg = "🏘️ *PENDAFTARAN WARGA DITERIMA*\n"
-             . "Portal SukaWarga10 — RW 10 Sukakarya\n"
+             . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Halo *{$nama}*,\n\n"
              . "Pendaftaran Anda sebagai warga RT {$rt} telah kami terima.\n\n"
@@ -153,7 +176,7 @@ class MpwaService
              . "Tim pengurus RW akan segera memverifikasi data Anda. "
              . "Anda akan mendapat notifikasi WhatsApp setelah proses verifikasi selesai.\n\n"
              . "_Jika ada pertanyaan, silakan hubungi pengurus RW 10 secara langsung._\n\n"
-             . "🙏 Pengurus RW 10 Sukakarya, Garut";
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 
@@ -165,7 +188,7 @@ class MpwaService
     ): bool {
         if (!$noWa || !self::isEnabled('notif_daftar_disetujui')) return false;
         $msg = "🎉 *PENDAFTARAN DISETUJUI!*\n"
-             . "Portal SukaWarga10 — RW 10 Sukakarya\n"
+             . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Selamat *{$nama}*!\n\n"
              . "Pendaftaran Anda sebagai warga RT {$rt} telah *DISETUJUI* oleh pengurus RW.\n\n"
@@ -176,8 +199,8 @@ class MpwaService
              . "PIN Anda bersifat unik dan rahasia. Jangan bagikan kepada siapapun.\n\n"
              . "🌐 Akses portal di: sukawarga10.jabnet.id\n\n"
              . "_Jika lupa PIN, gunakan fitur 'Lupa PIN' di halaman login._\n\n"
-             . "🏘️ Selamat bergabung di komunitas RW 10 Sukakarya!\n"
-             . "🙏 Pengurus RW 10 Sukakarya, Garut";
+             . "🏘️ Selamat bergabung di komunitas " . namaAplikasi() . "!\n"
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 
@@ -189,14 +212,14 @@ class MpwaService
     ): bool {
         if (!$noWa || !self::isEnabled('notif_daftar_ditolak')) return false;
         $msg = "❌ *PENDAFTARAN TIDAK DISETUJUI*\n"
-             . "Portal SukaWarga10 — RW 10 Sukakarya\n"
+             . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Halo *{$nama}*,\n\n"
              . "Mohon maaf, pendaftaran Anda tidak dapat kami setujui saat ini.\n\n"
              . "📋 *Alasan:* {$alasan}\n\n"
              . "_Jika merasa ada kesalahan, silakan hubungi pengurus RW 10 secara langsung "
              . "atau ajukan ulang pendaftaran dengan data yang benar._\n\n"
-             . "🙏 Pengurus RW 10 Sukakarya, Garut";
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 
@@ -213,7 +236,7 @@ class MpwaService
         if (!empty($tunggakan['padaringan'])) $detail .= "   🍳 Iuran Padaringan: {$tunggakan['padaringan']}\n";
 
         $msg = "⚠️ *REMINDER TUNGGAKAN IURAN*\n"
-             . "RW 10 Sukakarya, Garut\n"
+             . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Yth. *{$nama}* (RT {$rt}),\n\n"
              . "Kami menginformasikan bahwa masih terdapat tunggakan iuran:\n\n"
@@ -222,7 +245,7 @@ class MpwaService
              . "atau datang langsung ke kantor RW.\n\n"
              . "_Terima kasih atas perhatian dan partisipasi Anda dalam menjaga kebersihan "
              . "dan kebersamaan warga RW 10._\n\n"
-             . "🙏 Pengurus RW 10 Sukakarya, Garut";
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 
@@ -234,7 +257,7 @@ class MpwaService
     ): bool {
         if (!$noWa) return false;
         $msg = "🔐 *RESET KREDENSIAL AKUN*\n"
-             . "Portal SukaWarga10 — RW 10 Sukakarya\n"
+             . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Halo *{$nama}*,\n\n"
              . "Berikut data akun Anda yang telah direset:\n\n"
@@ -244,7 +267,7 @@ class MpwaService
              . "⚠️ *SIMPAN PIN INI BAIK-BAIK!*\n"
              . "Jangan bagikan PIN kepada siapapun.\n\n"
              . "🌐 Login di: sukawarga10.jabnet.id\n\n"
-             . "🙏 Pengurus RW 10 Sukakarya, Garut";
+             . self::tandaTangan();
         return self::send($noWa, $msg);
     }
 }

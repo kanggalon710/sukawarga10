@@ -8,6 +8,73 @@ if (!function_exists('formatRupiah')) {
     }
 }
 
+if (!function_exists('identitasAplikasi')) {
+    /**
+     * Identitas merek aplikasi (nama, tagline, lokasi) dari `app_settings`.
+     *
+     * Satu-satunya sumber kebenaran untuk nama yang tampil ke warga: judul
+     * halaman, sidebar, halaman login, meta OG, dan seluruh pesan WhatsApp.
+     * Sebelumnya nama ditulis ulang di 8 berkas, sehingga project turunan untuk
+     * kampung lain harus mengedit kode, bukan cukup mengganti lewat Pengaturan.
+     *
+     * Diingat per request lewat container (bukan static biasa) karena layout
+     * memanggilnya beberapa kali per halaman; static akan bocor antar request
+     * di dalam satu proses tes, sedangkan container dibuat ulang tiap request.
+     */
+    function identitasAplikasi(): array
+    {
+        if (app()->bound('identitas.aplikasi')) {
+            return app('identitas.aplikasi');
+        }
+
+        $bawaan = [
+            'nama_aplikasi' => 'Kampung Paru',
+            'tagline_aplikasi' => "Portal warga Kampung Paru.\nData keluarga, iuran, dan surat dalam satu tempat.",
+            'lokasi_singkat' => 'Garut, Jawa Barat',
+        ];
+
+        try {
+            $tersimpan = \App\Models\AppSetting::whereIn('key', array_keys($bawaan))
+                ->pluck('value', 'key')->all();
+        } catch (\Exception $e) {
+            $tersimpan = [];
+        }
+
+        $hasil = [];
+        foreach ($bawaan as $key => $default) {
+            $nilai = trim((string) ($tersimpan[$key] ?? ''));
+            $hasil[$key] = $nilai !== '' ? $nilai : $default;
+        }
+
+        app()->instance('identitas.aplikasi', $hasil);
+        return $hasil;
+    }
+}
+
+if (!function_exists('namaAplikasi')) {
+    /** Nama aplikasi yang tampil ke warga. Override via AppSetting `nama_aplikasi`. */
+    function namaAplikasi(): string
+    {
+        return identitasAplikasi()['nama_aplikasi'];
+    }
+}
+
+if (!function_exists('taglineAplikasi')) {
+    /** Tagline halaman login. Baris baru dipertahankan. Override via AppSetting `tagline_aplikasi`. */
+    function taglineAplikasi(): string
+    {
+        return identitasAplikasi()['tagline_aplikasi'];
+    }
+}
+
+if (!function_exists('lokasiSingkat')) {
+    /** Lokasi ringkas untuk badge & tanda tangan pesan. Override via AppSetting `lokasi_singkat`. */
+    function lokasiSingkat(): string
+    {
+        return identitasAplikasi()['lokasi_singkat'];
+    }
+}
+
 if (!function_exists('getDefaultPermissions')) {
     function getDefaultPermissions(): array
     {

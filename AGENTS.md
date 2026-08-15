@@ -113,6 +113,12 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    `$request->all()`.
 7. **Kepemilikan data warga** diikat lewat `users.keluarga_id`, bukan kecocokan
    nama. Jangan pernah mencari KK milik seseorang lewat `nama`.
+8. **Nama aplikasi jangan ditulis tetap.** Pakai `namaAplikasi()`,
+   `taglineAplikasi()`, dan `lokasiSingkat()` di `app/helpers.php`; nilainya dari
+   `app_settings` dengan bawaan di helper. Ini yang membuat project turunan untuk
+   kampung lain cukup ganti lewat menu Pengaturan. Dikunci oleh
+   `tests/Feature/HalamanUtamaTest.php`. Konstanta tidak bisa memanggil fungsi,
+   jadi teks yang menyebut nama komunitas ditaruh di method, bukan `const`.
 
 ## Konvensi kode
 

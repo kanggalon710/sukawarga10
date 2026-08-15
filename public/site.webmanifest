@@ -1,7 +1,7 @@
 {
-  "name": "SukaWarga10 — RW 10 Sukakarya",
-  "short_name": "SukaWarga10",
-  "description": "Sistem informasi & keuangan komunitas RW 10 Sukakarya, Tarogong Kidul, Garut.",
+  "name": "Kampung Paru · Portal Warga",
+  "short_name": "Kampung Paru",
+  "description": "Sistem informasi & keuangan komunitas Kampung Paru, Garut, Jawa Barat.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",

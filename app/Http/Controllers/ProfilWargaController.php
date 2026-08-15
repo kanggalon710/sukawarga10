@@ -94,7 +94,7 @@ class ProfilWargaController extends Controller
                 try {
                     \App\Services\MpwaService::send($kk->noHP,
                         "🎉 *Selamat {$kk->nama}!*\n\n" .
-                        "Data profil keluarga Anda di SukaWarga10 sudah *{$newCompletion}%* lengkap! 📊\n\n" .
+                        "Data profil keluarga Anda di " . namaAplikasi() . " sudah *{$newCompletion}%* lengkap! 📊\n\n" .
                         "Tinggal sedikit lagi menuju 100%. Data yang lengkap akan membantu RT/RW dalam:\n" .
                         "✅ Penyaluran bantuan sosial yang tepat sasaran\n" .
                         "✅ Pendataan kependudukan yang akurat\n" .
@@ -110,13 +110,13 @@ class ProfilWargaController extends Controller
                 try {
                     \App\Services\MpwaService::send($kk->noHP,
                         "🏆 *Luar Biasa, {$kk->nama}!*\n\n" .
-                        "Data profil keluarga Anda di SukaWarga10 sudah *100% LENGKAP!* 🎊\n\n" .
+                        "Data profil keluarga Anda di " . namaAplikasi() . " sudah *100% LENGKAP!* 🎊\n\n" .
                         "Terima kasih atas kontribusi Anda! Data yang lengkap memungkinkan:\n" .
                         "🎯 Bantuan sosial tepat sasaran untuk keluarga Anda\n" .
                         "📋 Surat-menyurat & administrasi lebih cepat\n" .
                         "📊 Data kependudukan RW yang akurat\n\n" .
                         "Anda adalah *warga teladan*! ⭐\n" .
-                        "— Tim Pengurus RW 10 Sukakarya"
+                        "- Tim Pengurus " . namaAplikasi()
                     );
                 } catch (\Exception $e) {}
             }

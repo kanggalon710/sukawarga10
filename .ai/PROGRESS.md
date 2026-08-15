@@ -2,6 +2,63 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Ganti nama jadi Kampung Paru, identitas ditarik ke Pengaturan
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Diminta pemilik project. Nama lama tertulis tetap di 8 berkas, jadi
+mengganti nama berarti mengedit kode di banyak tempat, dan project turunan untuk
+kampung lain akan mengalami hal yang sama. Rename dipakai sekalian untuk
+memindahkan identitas ke `app_settings` supaya berikutnya cukup lewat menu.
+**Perubahan:**
+- Tiga key baru di `app_settings`: `nama_aplikasi`, `tagline_aplikasi`,
+  `lokasi_singkat`, dibaca lewat `identitasAplikasi()` di `app/helpers.php`.
+  Nilai bawaannya ada di helper, jadi instalasi baru langsung jalan tanpa baris
+  DB satu pun.
+- Dibaca sekali per request dan diingat lewat container, bukan `static`.
+  Layout memanggilnya beberapa kali per halaman; `static` akan bocor antar
+  request di dalam satu proses tes, sedangkan container dibuat ulang tiap request.
+- `MpwaService::FOOTER` (konstanta) jadi `MpwaService::footer()`, plus `kop()`
+  dan `tandaTangan()`. Konstanta tidak bisa memanggil fungsi, sedangkan isinya
+  sekarang datang dari Pengaturan. `MpwaController::DEFAULT_TEMPLATES` jadi
+  `defaultTemplates()` dengan alasan yang sama.
+- Halaman Pengaturan dapat blok "Identitas Aplikasi" di tab Info RW. `showTab()`
+  kini bisa menampilkan lebih dari satu kartu per tab lewat `data-tab-panel`.
+- Baris lokasi halaman login tidak lagi menyebut RW 10 Sukakarya.
+- Em dash pada teks WhatsApp ikut hilang karena barisnya memang diganti.
+**File:** app/helpers.php, app/Services/MpwaService.php,
+app/Http/Controllers/{MpwaController,PengaturanController,ProfilWargaController}.php,
+resources/views/{layouts/app,auth/login,admin/pengaturan,admin/mpwa}.blade.php,
+public/{site.webmanifest,logo-sukawarga.svg,css/styles.css,css/mobile-fixes.css},
+tests/Feature/HalamanUtamaTest.php
+**Catatan:** Verifikasi: `composer test` 71 lulus (2 tes baru, salah satunya
+memastikan tagline dari Pengaturan di-escape dan tidak dirender sebagai HTML),
+plus smoke test HTTP halaman login. `pint --test` dibandingkan dengan versi HEAD
+untuk 5 berkas lama yang disentuh: tidak ada penyimpangan gaya baru.
+Tes hitung-query perlu `forgetInstance` karena container dipakai ulang antar
+request di dalam satu tes, bukan karena ada kebocoran di produksi.
+Yang SENGAJA tidak diubah: domain `sukawarga10.jabnet.id` di pesan WA (itu alamat
+sungguhan, DNS di luar jangkauan kode), nama berkas aset, repo, `APP_NAME` di
+`.env.example`, README/AGENTS/DEPLOY, dan alamat bawaan di `ExportImportController`
+(itu data, bukan merek). Sesuai cakupan yang dipilih pemilik project.
+
+## 2026-08-15 - PIN bawaan akun `admin` disamakan jadi 463696
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Diminta pemilik project. Sebelumnya `admin` memakai `123456`, PIN yang
+sama dengan kredensial lama di `public/js/auth.js` yang pernah bisa diunduh siapa
+saja dari domain produksi, jadi menyamakannya dengan PIN yang dipilih pemilik
+sekaligus mematikan tebakan yang paling gampang.
+**Perubahan:** Satu nilai di `database/seeders/DatabaseSeeder.php`, plus baris
+contoh di `DEPLOY.md` yang masih menyebut `admin / 123456`.
+**File:** database/seeders/DatabaseSeeder.php, DEPLOY.md
+**Catatan:** Ini HANYA berlaku untuk database yang belum punya akun `admin`.
+Seeder sengaja create-if-missing, jadi di produksi (yang akunnya sudah ada) PIN
+lama TIDAK berubah dan wajib diganti manual lewat Manajemen Akun - sudah
+ditambahkan ke checklist deploy di TODO. Verifikasi yang dijalankan: seed ke DB
+kosong lalu `Hash::check` (463696 cocok, 123456 tidak) dan `Auth::attempt`
+berhasil; seed diulang dan benar melaporkan "sudah ada, dilewati"; `composer test`
+69 lulus. Pint melaporkan `blank_line_before_statement` pada seeder, tapi itu
+sudah ada sebelum perubahan ini (diperiksa terhadap versi HEAD) dan termasuk 43
+berkas lama yang sengaja belum diformat ulang.
+
 ## 2026-08-15 - Merge main ke dev, lalu push kedua branch
 **Agen:** claude | **Status:** selesai
 **Kenapa:** `origin/main` ternyata sudah maju satu commit (`c56c41b`: rombakan

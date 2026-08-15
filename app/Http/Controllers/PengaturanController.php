@@ -24,6 +24,7 @@ class PengaturanController extends Controller
      * `mpwa_templates` & `notif_*` hanya lewat halaman MPWA.
      */
     private const KEY_DIIZINKAN = [
+        'nama_aplikasi', 'tagline_aplikasi', 'lokasi_singkat',
         'nama_rw', 'ketua_rw', 'kelurahan', 'kecamatan', 'kabupaten',
         'nama_operator', 'tahun_aktif',
         'tarif_sampah', 'tarif_padaringan', 'garis_kemiskinan',
@@ -35,6 +36,9 @@ class PengaturanController extends Controller
         $tab = $request->input('_active_tab', 'tarif');
 
         $validated = $request->validate([
+            'nama_aplikasi'    => 'nullable|string|max:60',
+            'tagline_aplikasi' => 'nullable|string|max:200',
+            'lokasi_singkat'   => 'nullable|string|max:100',
             'nama_rw'          => 'nullable|string|max:100',
             'ketua_rw'         => 'nullable|string|max:100',
             'kelurahan'        => 'nullable|string|max:100',

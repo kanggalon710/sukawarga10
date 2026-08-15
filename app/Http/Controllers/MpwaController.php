@@ -13,42 +13,54 @@ use App\Services\MpwaService;
 
 class MpwaController extends Controller
 {
-    // Base URL & footer gateway TIDAK didefinisikan ulang di sini —
-    // sumber tunggalnya MpwaService (lihat MpwaService::baseUrl() & ::FOOTER).
+    // Base URL & footer gateway TIDAK didefinisikan ulang di sini -
+    // sumber tunggalnya MpwaService (lihat MpwaService::baseUrl() & ::footer()).
 
-    // ── Default / builtin templates ───────────────────────────────────────────
-    const DEFAULT_TEMPLATES = [
-        [
-            'id'      => 'reminder',
-            'nama'    => 'Reminder Tunggakan',
-            'icon'    => '🔔',
-            'deskripsi' => 'Pengingat iuran yang belum dibayar',
-            'isi'     => "Assalamualaikum Wr. Wb.\n\nKepada Bapak/Ibu {{nama}} (RT {{rt}}),\n\nKami menginformasikan bahwa masih terdapat tunggakan iuran warga.\n\nMohon kiranya dapat melakukan pembayaran segera kepada petugas RT atau bendahara RW.\n\nTerima kasih atas perhatian dan kerjasamanya. 🙏\n\nHormat kami,\nPengurus RW 10 Sukakarya",
-            'builtin' => true,
-        ],
-        [
-            'id'      => 'info',
-            'nama'    => 'Info Kegiatan RW',
-            'icon'    => '📅',
-            'deskripsi' => 'Informasi kegiatan/acara RW',
-            'isi'     => "Assalamualaikum Wr. Wb.\n\nDengan ini kami sampaikan kepada seluruh warga RW 10:\n\n📅 Kegiatan  : ...\n📆 Hari/Tgl  : ...\n🕐 Waktu     : ...\n📍 Tempat    : ...\n\nDimohon kehadiran dan partisipasi seluruh warga.\n\nHormat kami,\nPengurus RW 10 Sukakarya",
-            'builtin' => true,
-        ],
-        [
-            'id'      => 'umum',
-            'nama'    => 'Pengumuman Umum',
-            'icon'    => '📢',
-            'deskripsi' => 'Pengumuman untuk seluruh warga',
-            'isi'     => "Assalamualaikum Wr. Wb.\n\n📢 PENGUMUMAN\n\nKepada seluruh warga RW 10 Sukakarya:\n\n...\n\nDemikian pengumuman ini disampaikan. Terima kasih atas perhatiannya.\n\nHormat kami,\nPengurus RW 10 Sukakarya",
-            'builtin' => true,
-        ],
-    ];
+    /**
+     * Template bawaan halaman broadcast.
+     *
+     * Method, bukan konstanta, karena isinya menyebut nama komunitas yang kini
+     * datang dari Pengaturan (namaAplikasi()) dan konstanta tidak boleh memanggil
+     * fungsi. Template yang sudah disimpan pengurus tidak tersentuh perubahan ini.
+     */
+    private static function defaultTemplates(): array
+    {
+        $pengurus = 'Pengurus ' . namaAplikasi();
+        $warga = 'warga ' . namaAplikasi();
+
+        return [
+            [
+                'id'      => 'reminder',
+                'nama'    => 'Reminder Tunggakan',
+                'icon'    => '🔔',
+                'deskripsi' => 'Pengingat iuran yang belum dibayar',
+                'isi'     => "Assalamualaikum Wr. Wb.\n\nKepada Bapak/Ibu {{nama}} (RT {{rt}}),\n\nKami menginformasikan bahwa masih terdapat tunggakan iuran warga.\n\nMohon kiranya dapat melakukan pembayaran segera kepada petugas RT atau bendahara RW.\n\nTerima kasih atas perhatian dan kerjasamanya. 🙏\n\nHormat kami,\n" . $pengurus,
+                'builtin' => true,
+            ],
+            [
+                'id'      => 'info',
+                'nama'    => 'Info Kegiatan RW',
+                'icon'    => '📅',
+                'deskripsi' => 'Informasi kegiatan/acara RW',
+                'isi'     => "Assalamualaikum Wr. Wb.\n\nDengan ini kami sampaikan kepada seluruh {$warga}:\n\n📅 Kegiatan  : ...\n📆 Hari/Tgl  : ...\n🕐 Waktu     : ...\n📍 Tempat    : ...\n\nDimohon kehadiran dan partisipasi seluruh warga.\n\nHormat kami,\n" . $pengurus,
+                'builtin' => true,
+            ],
+            [
+                'id'      => 'umum',
+                'nama'    => 'Pengumuman Umum',
+                'icon'    => '📢',
+                'deskripsi' => 'Pengumuman untuk seluruh warga',
+                'isi'     => "Assalamualaikum Wr. Wb.\n\n📢 PENGUMUMAN\n\nKepada seluruh {$warga}:\n\n...\n\nDemikian pengumuman ini disampaikan. Terima kasih atas perhatiannya.\n\nHormat kami,\n" . $pengurus,
+                'builtin' => true,
+            ],
+        ];
+    }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
     private function getAllTemplates(): array
     {
         $custom = json_decode(AppSetting::where('key','mpwa_templates')->value('value') ?? '[]', true) ?: [];
-        return array_merge(self::DEFAULT_TEMPLATES, $custom);
+        return array_merge(self::defaultTemplates(), $custom);
     }
 
     private function getCustomTemplates(): array
@@ -113,8 +125,8 @@ class MpwaController extends Controller
             'api_key' => $apiKey,
             'sender'  => $sender,
             'number'  => $testNo,
-            'message' => "✅ *Test Koneksi MPWA*\n\nSukaWarga10 berhasil terhubung ke gateway WhatsApp!\n_Pesan ini dikirim otomatis oleh sistem._",
-            'footer'  => MpwaService::FOOTER,
+            'message' => "✅ *Test Koneksi MPWA*\n\n" . namaAplikasi() . " berhasil terhubung ke gateway WhatsApp!\n_Pesan ini dikirim otomatis oleh sistem._",
+            'footer'  => MpwaService::footer(),
         ]);
 
         $body = $resp->json();
@@ -188,7 +200,7 @@ class MpwaController extends Controller
                     'sender'  => $sender,
                     'number'  => $number,
                     'message' => $msg,
-                    'footer'  => MpwaService::FOOTER,
+                    'footer'  => MpwaService::footer(),
                 ];
 
                 // Use button endpoint if buttons exist

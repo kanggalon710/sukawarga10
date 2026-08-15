@@ -3,6 +3,31 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-15 - Identitas aplikasi jadi data (app_settings), bukan literal di kode
+**Konteks:** Permintaan mengganti nama SukaWarga10 jadi Kampung Paru. Namanya
+tertulis tetap di 8 berkas (layout, login, manifest, logo, 2 controller, service
+WA, CSS), dan lokasi "RW 10 Sukakarya, Garut" muncul 12 kali di `MpwaService`
+saja. Pertanyaan pemilik project di percakapan yang sama: apakah project turunan
+untuk kampung lain terbentuk otomatis.
+**Opsi:** (a) cari-ganti seluruh literal jadi "Kampung Paru", (b) tarik nama,
+tagline, dan lokasi ke `app_settings` lalu baca lewat helper, (c) baca dari
+`config/app.php` + `.env`.
+**Pilihan:** (b), tiga key: `nama_aplikasi`, `tagline_aplikasi`, `lokasi_singkat`.
+**Alasan:** (a) menyelesaikan permintaan hari ini tapi mengulang masalahnya
+persis saat nama berubah lagi, dan pertanyaan soal project turunan menunjukkan itu
+akan terjadi. (c) menaruh identitas di berkas yang hanya bisa diubah lewat SSH,
+padahal pengurus RW sudah punya menu Pengaturan untuk nama RW dan ketua RW; nama
+aplikasi masuk kategori yang sama. Konsekuensinya: satu query tambahan per
+request (diingat per container), dan konstanta `MpwaService::FOOTER` serta
+`MpwaController::DEFAULT_TEMPLATES` harus jadi method karena konstanta PHP tidak
+boleh memanggil fungsi.
+
+**Catatan tentang badge lokasi:** pemilik project memilih baris lokasi diganti
+"Kampung Paru saja". Diisi bawaan `Garut, Jawa Barat` karena h1 dan tagline di
+atasnya sudah menyebut Kampung Paru, sehingga persis "Kampung Paru" membuat nama
+itu muncul tiga kali dalam empat baris. Ini nilai bawaan, bukan keputusan yang
+dikunci: ubah di Pengaturan tanpa menyentuh kode.
+
 ## 2026-08-15 - Menambah .ai/HANDOFF.md di luar tiga berkas baku
 **Konteks:** Standar global menetapkan `.ai/` berisi PROGRESS, TODO, dan
 DECISIONS. Ketiganya bagus untuk riwayat, backlog, dan alasan, tapi tidak ada

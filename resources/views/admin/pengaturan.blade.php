@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Pengaturan')
 @section('page-title', 'Pengaturan')
-@section('page-subtitle', 'Konfigurasi aplikasi SukaWarga10')
+@section('page-subtitle', 'Konfigurasi aplikasi ' . namaAplikasi())
 
 @section('content')
 <div class="toolbar">
@@ -31,8 +31,20 @@
 
 <!-- Tab Info RW -->
 <div class="card" id="panelInfo" style="display:none;">
-    <div class="card-header"><div class="card-title"><i class="fas fa-map-marker-alt" style="color:var(--biru);"></i> Informasi RW</div></div>
-    <div class="card-sub">Data administrasi RW</div>
+    <div class="card-header"><div class="card-title"><i class="fas fa-signature" style="color:var(--biru);" aria-hidden="true"></i> Identitas Aplikasi</div></div>
+    <div class="card-sub">Nama yang tampil di halaman login, sidebar, judul halaman, dan seluruh pesan WhatsApp ke warga</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+        <div><label for="nama_aplikasi" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama Aplikasi</label><input type="text" id="nama_aplikasi" name="nama_aplikasi" value="{{ $settings['nama_aplikasi'] ?? 'Kampung Paru' }}" maxlength="60" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
+        <div><label for="lokasi_singkat" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Lokasi Singkat</label><input type="text" id="lokasi_singkat" name="lokasi_singkat" value="{{ $settings['lokasi_singkat'] ?? 'Garut, Jawa Barat' }}" maxlength="100" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;" placeholder="Tampil di badge halaman login"></div>
+        <div style="grid-column:span 2;"><label for="tagline_aplikasi" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Tagline</label><textarea id="tagline_aplikasi" name="tagline_aplikasi" rows="2" maxlength="200" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; font-family:inherit; resize:vertical;" placeholder="Satu baris per kalimat">{{ $settings['tagline_aplikasi'] ?? "Portal warga Kampung Paru.\nData keluarga, iuran, dan surat dalam satu tempat." }}</textarea><div style="font-size:11px; color:var(--text3); margin-top:4px;">Setiap baris baru tampil sebagai baris terpisah di halaman login.</div></div>
+    </div>
+</div>
+
+{{-- data-tab-panel dipakai showTab() untuk kartu kedua dan seterusnya dalam satu tab.
+     Pencarian lewat id hanya menemukan satu kartu per tab. --}}
+<div class="card" data-tab-panel="info" style="display:none;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-map-marker-alt" style="color:var(--biru);" aria-hidden="true"></i> Informasi RW</div></div>
+    <div class="card-sub">Data administrasi RW, dipakai untuk kop surat</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
         <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama RW</label><input type="text" name="nama_rw" value="{{ $settings['nama_rw'] ?? 'RW 10' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
         <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kelurahan</label><input type="text" name="kelurahan" value="{{ $settings['kelurahan'] ?? 'Sukakarya' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
@@ -159,6 +171,9 @@ function showTab(tab) {
         const panel = document.getElementById(panelId);
         const tabEl = document.getElementById(tabId);
         if (panel) panel.style.display = t === tab ? '' : 'none';
+        document.querySelectorAll('[data-tab-panel="' + t + '"]').forEach(el => {
+            el.style.display = t === tab ? '' : 'none';
+        });
         if (tabEl) tabEl.className = t === tab ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
     });
     const activeInput = document.getElementById('activeTabInput');

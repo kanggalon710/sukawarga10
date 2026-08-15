@@ -154,6 +154,25 @@ class OtorisasiTest extends TestCase
         $this->assertNull(AppSetting::where('key', 'kolom_ngawur')->value('value'));
     }
 
+    /**
+     * Identitas aplikasi harus benar-benar bisa diganti lewat form, bukan cuma
+     * lewat penulisan langsung ke app_settings. Menutup kemungkinan key baru
+     * lupa didaftarkan di whitelist sehingga tersimpan diam-diam gagal.
+     */
+    public function test_identitas_aplikasi_bisa_disimpan_lewat_form_pengaturan(): void
+    {
+        $this->actingAs($this->user('ketua_rw'))->post('/pengaturan', [
+            '_active_tab' => 'info',
+            'nama_aplikasi' => 'Kampung Uji',
+            'tagline_aplikasi' => "Baris satu.\nBaris dua.",
+            'lokasi_singkat' => 'Tasikmalaya',
+        ])->assertRedirect();
+
+        $this->assertSame('Kampung Uji', AppSetting::where('key', 'nama_aplikasi')->value('value'));
+        $this->assertSame("Baris satu.\nBaris dua.", AppSetting::where('key', 'tagline_aplikasi')->value('value'));
+        $this->assertSame('Tasikmalaya', AppSetting::where('key', 'lokasi_singkat')->value('value'));
+    }
+
     public function test_warga_tidak_bisa_membuka_halaman_pengaturan(): void
     {
         $this->actingAs($this->user('warga'))->get('/pengaturan')->assertForbidden();

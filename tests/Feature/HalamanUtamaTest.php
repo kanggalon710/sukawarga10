@@ -116,7 +116,34 @@ class HalamanUtamaTest extends TestCase
 
     public function test_halaman_login_bisa_dibuka_tanpa_akun(): void
     {
-        $this->get('/login')->assertOk()->assertSee('SukaWarga10', false);
+        $this->get('/login')->assertOk()->assertSee('Kampung Paru', false);
+    }
+
+    /**
+     * Nama & tagline datang dari app_settings, bukan ditulis tetap di Blade.
+     * Ini yang membuat project turunan untuk kampung lain cukup mengganti lewat
+     * menu Pengaturan; kalau ada yang menulis ulang namanya di view, tes ini gagal.
+     */
+    public function test_identitas_aplikasi_diambil_dari_pengaturan(): void
+    {
+        AppSetting::updateOrCreate(['key' => 'nama_aplikasi'], ['value' => 'Kampung Uji']);
+        AppSetting::updateOrCreate(['key' => 'tagline_aplikasi'], ['value' => "Baris satu.\nBaris dua."]);
+        AppSetting::updateOrCreate(['key' => 'lokasi_singkat'], ['value' => 'Tasikmalaya']);
+
+        $this->get('/login')->assertOk()
+            ->assertSee('Kampung Uji', false)
+            ->assertSee('Baris satu.<br />', false)
+            ->assertSee('Tasikmalaya', false)
+            ->assertDontSee('Kampung Paru', false);
+
+        $this->actingAs($this->admin)->get('/')->assertOk()->assertSee('Kampung Uji', false);
+    }
+
+    public function test_tagline_dari_pengaturan_tidak_dirender_sebagai_html(): void
+    {
+        AppSetting::updateOrCreate(['key' => 'tagline_aplikasi'], ['value' => '<script>alert(1)</script>']);
+
+        $this->get('/login')->assertOk()->assertDontSee('<script>alert(1)</script>', false);
     }
 
     /**
@@ -144,6 +171,11 @@ class HalamanUtamaTest extends TestCase
     public function test_jumlah_query_dashboard_tidak_tumbuh_bersama_jumlah_rt(): void
     {
         $hitung = function (): int {
+            // Identitas aplikasi diingat per container, dan di dalam satu tes container
+            // dipakai ulang antar request (di produksi tiap request container baru).
+            // Tanpa dilupakan, pengukuran kedua kehilangan satu query dan perbandingan
+            // jadi membandingkan dua kondisi berbeda.
+            app()->forgetInstance('identitas.aplikasi');
             DB::flushQueryLog();
             DB::enableQueryLog();
             $this->actingAs($this->admin)->get('/')->assertOk();

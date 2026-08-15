@@ -18,6 +18,11 @@ Bukan pekerjaan kode, tapi jangan dilewat.
       disengaja: menebak KK yang salah jauh lebih berbahaya.
 - [ ] **Ganti PIN akun `admin` dan `jabnet`** lewat menu Manajemen Akun.
       PIN bawaannya ada di seeder yang masuk git.
+- [ ] **PIN `admin` di produksi TIDAK ikut berubah oleh seeder.** Seeder
+      create-if-missing, dan akun `admin` sudah ada di DB produksi, jadi
+      `db:seed` akan melewatinya. PIN bawaan di seeder diubah jadi `463696`
+      (2026-08-15) hanya berlaku untuk instalasi baru. Untuk produksi, setel
+      manual lewat Manajemen Akun.
 - [ ] **Pastikan kredensial lama sudah mati.** `public/js/auth.js` yang berisi
       `admin/123456`, `ketuarw/111111`, `bendahara/222222`, `rt01/010101`,
       `rt02/020202` sudah dihapus dari repo, tapi akunnya mungkin masih ada di
@@ -32,6 +37,23 @@ Bukan pekerjaan kode, tapi jangan dilewat.
 
 ## Belum dikerjakan
 
+- [ ] **Dokumentasi masih menyebut SukaWarga10.** `README.md`, `AGENTS.md`,
+      `DEPLOY.md`, `.ai/HANDOFF.md`, dan `APP_NAME` di `.env.example` belum ikut
+      berganti nama, begitu juga nama berkas aset (`logo-sukawarga.svg`,
+      `logo-sukawarga-icon.svg`) dan nama repo. Sengaja di luar cakupan rename
+      2026-08-15 atas pilihan pemilik project. Domain `sukawarga10.jabnet.id`
+      memang tetap karena itu DNS sungguhan.
+- [ ] **Form Pengaturan belum ramah mobile.** Seluruh field memakai
+      `grid-template-columns:1fr 1fr` inline (tetap 2 kolom di 360px), tinggi
+      input sekitar 40px (di bawah 44px), dan `font-size:14px` yang memicu zoom
+      otomatis iOS. Field baru "Identitas Aplikasi" sengaja mengikuti pola
+      tetangganya supaya tidak belang; perbaikannya sekalian untuk satu halaman.
+      Media query tidak bisa lewat style inline, jadi perlu dipindah ke
+      `public/css/styles.css`.
+- [ ] **Alamat bawaan impor masih "RW 10 Sukakarya".**
+      `ExportImportController:314` memakainya sebagai alamat cadangan saat kolom
+      Alamat kosong. Itu data, bukan merek, jadi tidak ikut diganti saat rename.
+      Untuk project turunan, nilainya perlu ikut Pengaturan.
 - [ ] **Gaya kode belum seragam.** `./vendor/bin/pint --test` melaporkan 43 berkas
       lama menyimpang dari preset Laravel. Sengaja tidak diformat ulang supaya
       diff perbaikan tetap terbaca. Kalau mau dibereskan, jalankan

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>SukaWarga10 · Portal RW 10 Sukakarya</title>
+    <title>{{ namaAplikasi() }} · Portal Warga</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -209,7 +209,7 @@
         <div class="topbar">
             <div class="topbar-brand">
                 <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo">
-                <span class="name">SukaWarga10</span>
+                <span class="name">{{ namaAplikasi() }}</span>
             </div>
             <div class="topbar-actions">
                 <button class="btn-pill btn-masuk" onclick="openModal('loginModal')">
@@ -223,16 +223,16 @@
 
         {{-- ── HERO ── --}}
         <div class="hero">
-            <img src="{{ asset('logo-sukawarga.svg') }}" alt="Logo RW 10" class="hero-logo" style="width:160px; height:auto; box-shadow:none; background:transparent; border-radius:0; padding:0;">
-            <h1>SukaWarga10</h1>
+            <img src="{{ asset('logo-sukawarga.svg') }}" alt="Logo {{ namaAplikasi() }}" class="hero-logo" style="width:160px; height:auto; box-shadow:none; background:transparent; border-radius:0; padding:0;">
+            <h1>{{ namaAplikasi() }}</h1>
             <div class="loc-badge">
-                <i class="fas fa-map-marker-alt"></i>
-                RW 10 • Kelurahan Sukakarya • Garut
+                <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                {{ lokasiSingkat() }}
             </div>
+            {{-- nl2br setelah e(): tagline diatur lewat Pengaturan, jadi isinya di-escape
+                 dulu baru baris barunya diubah jadi <br>, bukan dirender sebagai HTML. --}}
             <p class="tagline">
-                Sistem Informasi & Keuangan Komunitas Terpadu.<br>
-                Inovasi digital untuk RW 10, kota resik rahayu.<br>
-                <em style="color:#86efac; font-style:normal; font-weight:600;">"Swiss van Java"</em>
+                {!! nl2br(e(taglineAplikasi())) !!}
             </p>
 
             <div class="info-grid">
