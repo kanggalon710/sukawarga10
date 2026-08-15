@@ -17,16 +17,12 @@ if (!function_exists('identitasAplikasi')) {
      * Sebelumnya nama ditulis ulang di 8 berkas, sehingga project turunan untuk
      * kampung lain harus mengedit kode, bukan cukup mengganti lewat Pengaturan.
      *
-     * Diingat per request lewat container (bukan static biasa) karena layout
-     * memanggilnya beberapa kali per halaman; static akan bocor antar request
-     * di dalam satu proses tes, sedangkan container dibuat ulang tiap request.
+     * Per-tenant sejak Phase F: nilainya dari AppSetting::semuaEfektif()
+     * (inheritance platform → desa → RW, memo per request), jadi dua tenant
+     * di satu instalasi punya identitas masing-masing.
      */
     function identitasAplikasi(): array
     {
-        if (app()->bound('identitas.aplikasi')) {
-            return app('identitas.aplikasi');
-        }
-
         $bawaan = [
             'nama_aplikasi' => 'Kampung Paru',
             'tagline_aplikasi' => "Portal warga Kampung Paru.\nData keluarga, iuran, dan surat dalam satu tempat.",
@@ -39,8 +35,7 @@ if (!function_exists('identitasAplikasi')) {
         ];
 
         try {
-            $tersimpan = \App\Models\AppSetting::whereIn('key', array_keys($bawaan))
-                ->pluck('value', 'key')->all();
+            $tersimpan = \App\Models\AppSetting::semuaEfektif();
         } catch (\Exception $e) {
             $tersimpan = [];
         }
@@ -51,7 +46,6 @@ if (!function_exists('identitasAplikasi')) {
             $hasil[$key] = $nilai !== '' ? $nilai : $default;
         }
 
-        app()->instance('identitas.aplikasi', $hasil);
         return $hasil;
     }
 }
@@ -112,7 +106,7 @@ if (!function_exists('getMenuPermissions')) {
     function getMenuPermissions(): array
     {
         try {
-            $stored = \App\Models\AppSetting::where('key', 'role_permissions')->value('value');
+            $stored = \App\Models\AppSetting::nilai('role_permissions');
             if ($stored) {
                 $decoded = json_decode($stored, true);
                 if (is_array($decoded)) return $decoded;
@@ -122,11 +116,33 @@ if (!function_exists('getMenuPermissions')) {
     }
 }
 
+if (!function_exists('fiturAktif')) {
+    /**
+     * Feature flag per organisasi (Phase F, §18): setting `fitur_<modul>`
+     * bernilai '0' mematikan modul untuk tenant itu; tanpa baris = aktif,
+     * jadi nol baris berarti perilaku lama utuh. Ikut inheritance: platform
+     * bisa mematikan modul untuk semua tenant sekaligus.
+     */
+    function fiturAktif(string $modul): bool
+    {
+        try {
+            return \App\Models\AppSetting::nilai("fitur_{$modul}") !== '0';
+        } catch (\Exception $e) {
+            return true;
+        }
+    }
+}
+
 if (!function_exists('userCan')) {
     function userCan(string $menuKey): bool
     {
         $user = auth()->user();
         if (!$user) return false;
+
+        // Modul yang dimatikan untuk tenant ini hilang untuk SEMUA level,
+        // termasuk admin: ini ketersediaan modul, bukan izin. Catatan jujur:
+        // baru menu yang tersembunyi; penjagaan rutenya menyusul (TODO).
+        if (!fiturAktif($menuKey)) return false;
 
         // Phase E1: menu mengikuti level efektif (assignment ber-scope dengan
         // fallback users.level), sama dengan CheckRole - kalau tidak, hak dari
@@ -228,7 +244,7 @@ if (!function_exists('garisKemiskinan')) {
     function garisKemiskinan(): int
     {
         try {
-            $v = \App\Models\AppSetting::where('key', 'garis_kemiskinan')->value('value');
+            $v = \App\Models\AppSetting::nilai('garis_kemiskinan');
             if ($v !== null && is_numeric($v) && (int) $v > 0) return (int) $v;
         } catch (\Exception $e) {}
         return 500000; // default ≈ garis kemiskinan kab. Garut (dibulatkan)

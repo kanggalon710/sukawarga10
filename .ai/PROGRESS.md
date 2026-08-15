@@ -2,6 +2,46 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Phase F: app_settings per organisasi + inheritance + feature flags
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Blocker skema terakhir dari audit (unique `app_settings.key`
+mengunci satu nilai untuk seluruh platform), dan §37 menuntut branding tenant A
+tidak mengubah tenant B. Tanpa ini, tenant kedua MEWARISI kunci API WhatsApp
+dan identitas RW 10.
+**Perubahan:**
+- Migrasi `2026_08_15_000008`: kolom `organization_id` nullable di
+  `app_settings`, backfill SEMUA baris existing ke RW 10 (karena memang diisi
+  pengurus RW 10 - membiarkannya NULL berarti tenant baru mewarisi kredensial
+  RW 10), lalu `unique(key)` diganti `unique(organization_id, key)`. `down()`
+  membersihkan duplikat lintas org sebelum mengembalikan unique lama, diuji
+  dengan baris duplikat hidup di MySQL.
+- `AppSetting::nilai()/semuaEfektif()/simpan()`: SELURUH pembacaan setting kini
+  satu query per request (memo di TenantContext) dengan inheritance
+  platform (NULL) → desa → RW, yang terdekat menang; penulisan selalu di
+  organisasi tenant. 21 titik baca/tulis lama dikonversi (helpers, MpwaService,
+  MpwaController, Pengaturan/Akun/Transaksi/Dashboard/SuratController).
+- `identitasAplikasi()` tidak lagi pakai cache container sendiri; ikut memo
+  setting per request, jadi otomatis per-tenant.
+- Feature flags §18: helper `fiturAktif()` (setting `fitur_<modul>`, tanpa
+  baris = aktif) dicek paling awal di `userCan()` - mematikan modul untuk
+  SEMUA level termasuk admin, karena ini ketersediaan modul, bukan izin.
+  Kejujuran cakupan: baru menu yang hilang; penjagaan rute per fitur belum.
+- TenantContext dapat memo generik `ingat()/lupakan()` + `rantaiLeluhurIds()`
+  (satu query peta induk, dipakai resolver setting).
+- 6 tes `tests/Feature/PengaturanTenantTest.php`: identitas per hostname,
+  inheritance + penimpaan, tarif tenant lain tidak mempengaruhi pembayaran,
+  form menulis di org tenant tanpa menimpa default platform, flag mematikan
+  modul untuk admin, flag tenant lain tidak berlaku di sini.
+**File:** database/migrations/2026_08_15_000008_scope_app_settings_to_organizations.php,
+app/Models/AppSetting.php, app/Services/TenantContext.php, app/helpers.php,
+app/Http/Controllers/{Pengaturan,Mpwa,Akun,Transaksi,Dashboard,Surat}Controller.php,
+app/Services/MpwaService.php, tests/Feature/PengaturanTenantTest.php
+**Catatan:** 124 tes lulus di SQLite DAN MariaDB 11.8.8; migrasi diuji
+turun-naik di MySQL termasuk kasus duplikat lintas org saat down. Diketahui
+dan diterima: unique komposit MySQL mengizinkan beberapa baris NULL per key
+(keunikan default platform dijaga jalur tulis `simpan()`, bukan constraint).
+Pint: berkas baru pass, 8 berkas lama yang disentuh identik baseline HEAD.
+
 ## 2026-08-15 - Phase E2 tahap 2: isolasi tenant seluruh area data
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Melengkapi tahap 1. Sisa area (surat, aduan, umkm, kegiatan,

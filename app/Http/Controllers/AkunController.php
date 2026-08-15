@@ -108,10 +108,7 @@ class AkunController extends Controller
         $allMenus = array_map(fn($m) => $m['key'], getAllMenuItems());
         $perms['superadmin'] = $allMenus;
 
-        \App\Models\AppSetting::updateOrCreate(
-            ['key' => 'role_permissions'],
-            ['value' => json_encode($perms)]
-        );
+        \App\Models\AppSetting::simpan('role_permissions', json_encode($perms));
 
         return response()->json(['success' => true]);
     }

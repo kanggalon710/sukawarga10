@@ -96,11 +96,19 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       `https://paru.jabnet.id` tetap 200 dan host asing/IP langsung ke server
       kini 404. Kalau operator perlu hostname tambahan (mis. akses via IP
       internal), daftarkan lewat tabel `domains`, bukan mengubah kode.
-- [ ] **F:** `app_settings` per organisasi (`unique(organization_id, key)`,
-      nullable = default platform) + inheritance platform→desa→RW + feature
-      flags; kredensial & template MPWA ikut pindah ke sini. Ini fase yang
-      mengubah unique index di MySQL dengan baris hidup: backup dulu, uji di
-      `paru_test`.
+- [x] **F selesai 2026-08-16:** `app_settings` per organisasi (migrasi
+      `2026_08_15_000008`), inheritance platform→desa→RW lewat
+      `AppSetting::nilai()/semuaEfektif()/simpan()`, kredensial & template
+      MPWA per tenant, feature flags `fitur_<modul>` di `userCan()`.
+      6 tes di `PengaturanTenantTest`.
+- [ ] **Feature flag baru menyembunyikan menu, belum menjaga rute.** Modul
+      yang dimatikan (`fitur_umkm = 0`) hilang dari sidebar semua level, tapi
+      rutenya masih bisa diakses langsung. Butuh middleware `fitur:` atau cek
+      di CheckRole saat ada tenant yang sungguhan memakai flag.
+- [ ] **Aturan wajib baca setting:** SELURUH pembacaan lewat
+      `AppSetting::nilai()`/`semuaEfektif()`, penulisan lewat `simpan()`.
+      Query `where('key')` polos tidak tahu inheritance dan bisa mengambil
+      baris tenant lain - sudah nol di kode, jaga tetap nol.
 - [ ] Fase G/H (manajemen tenant, impersonation ber-audit, queue, monitoring)
       sesuai bagian 10 audit.
 

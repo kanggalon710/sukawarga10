@@ -238,7 +238,7 @@ class DashboardController extends Controller
         // Recent transactions
         $recentTrx = Transaksi::where('voided', false)->orderByDesc('tanggal')->orderByDesc('created_at')->limit(5)->get();
 
-        $tarifSampah = AppSetting::where('key', 'tarif_sampah')->value('value') ?? 5000;
+        $tarifSampah = AppSetting::nilai('tarif_sampah') ?? 5000;
 
         return view('dashboard.index', compact(
             'totalKK', 'totalJiwa', 'saldos', 'saldoKumulatif', 'tahun', 'trenKas', 'pembayaranRT',

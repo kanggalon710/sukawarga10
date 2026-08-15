@@ -10,7 +10,7 @@ class PengaturanController extends Controller
 {
     public function index()
     {
-        $settings = AppSetting::pluck('value', 'key')->toArray();
+        $settings = AppSetting::semuaEfektif();
         return view('admin.pengaturan', compact('settings'));
     }
 
@@ -59,7 +59,7 @@ class PengaturanController extends Controller
 
         foreach (self::KEY_DIIZINKAN as $key) {
             if (!array_key_exists($key, $validated)) continue;
-            AppSetting::updateOrCreate(['key' => $key], ['value' => $validated[$key]]);
+            AppSetting::simpan($key, $validated[$key]);
         }
 
         \App\Services\AuditLogService::log(

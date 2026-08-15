@@ -59,18 +59,18 @@ class MpwaController extends Controller
     // ── Helpers ────────────────────────────────────────────────────────────────
     private function getAllTemplates(): array
     {
-        $custom = json_decode(AppSetting::where('key','mpwa_templates')->value('value') ?? '[]', true) ?: [];
+        $custom = json_decode(AppSetting::nilai('mpwa_templates') ?? '[]', true) ?: [];
         return array_merge(self::defaultTemplates(), $custom);
     }
 
     private function getCustomTemplates(): array
     {
-        return json_decode(AppSetting::where('key','mpwa_templates')->value('value') ?? '[]', true) ?: [];
+        return json_decode(AppSetting::nilai('mpwa_templates') ?? '[]', true) ?: [];
     }
 
     private function saveCustomTemplates(array $list): void
     {
-        AppSetting::updateOrCreate(['key' => 'mpwa_templates'], ['value' => json_encode(array_values($list))]);
+        AppSetting::simpan('mpwa_templates', json_encode(array_values($list)));
     }
 
     // ── Index ─────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ class MpwaController extends Controller
 
         $totalTunggakan = $tunggakanSampah + $tunggakanPadaringan;
         $wargaList      = Keluarga::where('status','aktif')->whereNotNull('noHP')->where('noHP','!=','')->orderBy('rt')->get();
-        $settings       = AppSetting::pluck('value','key')->toArray();
+        $settings       = AppSetting::semuaEfektif();
         $templates      = $this->getAllTemplates();
 
         // Active senders — show DB sender first, then others
@@ -302,7 +302,7 @@ class MpwaController extends Controller
             return response()->json(['success' => false, 'message' => 'Key tidak valid.']);
         }
 
-        AppSetting::updateOrCreate(['key' => $key], ['value' => $value]);
+        AppSetting::simpan($key, $value);
         return response()->json(['success' => true, 'key' => $key, 'value' => $value]);
     }
 }

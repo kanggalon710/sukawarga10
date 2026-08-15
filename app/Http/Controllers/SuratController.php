@@ -227,7 +227,7 @@ class SuratController extends Controller
     {
         $surat = Surat::findOrFail($id);
         $this->pastikanBolehLihat($surat);
-        $settings = AppSetting::pluck('value', 'key')->toArray();
+        $settings = AppSetting::semuaEfektif();
         return view('layanan.cetak_surat', compact('surat', 'settings'));
     }
 

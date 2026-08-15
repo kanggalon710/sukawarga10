@@ -28,7 +28,7 @@ class TransaksiController extends Controller
             ->orderBy('nama')
             ->get();
         $iuran = IuranSampah::where('tahun', $tahun)->get()->keyBy('keluarga_id');
-        $tarifSampah = (int)(AppSetting::where('key', 'tarif_sampah')->value('value') ?? 5000);
+        $tarifSampah = (int)(AppSetting::nilai('tarif_sampah') ?? 5000);
 
         $riwayat = Transaksi::where('kas', 'sampah')->where('jenis', 'masuk')->where('voided', false)
             ->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)
@@ -48,7 +48,7 @@ class TransaksiController extends Controller
         $tahun = $request->tahun;
         $bulanKey = $request->bulan_key;
         $mingguList = $request->minggu;
-        $tarifSampah = (int)(AppSetting::where('key', 'tarif_sampah')->value('value') ?? 5000);
+        $tarifSampah = (int)(AppSetting::nilai('tarif_sampah') ?? 5000);
         $totalBayar = count($mingguList) * $tarifSampah;
         $keluarga = Keluarga::findOrFail($keluarga_id);
 
@@ -104,7 +104,7 @@ class TransaksiController extends Controller
         $tahun = $request->tahun ?? date('Y');
         $keluargas = Keluarga::where('status', 'aktif')->where('ikutPadaringan', true)->orderBy('rt')->orderBy('nama')->get();
         $iuran = IuranPadaringan::where('tahun', $tahun)->get()->keyBy('keluarga_id');
-        $tarifPadaringan = (int)(AppSetting::where('key', 'tarif_padaringan')->value('value') ?? 15000);
+        $tarifPadaringan = (int)(AppSetting::nilai('tarif_padaringan') ?? 15000);
 
         $riwayat = Transaksi::where('kas', 'padaringan')->where('jenis', 'masuk')->where('voided', false)
             ->whereYear('tanggal', $tahun)->orderByDesc('tanggal')->orderByDesc('created_at')->limit(20)->get();
@@ -121,7 +121,7 @@ class TransaksiController extends Controller
 
         $tahun = $request->tahun;
         $bulanList = $request->bulans;
-        $tarifPadaringan = (int)(AppSetting::where('key', 'tarif_padaringan')->value('value') ?? 15000);
+        $tarifPadaringan = (int)(AppSetting::nilai('tarif_padaringan') ?? 15000);
         $nominal = $request->nominal ?? $tarifPadaringan;
         $totalBayar = count($bulanList) * $nominal;
         $keluarga = Keluarga::findOrFail($keluarga_id);

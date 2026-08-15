@@ -222,8 +222,11 @@ hijau, dan bisa dirilis sendiri:
    lewat subquery keluargas, penomoran surat per tenant. Sisa kecil di TODO:
    `DB::table` di removeDuplicates/resetData, `$user->level` mentah di
    beberapa controller. `User` SENGAJA tidak di-scope (login lintas tenant).
-6. **F:** `app_settings` per org + inheritance platform→desa→RW + feature flags.
-   `identitasAplikasi()` sudah menyiapkan bentuk API-nya.
+6. **F - SELESAI 2026-08-16** (migrasi `2026_08_15_000008`, tes
+   `PengaturanTenantTest`): `unique(organization_id, key)`, resolver
+   `AppSetting::nilai()/semuaEfektif()` dengan inheritance NULL→desa→RW,
+   penulisan `simpan()` di org tenant, MPWA per tenant, feature flags
+   `fitur_<modul>` (baru level menu; penjagaan rute di TODO).
 7. **D:** domain tenant kedua yang sesungguhnya (desa/RW baru) baru dibuka di
    sini, SETELAH isolasi teruji, bukan sebelumnya.
 8. **G/H:** UI manajemen tenant, impersonation (§23, dengan audit), queue

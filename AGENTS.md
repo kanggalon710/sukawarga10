@@ -109,10 +109,12 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
 4. **Nomor WA** selalu lewat `normalizeWa()` di `app/helpers.php` → format `62xxxx`.
    Jangan menulis normalisasi sendiri.
 5. **Uang** selalu lewat `formatRupiah()`. Jangan `number_format` manual di Blade.
-6. **`AppSetting`** adalah key-value yang ikut mengatur otorisasi
-   (`role_permissions`) dan ambang kemiskinan (`garis_kemiskinan`). Form
-   Pengaturan memakai whitelist key; jangan diganti jadi menerima
-   `$request->all()`.
+6. **`AppSetting`** adalah key-value ber-scope organisasi yang ikut mengatur
+   otorisasi (`role_permissions`) dan ambang kemiskinan (`garis_kemiskinan`).
+   Baca HANYA lewat `AppSetting::nilai()`/`semuaEfektif()`, tulis lewat
+   `simpan()` - query `where('key')` polos tidak tahu inheritance
+   platform→desa→RW dan bisa mengambil baris tenant lain. Form Pengaturan
+   memakai whitelist key; jangan diganti jadi menerima `$request->all()`.
 7. **Kepemilikan data warga** diikat lewat `users.keluarga_id`, bukan kecocokan
    nama. Jangan pernah mencari KK milik seseorang lewat `nama`.
 8. **Identitas aplikasi jangan ditulis tetap.** Pakai `namaAplikasi()`,

@@ -42,19 +42,19 @@ class MpwaService
     /** Read API key from DB, fallback empty (will fail gracefully). */
     public static function apiKey(): string
     {
-        return AppSetting::where('key', 'mpwa_api_key')->value('value') ?? '';
+        return AppSetting::nilai('mpwa_api_key') ?? '';
     }
 
     /** Read default sender from DB. */
     public static function sender(): string
     {
-        return AppSetting::where('key', 'mpwa_sender')->value('value') ?? '';
+        return AppSetting::nilai('mpwa_sender') ?? '';
     }
 
     /** Base URL gateway; bisa ditimpa lewat AppSetting `mpwa_api_url`. */
     public static function baseUrl(): string
     {
-        return rtrim(AppSetting::where('key', 'mpwa_api_url')->value('value') ?: self::BASE_URL, '/');
+        return rtrim(AppSetting::nilai('mpwa_api_url') ?: self::BASE_URL, '/');
     }
 
     /**
@@ -105,7 +105,7 @@ class MpwaService
     /** Check if a specific auto-notification is enabled (default: true if not set). */
     public static function isEnabled(string $aturanKey): bool
     {
-        $val = AppSetting::where('key', $aturanKey)->value('value');
+        $val = AppSetting::nilai($aturanKey);
         return $val === null || $val === '1'; // default on
     }
 
