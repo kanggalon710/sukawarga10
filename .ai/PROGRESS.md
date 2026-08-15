@@ -2,6 +2,37 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-15 - Phase E2 tahap 2: isolasi tenant seluruh area data
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Melengkapi tahap 1. Sisa area (surat, aduan, umkm, kegiatan,
+pengeluaran, sumbangan, setor, pendaftaran, log) masih polos, dan model
+turunan keluarga (anggota, iuran) belum tersaring sendiri.
+**Perubahan:**
+- `ScopedKeOrganisasi` dipasang di 9 model sisa: Surat, Aduan, Umkm, Kegiatan,
+  Pengeluaran, Sumbangan, SetorSampah, Pendaftaran, AuditLog. Bonus alami:
+  penomoran surat (`max(nomorUrut)`) kini per tenant, dan badge pendaftaran
+  di view composer ikut tersaring.
+- Trait baru `ScopedKeOrganisasiViaKeluarga` untuk model tanpa kolom org yang
+  kepemilikannya lewat keluarga: Anggota, IuranSampah, IuranPadaringan.
+  Saringannya subquery ke keluargas yang sudah ber-scope (satu query, bukan
+  whereHas per baris).
+- TEMUAN WARISAN dari tes: `anggotas.keluarga_id` berisi ID bisnis string
+  (kk_...), tapi `iuran_*.keluarga_id` berisi id NUMERIK keluargas.id (alur
+  bayar menyimpan parameter rute apa adanya). Trait turunan dibuat
+  sadar-kolom (`kolomRujukanKeluarga()`, model iuran meng-override ke 'id').
+  Inkonsistensi ini dicatat di TODO untuk dinormalkan suatu saat.
+- 6 tes isolasi baru di `IsolasiTenantTest` (total 14): surat asing
+  (list/show/approve/hapus), penomoran surat independen antar tenant, aduan/
+  umkm/kegiatan asing, pendaftaran asing (list + approve), log asing, dan
+  anggota asing tersaring lewat keluarganya.
+**File:** app/Models/Concerns/ScopedKeOrganisasiViaKeluarga.php, 12 model di
+app/Models/, tests/Feature/IsolasiTenantTest.php
+**Catatan:** 118 tes lulus di SQLite DAN MariaDB 11.8.8. Yang SENGAJA tidak
+di-scope: `User` (login mencari username lintas tenant; pembatasan Manajemen
+Akun per tenant adalah pekerjaan platform berikutnya) dan `Organization`/
+`Domain`/`Role`/`UserRoleAssignment` (tabel infrastruktur). `DB::table` di
+removeDuplicates/resetData masih polos - sudah di TODO sejak tahap 1.
+
 ## 2026-08-15 - Phase E2 tahap 1: isolasi tenant jalur uang (global scope)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Query jalur uang memakai `findOrFail` polos (bayar sampah/

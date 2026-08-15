@@ -123,6 +123,109 @@ class IsolasiTenantTest extends TestCase
         $this->assertSame(1, Transaksi::count());
     }
 
+    /** Baris asing untuk satu area, dibuat di jalur konsol (sebelum request). */
+    private function barisAsing(string $model, array $atribut): object
+    {
+        $kelas = "App\\Models\\{$model}";
+
+        return $kelas::create($atribut + ['organization_id' => $this->rwAsing->id]);
+    }
+
+    public function test_surat_tenant_lain_tak_terlihat_dan_tak_bisa_disentuh(): void
+    {
+        $surat = $this->barisAsing('Surat', [
+            'surat_id' => 'SRT-asing01', 'kodeSurat' => 'SKTM', 'tahun' => 2026,
+            'nomorUrut' => 7, 'nomorSurat' => '007/SKTM/RW99/2026',
+            'tanggal' => '2026-08-01', 'pemohon' => 'Pemohon Tetangga',
+            'keperluan' => 'keperluan rahasia', 'approval_step' => 'diajukan', 'status' => 'draft',
+        ]);
+
+        $this->actingAs($this->admin)->get('/surat')->assertOk()->assertDontSee('Pemohon Tetangga');
+        $this->actingAs($this->admin)->get("/surat/{$surat->id}")->assertNotFound();
+        $this->actingAs($this->admin)->post("/surat/{$surat->id}/approve")->assertNotFound();
+        $this->actingAs($this->admin)->delete("/surat/{$surat->id}")->assertNotFound();
+    }
+
+    public function test_penomoran_surat_independen_per_tenant(): void
+    {
+        // Tenant asing sudah sampai nomor 7 tahun ini; nomor RW 10 tidak
+        // boleh ikut melompat (max nomorUrut kini tersaring scope).
+        $this->barisAsing('Surat', [
+            'surat_id' => 'SRT-asing02', 'kodeSurat' => 'SKU', 'tahun' => date('Y'),
+            'nomorUrut' => 7, 'nomorSurat' => '007/SKU/RW99/'.date('Y'),
+            'tanggal' => '2026-08-01', 'pemohon' => 'Tetangga',
+            'keperluan' => 'x', 'approval_step' => 'selesai', 'status' => 'selesai',
+        ]);
+
+        $this->actingAs($this->admin)->post('/surat', [
+            'pemohon' => 'Warga Sepuluh', 'kodeSurat' => 'SKTM', 'keperluan' => 'uji nomor',
+        ])->assertRedirect();
+
+        $this->assertSame(1, \App\Models\Surat::where('keperluan', 'uji nomor')->value('nomorUrut'));
+    }
+
+    public function test_aduan_umkm_kegiatan_tenant_lain_tak_terlihat_dan_tak_bisa_disentuh(): void
+    {
+        $aduan = $this->barisAsing('Aduan', [
+            'aduan_id' => 'ADU-asing01', 'user_id' => 999, 'pelapor' => 'Pelapor Tetangga',
+            'rt' => '01', 'kategori' => 'kebersihan', 'isi' => 'aduan rahasia tetangga',
+            'tanggal' => '2026-08-01', 'status' => 'baru',
+        ]);
+        $umkm = $this->barisAsing('Umkm', [
+            'umkm_id' => 'UMKM-asing01', 'namaUsaha' => 'Warung Rahasia Tetangga',
+            'pemilik' => 'Tetangga', 'rt' => '01',
+        ]);
+        $kegiatan = $this->barisAsing('Kegiatan', [
+            'kegiatan_id' => 'KGT-asing01', 'judul' => 'Kegiatan Rahasia Tetangga',
+            'tanggal' => '2026-08-20', 'tempat' => 'Balai RW 99',
+        ]);
+
+        $this->actingAs($this->admin)->get('/aduan')->assertOk()->assertDontSee('aduan rahasia tetangga');
+        $this->actingAs($this->admin)->put("/aduan/{$aduan->id}/status", ['status' => 'selesai'])->assertNotFound();
+        $this->actingAs($this->admin)->get('/umkm')->assertOk()->assertDontSee('Warung Rahasia Tetangga');
+        $this->actingAs($this->admin)->delete("/umkm/{$umkm->id}")->assertNotFound();
+        $this->actingAs($this->admin)->get('/kegiatan')->assertOk()->assertDontSee('Kegiatan Rahasia Tetangga');
+        $this->actingAs($this->admin)->delete("/kegiatan/{$kegiatan->id}")->assertNotFound();
+    }
+
+    public function test_pendaftaran_tenant_lain_tak_terlihat_dan_tak_bisa_diproses(): void
+    {
+        $daftar = $this->barisAsing('Pendaftaran', [
+            'nik' => '9999888877776666', 'no_kk' => '1111222233334444',
+            'nama_lengkap' => 'Calon Warga Tetangga', 'rt' => '01',
+            'no_wa' => '628111111111', 'status' => 'pending',
+        ]);
+
+        $this->actingAs($this->admin)->get('/pendaftaran')
+            ->assertOk()->assertDontSee('Calon Warga Tetangga');
+        $this->actingAs($this->admin)
+            ->post("/pendaftaran/{$daftar->id}/approve")->assertNotFound();
+    }
+
+    public function test_log_sistem_tenant_lain_tak_terlihat(): void
+    {
+        $this->barisAsing('AuditLog', [
+            'log_id' => 'LOG-asing01', 'tanggal' => now(), 'operator' => 'op-tetangga',
+            'aksi' => 'create', 'collection' => 'transaksi', 'deskripsi' => 'jejak rahasia tetangga',
+        ]);
+
+        $this->actingAs($this->admin)->get('/log')->assertOk()->assertDontSee('jejak rahasia tetangga');
+    }
+
+    public function test_anggota_tenant_lain_tersaring_lewat_keluarganya(): void
+    {
+        \App\Models\Anggota::create([
+            'anggota_id' => 'ag_asing01', 'keluarga_id' => $this->kkAsing->keluarga_id,
+            'nama' => 'Anggota Tetangga', 'statusKeluarga' => 'Anak', 'jenisKelamin' => 'L',
+        ]);
+
+        $this->actingAs($this->admin)->get('/warga')->assertOk();
+
+        // Setelah context hidup: anggota tenant lain tak terlihat model mana pun.
+        $this->assertSame(0, \App\Models\Anggota::count());
+        $this->assertSame(1, \App\Models\Anggota::withoutGlobalScope('organisasi')->count());
+    }
+
     public function test_scope_aktif_di_dalam_request_dan_bisa_dibuka_eksplisit(): void
     {
         $this->actingAs($this->admin)->get('/warga')->assertOk();

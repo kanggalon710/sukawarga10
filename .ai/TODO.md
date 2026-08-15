@@ -35,11 +35,10 @@ Bukan pekerjaan kode, tapi jangan dilewat.
 - [ ] **Uji satu pembayaran sungguhan di produksi** setelah deploy, lalu cek
       kolom `kas` dan `transaksi_id` benar terisi.
 
-## Multi-tenant (menunggu keputusan mulai Phase B)
+## Multi-tenant (implementasi berjalan: B1-E2 selesai, berikutnya F)
 
-Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md` (planning only). Audit Phase A
-selesai 2026-08-15: `.ai/AUDIT-MULTITENANT.md` berisi inventori tabel tenant,
-asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
+Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
+`.ai/AUDIT-MULTITENANT.md` bagian 10.
 
 - [x] **B1 selesai 2026-08-15:** tabel `organizations` + `domains` + seed
       hierarki existing di migrasi `2026_08_15_000004`. Additive murni; 73 tes
@@ -79,29 +78,31 @@ asumsi single-RW dengan bukti file:baris, risiko, dan urutan fase.
 - [x] **E2 tahap 1 (jalur uang) selesai 2026-08-15:** global scope
       `ScopedKeOrganisasi` di `Transaksi` + `Keluarga`; findOrFail lintas
       tenant otomatis 404. 8 tes di `IsolasiTenantTest`.
-- [ ] **E2 lanjutan, area per area** (pasang trait + tambah kasus di
-      IsolasiTenantTest per area): Surat, Aduan, Umkm, Kegiatan, Pengeluaran,
-      Sumbangan, SetorSampah, Pendaftaran, AuditLog. Sekalian per area:
-      ganti `$user->level` mentah ke `levelEfektif()` (mis.
-      `SuratController::index`), dan ganti pembaca `DB::table` resource tenant
-      ke Eloquent (PengaturanController::removeDuplicates, sebagian
-      LaporanController) karena DB::table tidak tersaring scope.
-- [ ] **Iuran belum ber-scope langsung** (`iuran_sampahs`/`iuran_padaringans`
-      tanpa kolom org; aman transitif lewat keluarga yang tersaring).
-      Saat menyentuh area billing lagi, pertimbangkan scope turunan
-      (whereHas keluarga) atau kolom org sendiri.
+- [x] **E2 tahap 2 selesai 2026-08-15:** seluruh 9 area sisa ber-scope, plus
+      scope turunan untuk Anggota/IuranSampah/IuranPadaringan lewat subquery
+      keluargas. 14 tes isolasi total di `IsolasiTenantTest`.
+- [ ] **Sisa kecil E2:** ganti `$user->level` mentah ke `levelEfektif()`
+      (mis. `SuratController::index`), dan ganti pembaca `DB::table` resource
+      tenant ke Eloquent (`PengaturanController::removeDuplicates`, sebagian
+      `LaporanController`) karena DB::table tidak tersaring scope.
+      `resetData` juga masih TRUNCATE lintas tenant - wajib dibereskan
+      sebelum tenant kedua dibuka.
+- [ ] **Inkonsistensi warisan `keluarga_id`:** `anggotas.keluarga_id` berisi
+      ID bisnis string, `iuran_*.keluarga_id` berisi id numerik keluargas.id
+      (alur bayar menyimpan parameter rute). Scope turunan sudah sadar-kolom;
+      normalkan saat ada kesempatan migrasi data yang tenang.
 - [ ] **AppSetting & MPWA per-tenant adalah Phase F**, jangan dicampur ke E2.
 - [ ] **Deploy berikutnya:** setelah migrasi B1+B2 masuk produksi, verifikasi
       `https://paru.jabnet.id` tetap 200 dan host asing/IP langsung ke server
       kini 404. Kalau operator perlu hostname tambahan (mis. akses via IP
       internal), daftarkan lewat tabel `domains`, bukan mengubah kode.
-- [ ] **Sebelum E1:** putuskan nasib tabel `roles` mati (pakai ulang untuk
-      `user_role_assignments` atau drop) - catat di DECISIONS.
-- [ ] **Sebelum fase yang mengubah index/JSON (C, F):** jalankan suite di MySQL.
-      Mesin dev: MariaDB aktif tapi PHP tanpa `pdo_mysql`; pasang dengan
-      `sudo dnf install -y php-mysqlnd`.
-- [ ] Fase selanjutnya (C-H) sesuai bagian 10 audit; jangan lompat ke scoping
-      query sebelum context service ada.
+- [ ] **F:** `app_settings` per organisasi (`unique(organization_id, key)`,
+      nullable = default platform) + inheritance platform→desa→RW + feature
+      flags; kredensial & template MPWA ikut pindah ke sini. Ini fase yang
+      mengubah unique index di MySQL dengan baris hidup: backup dulu, uji di
+      `paru_test`.
+- [ ] Fase G/H (manajemen tenant, impersonation ber-audit, queue, monitoring)
+      sesuai bagian 10 audit.
 
 ## Belum dikerjakan
 
