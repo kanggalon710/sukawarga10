@@ -95,6 +95,12 @@ class PembukaTenant
             ]);
         }
 
+        // Halaman profil desa punya alamatnya sendiri (satu tingkat di atas RW).
+        Domain::firstOrCreate(
+            ['hostname' => "{$label}.{$basis}"],
+            ['organization_id' => $desa->id, 'is_primary' => true, 'status' => 'aktif']
+        );
+
         $roleRwAdmin = Role::where('slug', 'rw_admin')->value('id');
         $baris = [];
 

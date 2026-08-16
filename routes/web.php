@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebAuthController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KeluargaController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\LaporanController;
@@ -27,9 +26,13 @@ Route::post('/login/register', [WebAuthController::class, 'registerWarga'])->nam
 Route::post('/login/forgot', [WebAuthController::class, 'forgotCredentials'])->name('login.forgot');
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
+// Beranda per tingkat hirarki: di luar grup auth karena halaman desa PUBLIK;
+// cabang RW/platform mengurus auth-nya sendiri. Nama rute tetap `dashboard`
+// supaya route('dashboard') di seluruh aplikasi tidak berubah.
+Route::get('/', App\Http\Controllers\BerandaController::class)->name('dashboard');
+
 // Protected Web Routes
 Route::middleware('auth')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Warga Self-Service Profil
     Route::get('/profil', [ProfilWargaController::class, 'index'])->name('profil.index');

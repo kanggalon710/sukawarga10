@@ -197,7 +197,7 @@ class WebAuthController extends Controller
             return null;
         }
 
-        $rwAsal = $this->rwAsal($user);
+        $rwAsal = $user->rwAsal();
         if ($rwAsal === null || $rwAsal->id === $context->rw()?->id) {
             return null;
         }
@@ -209,28 +209,6 @@ class WebAuthController extends Controller
         return $alamat !== null
             ? "Akun Anda terdaftar di {$tempat}. Silakan masuk lewat: {$alamat}"
             : "Akun Anda terdaftar di {$tempat}. Hubungi pengurus RW Anda untuk alamat portalnya.";
-    }
-
-    /** Organisasi RW asal user, dari keluarganya atau dari assignment-nya. */
-    private function rwAsal(User $user): ?\App\Models\Organization
-    {
-        if ($user->keluarga_id) {
-            $kk = \App\Models\Keluarga::withoutGlobalScope('organisasi')
-                ->where('keluarga_id', $user->keluarga_id)->first();
-            $rw = $kk?->organization?->leluhur(\App\Models\Organization::TYPE_RW);
-            if ($rw !== null) {
-                return $rw;
-            }
-        }
-
-        foreach ($user->roleAssignments()->with('organization')->get() as $assignment) {
-            $rw = $assignment->organization?->leluhur(\App\Models\Organization::TYPE_RW);
-            if ($rw !== null) {
-                return $rw;
-            }
-        }
-
-        return null;
     }
 
     public function logout(Request $request) {

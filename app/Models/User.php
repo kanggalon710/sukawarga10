@@ -145,6 +145,32 @@ class User extends Authenticatable
     }
 
     /**
+     * Organisasi RW asal user - dari keluarganya, atau dari assignment-nya.
+     * Dipakai penjaga login lintas tenant (menunjukkan alamat portal yang
+     * benar) dan beranda platform (mengarahkan pengurus ke portalnya).
+     */
+    public function rwAsal(): ?Organization
+    {
+        if ($this->keluarga_id) {
+            $kk = Keluarga::withoutGlobalScope('organisasi')
+                ->where('keluarga_id', $this->keluarga_id)->first();
+            $rw = $kk?->organization?->leluhur(Organization::TYPE_RW);
+            if ($rw !== null) {
+                return $rw;
+            }
+        }
+
+        foreach ($this->roleAssignments()->with('organization')->get() as $assignment) {
+            $rw = $assignment->organization?->leluhur(Organization::TYPE_RW);
+            if ($rw !== null) {
+                return $rw;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Pemegang super_admin di organisasi PLATFORM - gerbang fitur lintas
      * tenant (Manajemen Desa). Superadmin ber-scope tenant (buatan Manajemen
      * Akun) bukan admin platform. Memo per request di TenantContext.

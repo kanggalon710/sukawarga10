@@ -33,9 +33,13 @@ trait ScopedKeOrganisasi
 
             $rwId = $context->rw()?->id;
             if ($rwId === null) {
-                // Tenant tanpa RW di rantainya belum ada bentuknya; menyaring
-                // dengan tebakan lebih buruk daripada membiarkan (fail-open
-                // hanya untuk kondisi yang hari ini mustahil).
+                // Host platform/desa (tanpa RW di rantainya) kini NYATA:
+                // halaman mereka tidak menyentuh data tenant, jadi query
+                // ber-scope harus FAIL-CLOSED - nol baris, bukan semua baris.
+                // Agregat lintas tenant yang sah memakai withoutGlobalScope
+                // eksplisit dengan komentar alasan (aturan AGENTS #9).
+                $builder->whereRaw('1 = 0');
+
                 return;
             }
 

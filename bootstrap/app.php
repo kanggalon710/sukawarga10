@@ -16,8 +16,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
         // Resolver tenant hanya di grup web: health check `/up` dan rute api
-        // (sisa Sanctum) tidak terikat hostname tenant.
+        // (sisa Sanctum) tidak terikat hostname tenant. Resolver juga
+        // membatasi host platform/desa ke halaman tingkatnya sendiri.
         $middleware->web(append: [\App\Http\Middleware\ResolveTenant::class]);
+
+        // Resolver WAJIB berjalan sebelum auth: tanpa ini, sorting priority
+        // Laravel mendahulukan Authenticate sehingga tamu di host/rute yang
+        // seharusnya 404 malah di-redirect ke login. Targetnya KONTRAK
+        // AuthenticatesRequests - itulah entri yang ada di priority list
+        // bawaan, bukan kelas Authenticate.
+        $middleware->prependToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            \App\Http\Middleware\ResolveTenant::class,
+        );
 
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,

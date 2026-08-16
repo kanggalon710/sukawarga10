@@ -2,6 +2,41 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Halaman per hirarki (platform/desa/RW) + pemulihan desa.jabnet.id
+**Agen:** claude | **Status:** selesai
+**Kenapa:** INSIDEN: pemilik menghapus tenant RW 10 lewat Manajemen Desa;
+karena `desa.jabnet.id` terdaftar sebagai domain MILIK org RW 10, baris
+domain root ikut terhapus dan seluruh portal root 404. Perbaikan struktural
+sekaligus fitur yang diminta: tiap tingkat hirarki punya halamannya sendiri.
+**Perubahan:**
+- Migrasi `2026_08_16_000009`: `desa.jabnet.id` → org PLATFORM (tidak pernah
+  ikut terhapus bersama tenant; menyembuhkan 404 produksi saat migrate) +
+  backfill `{slug}.desa.jabnet.id` untuk desa existing; `PembukaTenant`
+  ikut membuat domain desa untuk desa baru.
+- `BerandaController` di rute `/` (nama tetap `dashboard`, dipindah ke luar
+  grup auth): host RW → dashboard tenant (perilaku lama); host desa → profil
+  desa PUBLIK (daftar RW + tombol portal + jumlah KK, tanpa data pribadi);
+  host platform → dashboard owner khusus `adalahAdminPlatform()` (total
+  desa/RW/KK, tabel desa→RW→domain, pintasan Manajemen Desa/Pembaruan) -
+  pengurus/warga yang nyasar ke root diarahkan ke portal RW asalnya
+  (`User::rwAsal()`, diekstrak dari WebAuthController).
+- FAIL-CLOSED: `ScopedKeOrganisasi` saat context tanpa RW kini `1 = 0`
+  (dulu fail-open "kondisi mustahil" - kini host non-RW nyata); pembatasan
+  path di `ResolveTenant` (host non-RW hanya `/`, login, logout, tenant,
+  pembaruan - selain itu 404, juga untuk tamu).
+- Temuan penting: priority sorting Laravel mendahulukan `Authenticate`
+  sehingga middleware kustom kalah urutan - `ResolveTenant` didaftarkan ke
+  priority list SEBELUM kontrak `AuthenticatesRequests` (bukan kelas
+  `Authenticate` - itu bukan entri daftarnya).
+- Sidebar layouts.app: menu modul tenant disembunyikan di host non-RW.
+**File:** migrasi 000009, app/Http/Controllers/BerandaController.php (baru),
+resources/views/beranda/{platform,desa}.blade.php (baru), ResolveTenant.php,
+ScopedKeOrganisasi.php, PembukaTenant.php, User.php, WebAuthController.php,
+bootstrap/app.php, routes/web.php, layouts/app.blade.php,
+tests/Feature/HirarkiHalamanTest.php (baru, 10 tes)
+**Catatan:** 200 tes (604 assertion) hijau di SQLite dan MariaDB; migrasi
+000009 teruji turun-naik di MariaDB; kedua halaman dipotret 360/1280.
+
 ## 2026-08-16 - Import KK per tenant + penutupan lubang otorisasi Data Warga
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik minta fitur import KK di halaman RW - ternyata UI-nya

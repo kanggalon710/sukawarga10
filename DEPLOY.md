@@ -154,8 +154,17 @@ dipakai.
 ## 8. Membuka desa/RW baru (Phase D)
 
 Satu instalasi melayani banyak desa/RW; tiap RW adalah tenant dengan subdomain,
-identitas, tarif, dan datanya sendiri. Skema alamatnya flat:
-`{label}-rw{nn}.desa.jabnet.id` (mis. `cibunar-rw01.desa.jabnet.id`).
+identitas, tarif, dan datanya sendiri. Peta alamat per tingkat hirarki:
+
+| Alamat | Tingkat | Isi |
+|---|---|---|
+| `desa.jabnet.id` | Platform (owner) | Dashboard owner: total desa/RW/KK, daftar desa, pintasan Manajemen Desa & Pembaruan. Wajib login admin platform. |
+| `{label}.desa.jabnet.id` | Desa | Profil desa PUBLIK: daftar RW + tombol portal + jumlah KK. |
+| `{label}-rw{nn}.desa.jabnet.id` | RW | Portal tenant penuh (warga, iuran, surat, dst). |
+
+Domain root milik org PLATFORM dan domain desa milik org desa - menghapus
+RW/desa lewat Manajemen Desa tidak pernah mematikan alamat tingkat di atasnya.
+Modul tenant hanya hidup di host RW; di host platform/desa rutenya 404.
 
 1. **DNS wildcard (SEKALI SAJA, berlaku untuk semua tenant selamanya):**
    tambah record A `*.desa.jabnet.id` → IP server. Setelah ini tenant baru
@@ -173,11 +182,14 @@ identitas, tarif, dan datanya sendiri. Skema alamatnya flat:
    sama boleh, asalkan labelnya beda (mis. `cibunar` vs `cibunarkota`).
    Menu Manajemen Desa hanya tampil untuk pemegang super_admin PLATFORM
    (akun `admin`/`jabnet` bawaan) - superadmin buatan Manajemen Akun tidak.
-3. **cPanel per subdomain:** Domains → Create a New Domain →
-   `cibunar-rw01.desa.jabnet.id`, document root = folder `public` aplikasi
-   (sama untuk semua tenant) → Run AutoSSL. (AutoSSL tidak menerbitkan
-   wildcard, jadi tiap subdomain tetap didaftarkan; DNS-nya sudah ditutup
-   wildcard di langkah 1.)
+3. **cPanel per subdomain:** Domains → Create a New Domain → document root =
+   folder `public` aplikasi (sama untuk semua) → Run AutoSSL, untuk TIAP
+   alamat: subdomain RW (`cibunar-rw01.desa.jabnet.id`) DAN subdomain desa
+   (`cibunar.desa.jabnet.id`). (AutoSSL tidak menerbitkan wildcard, jadi
+   tiap subdomain tetap didaftarkan; DNS-nya sudah ditutup wildcard di
+   langkah 1. PASTIKAN document root menunjuk `.../public` - salah menunjuk
+   root repo pernah memaparkan source; kini ada .htaccess pengaman, tapi
+   tetap betulkan.)
 4. **Serahkan akses ke admin RW:** login dengan akun dari langkah 2 →
    menu Pengaturan: identitas (nama tampilan, tagline, lokasi),
    **Alamat Portal = hostname RW-nya**, tarif iuran, WhatsApp API →

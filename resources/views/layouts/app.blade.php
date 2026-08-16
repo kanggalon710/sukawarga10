@@ -60,6 +60,9 @@
                     <i class="fas fa-home nav-icon"></i> Dashboard
                 </a>
                 @endif
+                {{-- Modul tenant hanya hidup di host RW; di host platform/desa
+                     rutenya 404 (BatasiLingkupTenant), menunya ikut hilang. --}}
+                @if(namaRw() !== '')
                 @if(auth()->user()->levelEfektif() === 'warga')
                 <a href="{{ route('profil.index') }}" class="nav-item {{ request()->routeIs('profil.*') ? 'active' : '' }}">
                     <i class="fas fa-user-circle nav-icon"></i> Profil Saya
@@ -165,6 +168,7 @@
                     <i class="fas fa-cog nav-icon"></i> Pengaturan
                 </a>
                 @endif
+                @endif {{-- akhir blok modul host RW --}}
                 {{-- Fitur platform lintas tenant: gerbangnya admin platform,
                      bukan userCan() yang meloloskan semua level admin. --}}
                 @if(auth()->user()->adalahAdminPlatform())
@@ -212,8 +216,8 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    @if(auth()->user()->levelEfektif() !== 'warga')
-                    {{-- Pencarian global memuat data seluruh warga, jadi hanya untuk pengurus --}}
+                    @if(auth()->user()->levelEfektif() !== 'warga' && namaRw() !== '')
+                    {{-- Pencarian global memuat data seluruh warga, jadi hanya untuk pengurus (dan hanya di host RW) --}}
                     <div class="header-search">
                         <i class="fas fa-search header-search-icon"></i>
                         <input type="text" id="globalSearch" placeholder="Cari warga..." autocomplete="off">

@@ -33,7 +33,26 @@ class ResolveTenant
             abort(404, 'Alamat ini tidak terdaftar pada layanan mana pun.');
         }
 
-        app(TenantContext::class)->tetapkan($domain);
+        $context = app(TenantContext::class);
+        $context->tetapkan($domain);
+
+        // Host platform/desa (tanpa RW di rantainya) hanya melayani halaman
+        // tingkatnya sendiri; modul tenant khusus host RW - fail-closed:
+        // modul baru otomatis tertutup tanpa perlu didaftarkan di sini.
+        // Ditegakkan DI SINI (bukan middleware terpisah) supaya berjalan
+        // sebelum `auth`: sorting priority Laravel bisa mendahulukan
+        // Authenticate sehingga tamu malah di-redirect ke login, bukan 404.
+        if ($context->rw() === null) {
+            $path = trim($request->path(), '/');
+            $boleh = $path === '';
+            foreach (['login', 'logout', 'tenant', 'pembaruan'] as $awalan) {
+                if ($path === $awalan || str_starts_with($path, $awalan.'/')) {
+                    $boleh = true;
+                    break;
+                }
+            }
+            abort_unless($boleh, 404);
+        }
 
         return $next($request);
     }

@@ -3,6 +3,23 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Domain root milik platform + fail-closed untuk host non-RW
+**Konteks:** Insiden produksi: menghapus RW 10 lewat Manajemen Desa ikut
+menghapus baris domain `desa.jabnet.id` (terdaftar milik org RW itu) dan
+portal root 404.
+**Pilihan:** (1) `desa.jabnet.id` = domain org PLATFORM; domain desa
+`{slug}.desa.jabnet.id` milik org desa; domain RW milik org RW - domain mati
+bersama organisasinya sendiri, tidak pernah bersama organisasi lain.
+(2) Begitu host non-RW nyata, scope tenant TIDAK boleh fail-open: context
+tanpa RW = `1 = 0`; agregat lintas tenant yang sah selalu
+`withoutGlobalScope` eksplisit ber-komentar. (3) Pembatasan path host
+non-RW ditegakkan DI `ResolveTenant`, bukan middleware terpisah: sorting
+priority Laravel bisa mendahulukan `Authenticate` atas middleware kustom
+(tamu di-redirect ke login alih-alih 404); `ResolveTenant` juga didaftarkan
+ke priority list sebelum kontrak `AuthenticatesRequests`. (4) Halaman desa
+publik hanya menampilkan ANGKA & tautan portal, tanpa data pribadi;
+dashboard platform khusus `adalahAdminPlatform()`.
+
 ## 2026-08-16 - Branch production terpisah + update dari website
 **Konteks:** `main` dipakai instalasi 1-desa khusus lama; portal multi-desa
 butuh jalur rilis sendiri dan pemilik ingin update tanpa terminal.
