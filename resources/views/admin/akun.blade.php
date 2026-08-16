@@ -43,6 +43,33 @@
     </div>
 </div>
 
+{{-- INSTRUKSI ALAMAT LOGIN WARGA (dinamis per host) --}}
+@if($rwPortal->isNotEmpty())
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--biru);">
+    <p style="margin:0; font-size:13px;">
+        <i class="fas fa-circle-info" style="color:var(--biru);" aria-hidden="true"></i>
+        @if(namaRw() !== '')
+            Untuk akses login warga gunakan
+            <a href="https://{{ $rwPortal->first()['host'] }}"><strong>https://{{ $rwPortal->first()['host'] }}</strong></a>.
+            Bagikan alamat ini bersama username dan PIN lewat pengurus RT.
+            Setelah masuk, warga bisa mengganti username dan PIN sendiri lewat menu <em>Akun Saya</em>.
+        @else
+            Akun warga hanya bisa login di portal RW-nya masing-masing. Bagikan alamat berikut sesuai RW warga:
+        @endif
+    </p>
+    @if(namaRw() === '')
+    <ul style="margin:8px 0 0; padding-left:20px; font-size:13px;">
+        @foreach($rwPortal as $p)
+        <li style="margin-bottom:4px;">
+            {{ $p['rw'] }} · {{ $p['desa'] }}:
+            <a href="https://{{ $p['host'] }}">https://{{ $p['host'] }}</a>
+        </li>
+        @endforeach
+    </ul>
+    @endif
+</div>
+@endif
+
 {{-- TAB TOOLBAR --}}
 <div class="toolbar" style="margin-bottom:16px; flex-wrap:wrap;">
     <div class="toolbar-left" style="gap:6px;">

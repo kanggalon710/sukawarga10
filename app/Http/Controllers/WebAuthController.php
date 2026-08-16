@@ -87,9 +87,9 @@ class WebAuthController extends Controller
             'pin' => 'required'
         ]);
 
-        // --- RATE LIMITING: max 5 attempts per 2 minutes per IP ---
+        // --- RATE LIMITING: max 3 attempts per 2 minutes per IP ---
         $throttleKey = 'login|' . $request->ip();
-        $maxAttempts = 5;
+        $maxAttempts = 3;
         $decaySeconds = 120; // 2 minutes
 
         if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {

@@ -2,6 +2,24 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Instruksi portal login warga di /akun + batas login 3 percobaan
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Admin yang melihat akun warga di desa.jabnet.id/akun tidak tahu
+alamat mana yang harus dibagikan ke warga (akun hanya bisa login di portal
+RW-nya). Pemilik juga minta upaya login dibatasi 3 kali (sebelumnya 5).
+**Perubahan:** Kartu instruksi dinamis di bawah metrik Manajemen Akun: host RW
+menampilkan alamat portalnya sendiri, host desa/platform mendaftar portal RW
+aktif dalam cakupan kelola (RW nonaktif dan desa lain tidak ikut). Rate limit
+login per IP diturunkan 5 -> 3 percobaan / 2 menit (lapisan kunci akun 15 menit
+setelah 10 gagal tetap ada). 6 tes baru (BatasUpayaLoginTest + 4 di
+KelolaAkunHirarkiTest).
+**File:** app/Http/Controllers/AkunController.php,
+app/Http/Controllers/WebAuthController.php,
+resources/views/admin/akun.blade.php, tests/Feature/BatasUpayaLoginTest.php,
+tests/Feature/KelolaAkunHirarkiTest.php
+**Catatan:** 228 tes (740 assertion) hijau di SQLite dan MariaDB. Pint sama
+dengan baseline HEAD.
+
 ## 2026-08-16 - Tombol "Buatkan Akun Warga" (generate massal pasca-impor)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Impor RW 07 Parung sukses tapi warganya tidak punya akun login -

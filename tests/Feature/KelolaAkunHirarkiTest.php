@@ -287,4 +287,47 @@ class KelolaAkunHirarkiTest extends TestCase
         $this->assertSame(1, User::where('username', 'cibunar-admin')->count());
         $this->assertSame($pin, $admin->fresh()->pin);
     }
+
+    public function test_halaman_akun_rw_menampilkan_alamat_portal_warga(): void
+    {
+        $this->actingAs($this->adminRw01)
+            ->get('https://cibunar-rw01.desa.jabnet.id/akun')
+            ->assertOk()
+            ->assertSee('Untuk akses login warga')
+            ->assertSee('https://cibunar-rw01.desa.jabnet.id', false);
+    }
+
+    public function test_halaman_akun_platform_menampilkan_daftar_portal_rw(): void
+    {
+        $this->actingAs($this->adminPlatform)
+            ->get('https://desa.jabnet.id/akun')
+            ->assertOk()
+            ->assertSee('cibunar-rw01.desa.jabnet.id')
+            ->assertSee('cibunar-rw02.desa.jabnet.id');
+    }
+
+    public function test_instruksi_portal_di_host_desa_hanya_rw_desanya(): void
+    {
+        $this->artisan('tenant:buat', [
+            'nama' => 'Desa Lain', 'label' => 'lain',
+            '--kecamatan' => 'Garut Kota', '--rw' => ['01'],
+        ])->assertSuccessful();
+
+        $this->actingAs($this->adminDesa)
+            ->get('https://cibunar.desa.jabnet.id/akun')
+            ->assertOk()
+            ->assertSee('cibunar-rw01.desa.jabnet.id')
+            ->assertDontSee('lain-rw01.desa.jabnet.id');
+    }
+
+    public function test_instruksi_portal_melewatkan_rw_nonaktif(): void
+    {
+        Organization::where('slug', 'rw-02-cibunar')->update(['status' => 'nonaktif']);
+
+        $this->actingAs($this->adminPlatform)
+            ->get('https://desa.jabnet.id/akun')
+            ->assertOk()
+            ->assertSee('cibunar-rw01.desa.jabnet.id')
+            ->assertDontSee('cibunar-rw02.desa.jabnet.id');
+    }
 }

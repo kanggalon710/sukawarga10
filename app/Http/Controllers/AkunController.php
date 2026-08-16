@@ -72,7 +72,27 @@ class AkunController extends Controller
 
         $users = $q->get();
 
-        return view('admin.akun', compact('users'));
+        // Instruksi di bawah metrik: alamat portal login warga dalam cakupan.
+        // Host RW menunjuk alamat tenantnya sendiri; host desa/platform
+        // mendaftar RW aktif miliknya - akun warga hanya bisa login di sana.
+        $rwPortal = Organization::where('type', Organization::TYPE_RW)
+            ->where('status', 'aktif')
+            ->when($cakupan !== null, fn ($w) => $w->whereIn('id', $cakupan))
+            ->with([
+                'parent:id,name',
+                'domains' => fn ($d) => $d->where('is_primary', true)->where('status', 'aktif'),
+            ])
+            ->get()
+            ->map(fn ($rw) => [
+                'rw' => $rw->name,
+                'desa' => $rw->parent?->name ?? '',
+                'host' => $rw->domains->first()?->hostname,
+            ])
+            ->filter(fn ($p) => $p['host'] !== null)
+            ->sortBy([['desa', 'asc'], ['rw', 'asc']])
+            ->values();
+
+        return view('admin.akun', compact('users', 'rwPortal'));
     }
 
     public function store(Request $request)
