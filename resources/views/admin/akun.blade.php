@@ -301,6 +301,9 @@
         <div class="card-header"><div class="card-title"><i class="fas fa-user-edit" style="color:var(--biru);"></i> Edit Akun</div></div>
         <form id="editForm" method="POST" action="">@csrf @method('PUT')
             <div style="margin-bottom:12px;"><label class="sak-label">Nama Lengkap *</label><input type="text" name="namaLengkap" id="editNama" required class="sak-input"></div>
+            <div style="margin-bottom:12px;"><label class="sak-label">Username *</label><input type="text" name="username" id="editUsername" required maxlength="60" class="sak-input"></div>
+            @if(namaRw() !== '')
+            {{-- Level & RT hanya di host RW: sinkronisasi assignment butuh tenant RW. --}}
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                 <div><label class="sak-label">Level *</label>
                     <select name="level" id="editLevel" required class="sak-input">
@@ -309,6 +312,7 @@
                 <div><label class="sak-label">RT</label>
                     <select name="rt" id="editRT" class="sak-input"><option value="">-</option>@for($i=1;$i<=6;$i++)<option value="{{ str_pad($i,2,'0',STR_PAD_LEFT) }}">RT {{ str_pad($i,2,'0',STR_PAD_LEFT) }}</option>@endfor</select></div>
             </div>
+            @endif
             <div style="margin-bottom:16px;"><label class="sak-label">No. WhatsApp</label><input type="text" name="wa" id="editWA" class="sak-input"></div>
             <div style="display:flex; gap:10px;">
                 <button type="button" class="btn btn-outline" style="flex:1;" onclick="document.getElementById('editModal').style.display='none'">Batal</button>
@@ -365,8 +369,10 @@ function filterWargaAccounts() {
 function openEdit(u) {
     document.getElementById('editForm').action = '/akun/' + u.id;
     document.getElementById('editNama').value = u.namaLengkap;
-    document.getElementById('editLevel').value = u.level;
-    document.getElementById('editRT').value = u.rt || '';
+    document.getElementById('editUsername').value = u.username || '';
+    // Level/RT tidak dirender di host non-RW.
+    const lv = document.getElementById('editLevel');
+    if (lv) { lv.value = u.level; document.getElementById('editRT').value = u.rt || ''; }
     document.getElementById('editWA').value = u.wa || '';
     document.getElementById('editModal').style.display = 'flex';
 }

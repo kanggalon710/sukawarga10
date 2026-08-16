@@ -2,6 +2,41 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Manajemen akun bertingkat + Akun Saya (self-service kredensial)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Permintaan pemilik: owner kelola username/PIN/permission SEMUA
+akun, admin desa hanya desa + RW-RW-nya, kepala keluarga kredensialnya
+sendiri. Sekaligus menutup temuan: /akun menampilkan & bisa mengubah SEMUA
+user lintas tenant (model User memang tidak di-scope).
+**Perubahan:**
+- `AkunController::cakupanKelola()`: gerbang + cakupan per host - platform =
+  owner (`adalahAdminPlatform`) semua akun; desa = pemegang peran ber-power
+  >= ketua_rw di RANTAI LELUHUR desa (desa_admin/super_admin; subtree TIDAK
+  dihitung - admin RW bukan pengelola desa); RW = superadmin efektif tenant,
+  cakupan subtree tenant. Semua mutasi (`update/updatePin/toggle/destroy`)
+  memeriksa target dalam cakupan (di luar = 404). Gerbang di
+  `User::bolehKelolaAkunDi()` (dipakai juga sidebar).
+- Rute /akun: `role:superadmin` → `role:ketua_rw` (spesifik per host di
+  controller); host non-RW kini boleh melayani path `akun` (whitelist
+  resolver). Edit modal dapat kolom username (unik); level/RT hanya di host
+  RW (sinkronisasi assignment butuh tenant RW) - akun berjangkar platform
+  sama sekali tak tersentuh dari form tenant.
+- `AppSetting::simpan` menulis di organisasi HOST (rw/desa/platform) - dulu
+  rw() saja sehingga tulisan dari host non-RW diam-diam jatuh ke baris NULL.
+  Efek: matriks permission dari host platform = bawaan seluruh tenant, dari
+  host desa = bawaan RW-RW-nya.
+- Tombol "Buat akun admin desa" di Manajemen Desa (peran desa_admin di org
+  desa, PIN acak sekali-tayang, idempoten).
+- Halaman `/akun-saya`: SEMUA user login ganti username + PIN sendiri dengan
+  verifikasi PIN lama; tautan di dropdown avatar. Host RW saja.
+**File:** app/Http/Controllers/{Akun,AkunSaya,Tenant}Controller.php,
+app/Models/{User,AppSetting}.php, app/Http/Middleware/ResolveTenant.php,
+routes/web.php, 4 view, tests/Feature/{KelolaAkunHirarki,AkunSaya}Test.php
+(baru, 15 tes)
+**Catatan:** 215 tes (667 assertion) hijau di SQLite dan MariaDB.
+ManajemenAkunTest lama disesuaikan: akun platform kini 404 dari form tenant
+(lebih ketat dari sekadar assignment aman).
+
 ## 2026-08-16 - Halaman per hirarki (platform/desa/RW) + pemulihan desa.jabnet.id
 **Agen:** claude | **Status:** selesai
 **Kenapa:** INSIDEN: pemilik menghapus tenant RW 10 lewat Manajemen Desa;

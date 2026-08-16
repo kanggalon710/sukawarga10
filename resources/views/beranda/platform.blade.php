@@ -42,6 +42,7 @@
 
     <div class="plat-aksi">
         <a class="btn btn-primary" href="{{ route('tenant.index') }}"><i class="fas fa-city" aria-hidden="true"></i> Manajemen Desa</a>
+        <a class="btn btn-outline" href="{{ route('akun.index') }}"><i class="fas fa-user-shield" aria-hidden="true"></i> Manajemen Akun</a>
         <a class="btn btn-outline" href="{{ route('pembaruan.index') }}"><i class="fas fa-arrows-rotate" aria-hidden="true"></i> Pembaruan Sistem</a>
     </div>
 

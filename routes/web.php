@@ -34,6 +34,11 @@ Route::get('/', App\Http\Controllers\BerandaController::class)->name('dashboard'
 // Protected Web Routes
 Route::middleware('auth')->group(function () {
 
+    // Akun Saya: SEMUA user login (termasuk kepala keluarga) mengganti
+    // username & PIN-nya sendiri, dengan verifikasi PIN lama.
+    Route::get('/akun-saya', [App\Http\Controllers\AkunSayaController::class, 'index'])->name('akunSaya.index');
+    Route::post('/akun-saya', [App\Http\Controllers\AkunSayaController::class, 'simpan'])->name('akunSaya.simpan');
+
     // Warga Self-Service Profil
     Route::get('/profil', [ProfilWargaController::class, 'index'])->name('profil.index');
     Route::put('/profil', [ProfilWargaController::class, 'update'])->name('profil.update');
@@ -189,8 +194,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/pendaftaran/{id}/reject', [PendaftaranController::class, 'reject'])->name('pendaftaran.reject');
     });
 
-    // Admin — User Management (superadmin only)
-    Route::middleware(['role:superadmin', 'fitur:akun'])->group(function () {
+    // Admin — Manajemen Akun bertingkat: middleware meloloskan ketua_rw ke
+    // atas, lalu AkunController::cakupanKelola() mempersempit per host
+    // (RW = superadmin tenant, desa = admin desa, platform = owner) dan
+    // membatasi akun mana yang terlihat/tersentuh.
+    Route::middleware(['role:ketua_rw', 'fitur:akun'])->group(function () {
         Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
         Route::post('/akun', [AkunController::class, 'store'])->name('akun.store');
         Route::put('/akun/{id}', [AkunController::class, 'update'])->name('akun.update');
@@ -221,6 +229,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/tenant', [App\Http\Controllers\TenantController::class, 'store'])->name('tenant.store');
         Route::put('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'update'])->name('tenant.update');
         Route::delete('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'destroyDesa'])->name('tenant.destroy');
+        Route::post('/tenant/{id}/admin', [App\Http\Controllers\TenantController::class, 'buatAdminDesa'])->name('tenant.adminDesa');
         Route::post('/tenant/rw/{id}/toggle', [App\Http\Controllers\TenantController::class, 'toggleRw'])->name('tenant.rw.toggle');
         Route::delete('/tenant/rw/{id}', [App\Http\Controllers\TenantController::class, 'destroyRw'])->name('tenant.rw.destroy');
 

@@ -13,23 +13,71 @@ use App\Services\AuditLogService;
 
 class AkunController extends Controller
 {
+    /**
+     * Gerbang + cakupan kelola akun per tingkat host (owner=semua,
+     * admin desa=subtree desanya, admin RW=subtree tenantnya).
+     * Mengembalikan daftar id organisasi cakupan, atau null = semua akun.
+     */
+    private function cakupanKelola(): ?array
+    {
+        $context = app(TenantContext::class);
+        $org = $context->organisasi();
+        abort_unless($org !== null && auth()->user()->bolehKelolaAkunDi($org), 403);
+
+        if ($org->type === Organization::TYPE_PLATFORM) {
+            return null;
+        }
+
+        return Organization::idSubtree(($context->rw() ?? $org)->id);
+    }
+
+    /** Akun $target termasuk cakupan? Di luar cakupan = 404, bukan bocor. */
+    private function pastikanDalamCakupan(User $target, ?array $cakupan): void
+    {
+        if ($cakupan === null) {
+            return;
+        }
+
+        $anggota = UserRoleAssignment::where('user_id', $target->id)
+            ->whereIn('organization_id', $cakupan)->exists()
+            || ($target->keluarga_id !== null
+                && \App\Models\Keluarga::withoutGlobalScope('organisasi')
+                    ->where('keluarga_id', $target->keluarga_id)
+                    ->whereIn('organization_id', $cakupan)->exists());
+
+        abort_unless($anggota, 404);
+    }
+
     public function index()
     {
-        $user = auth()->user();
-        if (!$user->canManageUsers() && !$user->isSuperAdmin()) {
-            return redirect('/')->with('error', 'Anda tidak memiliki akses ke halaman ini.');
-        }
+        $cakupan = $this->cakupanKelola();
+
         // CASE portabel (MySQL + SQLite). FIELD() hanya tersedia di MySQL.
-        $users = User::orderByRaw("CASE level
+        $q = User::orderByRaw("CASE level
                 WHEN 'superadmin' THEN 1 WHEN 'super_admin' THEN 1 WHEN 'admin' THEN 1
                 WHEN 'ketua_rw' THEN 2 WHEN 'bendahara' THEN 3
                 WHEN 'petugas_rt' THEN 4 WHEN 'warga' THEN 5 ELSE 6 END")
-            ->orderBy('username')->get();
+            ->orderBy('username');
+
+        if ($cakupan !== null) {
+            // Akun "milik" cakupan = ber-assignment di organisasinya ATAU
+            // keluarganya tercatat di sana. Dulu daftar ini TANPA saringan:
+            // admin satu RW melihat (dan bisa mengubah) akun semua tenant.
+            $q->where(function ($w) use ($cakupan) {
+                $w->whereIn('id', UserRoleAssignment::whereIn('organization_id', $cakupan)->select('user_id'))
+                    ->orWhereIn('keluarga_id', \App\Models\Keluarga::withoutGlobalScope('organisasi')
+                        ->whereIn('organization_id', $cakupan)->select('keluarga_id'));
+            });
+        }
+
+        $users = $q->get();
+
         return view('admin.akun', compact('users'));
     }
 
     public function store(Request $request)
     {
+        $this->cakupanKelola();
         $request->validate([
             'namaLengkap' => 'required',
             'username' => 'required|unique:users',
@@ -62,18 +110,34 @@ class AkunController extends Controller
 
     public function update(Request $request, $id)
     {
+        $cakupan = $this->cakupanKelola();
         $user = User::findOrFail($id);
+        $this->pastikanDalamCakupan($user, $cakupan);
+
         $request->validate([
             'namaLengkap' => 'required',
-            'level' => 'required|in:superadmin,ketua_rw,bendahara,petugas_rt,warga',
+            'username' => ['sometimes', 'required', 'string', 'max:60', 'unique:users,username,' . $user->id],
+            // `sometimes`: form di host non-RW tidak mengirim level/rt.
+            'level' => 'sometimes|required|in:superadmin,ketua_rw,bendahara,petugas_rt,warga',
             'rt' => 'nullable|required_if:level,petugas_rt',
         ]);
 
-        $user->update($request->only(['namaLengkap', 'level', 'rt', 'wa']));
+        // Level & RT hanya diubah di host RW: sinkronisasi assignment butuh
+        // tenant RW; mengubah kolom level dari host platform/desa membuatnya
+        // lepas sinkron dari assignment (sumber hak sesungguhnya).
+        $diHostRw = app(TenantContext::class)->rw() !== null;
+        $kolom = $diHostRw
+            ? ['namaLengkap', 'username', 'level', 'rt', 'wa']
+            : ['namaLengkap', 'username', 'wa'];
+        $user->update($request->only($kolom));
 
-        $this->selaraskanAssignment($user->fresh());
+        if ($diHostRw) {
+            $this->selaraskanAssignment($user->fresh());
+        }
 
-        return back()->with('success', 'Data akun ' . $user->username . ' berhasil diperbarui.');
+        AuditLogService::log('ubah_user', 'user', 'Ubah akun: ' . $user->fresh()->username);
+
+        return back()->with('success', 'Data akun ' . $user->fresh()->username . ' berhasil diperbarui.');
     }
 
     /**
@@ -142,8 +206,10 @@ class AkunController extends Controller
 
     public function updatePin(Request $request, $id)
     {
+        $cakupan = $this->cakupanKelola();
         $request->validate(['pin' => 'required|digits:6']);
         $user = User::findOrFail($id);
+        $this->pastikanDalamCakupan($user, $cakupan);
         $user->update(['pin' => Hash::make($request->pin)]);
 
         AuditLogService::log('ubah_pin', 'user', 'PIN diubah untuk: ' . $user->username);
@@ -153,7 +219,9 @@ class AkunController extends Controller
 
     public function toggleStatus($id)
     {
+        $cakupan = $this->cakupanKelola();
         $user = User::findOrFail($id);
+        $this->pastikanDalamCakupan($user, $cakupan);
         if ($user->isDefault) return back()->with('error', 'Akun default tidak bisa dinonaktifkan.');
 
         $newStatus = $user->status === 'aktif' ? 'nonaktif' : 'aktif';
@@ -166,7 +234,9 @@ class AkunController extends Controller
 
     public function destroy($id)
     {
+        $cakupan = $this->cakupanKelola();
         $user = User::findOrFail($id);
+        $this->pastikanDalamCakupan($user, $cakupan);
         if ($user->isDefault) return back()->with('error', 'Akun default tidak bisa dihapus.');
         // Tanpa FK cascade; baris yatim = hak hantu bila id user terpakai ulang.
         UserRoleAssignment::where('user_id', $user->id)->delete();
@@ -176,6 +246,9 @@ class AkunController extends Controller
 
     public function savePermissions(Request $request)
     {
+        // Matriks tersimpan di organisasi HOST (lihat AppSetting::simpan):
+        // platform = bawaan semua tenant, desa = bawaan RW-RW-nya, RW = lokal.
+        $this->cakupanKelola();
         $perms = $request->input('permissions');
         if (!is_array($perms)) {
             return response()->json(['success' => false, 'message' => 'Invalid data'], 400);

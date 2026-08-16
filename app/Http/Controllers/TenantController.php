@@ -106,6 +106,44 @@ class TenantController extends Controller
         return redirect()->route('tenant.index')->with('success', "Nama desa diperbarui: {$namaLengkap}.");
     }
 
+    /**
+     * Buatkan akun admin desa (peran desa_admin di organisasi desa): pengelola
+     * akun seluruh RW di desanya lewat host {label}.desa.jabnet.id/akun.
+     * PIN acak sekali-tayang; akun yang sudah ada tidak direset.
+     */
+    public function buatAdminDesa(int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $desa = Organization::where('type', Organization::TYPE_DESA)->findOrFail($id);
+
+        $username = "{$desa->slug}-admin";
+        $admin = \App\Models\User::where('username', $username)->first();
+        $pin = null;
+        if ($admin === null) {
+            $pin = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $admin = \App\Models\User::create([
+                'user_id' => 'USR-'.uniqid(),
+                'username' => $username,
+                'namaLengkap' => "Admin {$desa->name}",
+                'pin' => \Illuminate\Support\Facades\Hash::make($pin),
+                'level' => 'ketua_rw',
+                'status' => 'aktif',
+                'isDefault' => false,
+            ]);
+        }
+
+        UserRoleAssignment::firstOrCreate([
+            'user_id' => $admin->id,
+            'role_id' => \App\Models\Role::where('slug', 'desa_admin')->value('id'),
+            'organization_id' => $desa->id,
+        ]);
+        AuditLogService::log('buat_admin_desa', 'tenant', "Akun admin desa {$desa->slug}: {$username}");
+
+        return redirect()->route('tenant.index')->with('hasilAdminDesa', [
+            'desa' => $desa->name, 'username' => $username, 'pin' => $pin,
+        ]);
+    }
+
     /** Aktif/nonaktifkan RW: resolver menolak seluruh domain organisasi nonaktif. */
     public function toggleRw(int $id)
     {

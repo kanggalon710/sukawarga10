@@ -114,10 +114,11 @@ class ManajemenAkunTest extends TestCase
         $this->assertSame('ketua_rw', $akun->fresh()->levelEfektifUntuk($this->rw()));
     }
 
-    public function test_mengubah_level_tidak_menyentuh_assignment_platform(): void
+    public function test_akun_platform_tak_tersentuh_dari_form_tenant(): void
     {
-        // Assignment platform hanya dikelola seeder/konsol; form tenant tidak
-        // boleh bisa mencabutnya diam-diam.
+        // Akun berjangkar platform berada DI LUAR cakupan kelola host RW:
+        // form tenant tidak bisa mengubahnya sama sekali (404), apalagi
+        // mencabut assignment platformnya.
         $staf = User::create([
             'user_id' => 'u_staf', 'username' => 'stafplat', 'namaLengkap' => 'Staf Platform',
             'pin' => Hash::make('123456'), 'level' => 'superadmin', 'status' => 'aktif',
@@ -130,10 +131,11 @@ class ManajemenAkunTest extends TestCase
 
         $this->actingAs($this->admin)->put("/akun/{$staf->id}", [
             'namaLengkap' => 'Staf Platform', 'level' => 'warga',
-        ])->assertRedirect();
+        ])->assertNotFound();
 
         $this->assertDatabaseHas('user_role_assignments', ['id' => $diPlatform->id]);
         $this->assertSame('superadmin', $staf->fresh()->levelEfektifUntuk($this->rw()));
+        $this->assertSame('superadmin', $staf->fresh()->level);
     }
 
     public function test_menghapus_akun_ikut_menghapus_assignment(): void

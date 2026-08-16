@@ -65,11 +65,16 @@ class AppSetting extends Model
     /**
      * Tulis setting untuk tenant request ini (di konsol: default platform).
      * Idempoten per (organisasi, key); memo request langsung dilupakan.
+     *
+     * Targetnya organisasi HOST request: RW di host RW, desa di host desa
+     * (diwariskan ke RW-RW-nya), platform di host platform. Dulu memakai
+     * rw() saja, sehingga tulisan dari host non-RW jatuh diam-diam ke baris
+     * NULL (bawaan platform) - salah tingkat.
      */
     public static function simpan(string $key, $value): static
     {
         $context = app(TenantContext::class);
-        $orgId = $context->rw()?->id;
+        $orgId = $context->sudahDitetapkan() ? $context->organisasi()?->id : null;
 
         $baris = static::updateOrCreate(
             ['key' => $key, 'organization_id' => $orgId],

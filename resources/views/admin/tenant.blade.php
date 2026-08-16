@@ -36,6 +36,25 @@
 </div>
 @endif
 
+@if(session('hasilAdminDesa'))
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--hijau);">
+    <div class="card-header"><div class="card-title"><i class="fas fa-user-tie" style="color:var(--hijau);" aria-hidden="true"></i> Akun admin desa · {{ session('hasilAdminDesa')['desa'] }}</div></div>
+    @if(session('hasilAdminDesa')['pin'])
+        <p style="margin:0; font-size:14px;">
+            Username <code>{{ session('hasilAdminDesa')['username'] }}</code> ·
+            PIN <code>{{ session('hasilAdminDesa')['pin'] }}</code>
+            <strong style="color:var(--merah);">- catat SEKARANG, hanya tampil sekali.</strong>
+        </p>
+        <p style="margin:8px 0 0; font-size:12.5px; color:var(--text3);">
+            Admin desa mengelola akun seluruh RW desanya lewat
+            <code>{{ session('hasilAdminDesa')['username'] ? str_replace('-admin', '', session('hasilAdminDesa')['username']) : '' }}.desa.jabnet.id/akun</code>.
+        </p>
+    @else
+        <p style="margin:0; font-size:14px;">Akun <code>{{ session('hasilAdminDesa')['username'] }}</code> sudah ada - PIN tidak diubah.</p>
+    @endif
+</div>
+@endif
+
 @if(session('hasilTenant'))
 <div class="card" style="margin-bottom:16px; border-left:4px solid var(--hijau);">
     <div class="card-header">
@@ -174,6 +193,12 @@
             <div class="tenant-aksi">
                 <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save" aria-hidden="true"></i> Simpan nama</button>
             </div>
+        </form>
+        <form method="POST" action="{{ route('tenant.adminDesa', $desa->id) }}" style="margin-top:10px;">
+            @csrf
+            <button type="submit" class="btn btn-outline btn-sm" style="min-height:44px;">
+                <i class="fas fa-user-tie" aria-hidden="true"></i> Buat akun admin desa
+            </button>
         </form>
         @if($desa->children->isEmpty())
         <form method="POST" action="{{ route('tenant.destroy', $desa->id) }}" style="margin-top:10px;"

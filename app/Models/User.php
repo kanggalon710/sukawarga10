@@ -171,6 +171,45 @@ class User extends Authenticatable
     }
 
     /**
+     * Boleh mengelola AKUN pada tingkat organisasi host $org?
+     * - platform: hanya admin platform (owner) - semua akun;
+     * - desa: pemegang peran ber-power >= ketua_rw yang assignment-nya di
+     *   RANTAI LELUHUR desa itu (desa_admin di desa tsb / super_admin
+     *   platform) - subtree TIDAK dihitung: admin RW bukan pengelola desa;
+     * - rw: superadmin efektif tenant (aturan lama Manajemen Akun).
+     */
+    public function bolehKelolaAkunDi(?Organization $org): bool
+    {
+        if ($org === null) {
+            return false;
+        }
+        if ($org->type === Organization::TYPE_PLATFORM) {
+            return $this->adalahAdminPlatform();
+        }
+        if ($org->leluhur(Organization::TYPE_RW) !== null) {
+            return $this->isSuperAdmin();
+        }
+
+        $context = app(\App\Services\TenantContext::class);
+
+        return $context->ingat("kelola.akun.{$this->id}.{$org->id}", function () use ($org) {
+            $rantai = [];
+            $node = $org;
+            for ($i = 0; $node !== null && $i < 10; $i++) {
+                $rantai[] = $node->id;
+                $node = $node->parent;
+            }
+
+            return UserRoleAssignment::query()
+                ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
+                ->where('user_role_assignments.user_id', $this->id)
+                ->whereIn('user_role_assignments.organization_id', $rantai)
+                ->whereIn('roles.legacy_level', ['superadmin', 'ketua_rw'])
+                ->exists();
+        });
+    }
+
+    /**
      * Pemegang super_admin di organisasi PLATFORM - gerbang fitur lintas
      * tenant (Manajemen Desa). Superadmin ber-scope tenant (buatan Manajemen
      * Akun) bukan admin platform. Memo per request di TenantContext.

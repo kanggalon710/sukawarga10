@@ -171,6 +171,13 @@
                 @endif {{-- akhir blok modul host RW --}}
                 {{-- Fitur platform lintas tenant: gerbangnya admin platform,
                      bukan userCan() yang meloloskan semua level admin. --}}
+                @if(namaRw() === '' && auth()->user()->bolehKelolaAkunDi(app(\App\Services\TenantContext::class)->organisasi()))
+                {{-- Host platform/desa: pengelola akun tingkat itu (owner /
+                     admin desa) tetap punya jalan ke Manajemen Akun. --}}
+                <a href="{{ route('akun.index') }}" class="nav-item {{ request()->routeIs('akun.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-shield nav-icon"></i> Manajemen Akun
+                </a>
+                @endif
                 @if(auth()->user()->adalahAdminPlatform())
                 <a href="{{ route('tenant.index') }}" class="nav-item {{ request()->routeIs('tenant.*') ? 'active' : '' }}">
                     <i class="fas fa-city nav-icon"></i> Manajemen Desa
@@ -233,7 +240,10 @@
                                 <div style="font-weight:700; font-size:14px;">{{ Auth::user()->namaLengkap ?? 'Admin' }}</div>
                                 <div style="font-size:11px; color:var(--text3);">{{ Auth::user()->level_efektif_label }}</div>
                             </div>
+                            @if(namaRw() !== '')
+                            <a href="{{ route('akunSaya.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:13px; color:var(--text2); text-decoration:none; transition:background 0.2s;"><i class="fas fa-user-lock" style="width:16px; color:var(--text3);"></i> Akun Saya</a>
                             <a href="{{ route('pengaturan.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:13px; color:var(--text2); text-decoration:none; transition:background 0.2s;"><i class="fas fa-cog" style="width:16px; color:var(--text3);"></i> Pengaturan</a>
+                            @endif
                             <form method="POST" action="{{ route('logout') }}" style="border-top:1px solid var(--abu2);">
                                 @csrf
                                 <button type="submit" style="display:flex; align-items:center; gap:10px; width:100%; padding:10px 16px; font-size:13px; color:var(--merah); background:none; border:none; cursor:pointer;"><i class="fas fa-sign-out-alt" style="width:16px;"></i> Keluar</button>

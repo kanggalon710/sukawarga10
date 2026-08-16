@@ -3,6 +3,22 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Cakupan kelola akun mengikuti tingkat HOST, bukan level user
+**Konteks:** Owner minta kelola akun bertingkat; /akun lama menampilkan
+semua user lintas tenant.
+**Pilihan:** Hak kelola akun ditentukan pasangan (host, peran di rantai
+leluhur host): platform=owner saja; desa=desa_admin/super_admin yang
+assignment-nya di rantai leluhur desa (subtree sengaja TIDAK dihitung -
+admin RW bukan pengelola desa); RW=superadmin efektif tenant. "Akun milik
+cakupan" = ber-assignment di organisasi cakupan ATAU keluarganya tercatat
+di sana; akun tanpa jangkar hanya terlihat owner. Level/RT hanya bisa
+diubah di host RW karena sinkronisasi assignment butuh tenant RW - kolom
+level tanpa assignment yang selaras adalah sumber kebingungan, bukan hak.
+Matriks permission mengikuti organisasi host (platform=bawaan semua,
+desa=bawaan RW-RW-nya, RW=lokal) lewat perbaikan target tulis
+AppSetting::simpan. Kredensial diri sendiri lewat /akun-saya dengan
+verifikasi PIN lama - pengurus tidak perlu tahu PIN siapa pun.
+
 ## 2026-08-16 - Domain root milik platform + fail-closed untuk host non-RW
 **Konteks:** Insiden produksi: menghapus RW 10 lewat Manajemen Desa ikut
 menghapus baris domain `desa.jabnet.id` (terdaftar milik org RW itu) dan

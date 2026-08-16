@@ -45,7 +45,7 @@ class ResolveTenant
         if ($context->rw() === null) {
             $path = trim($request->path(), '/');
             $boleh = $path === '';
-            foreach (['login', 'logout', 'tenant', 'pembaruan'] as $awalan) {
+            foreach (['login', 'logout', 'tenant', 'pembaruan', 'akun'] as $awalan) {
                 if ($path === $awalan || str_starts_with($path, $awalan.'/')) {
                     $boleh = true;
                     break;
