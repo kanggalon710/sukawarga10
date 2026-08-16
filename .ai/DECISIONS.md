@@ -3,6 +3,24 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Phase D: subdomain flat per RW + login tolak-dengan-alamat
+**Konteks:** Membuka multi-desa (dua "Desa Cibunar" berbeda kecamatan) dengan
+syarat warga hanya login di subdomain RW-nya; alamat harus ramah orang tua.
+**Opsi:** (a) subdomain flat `cibunar-rw01.desa.jabnet.id`, (b) bersarang
+`rw01.cibunar.desa.jabnet.id`, (c) langsung `cibunar01.jabnet.id`; untuk
+login salah alamat: tolak+alamat benar / tolak generik / biarkan kosong.
+**Pilihan (disetujui pemilik):** (a) flat, label pembeda `cibunar` vs
+`cibunarkota`, login ditolak dengan pesan yang menyebutkan alamat RW asal.
+**Alasan:** Flat = satu wildcard DNS `*.desa.jabnet.id` menutup semua tenant
+selamanya (wildcard hanya berlaku satu tingkat; skema bersarang butuh wildcard
+per desa), alamat lebih pendek, AutoSSL cPanel langsung jalan. Pesan penolakan
+menyebut alamat benar hanya SETELAH PIN valid, jadi bukan kebocoran
+keanggotaan - justru membimbing warga lansia yang salah ketik. Akun tanpa
+jangkar (keluarga/assignment) sengaja tidak dikunci: mengunci akun legacy
+dari semua pintu lebih buruk daripada membiarkan perilaku lama. PIN admin RW
+dari `tenant:buat` acak dan hanya dicetak sekali - tidak ada lagi PIN bawaan
+yang tercatat di git.
+
 ## 2026-08-16 - Superadmin dari Manajemen Akun ber-scope tenant, bukan platform
 **Konteks:** Fallback `users.level` dicabut, jadi AkunController wajib
 memasang assignment. Untuk level `superadmin`, assignment-nya bisa dipasang

@@ -2,6 +2,36 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Phase D: tenant:buat, subdomain per RW, login terkunci per tenant
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik membuka dua desa baru bernama sama ("Desa Cibunar" di
+Tarogong Kidul dan Garut Kota) berisi beberapa RW, dengan syarat warga hanya
+bisa login di subdomain RW-nya sendiri dan alamat mudah bagi orang tua.
+Keputusan via AskUserQuestion: skema flat `{label}-rw{nn}.desa.jabnet.id`,
+label pembeda `cibunar`/`cibunarkota`, tolak-dengan-alamat-benar, perintah
+artisan.
+**Perubahan:**
+- `tenant:buat` (app/Console/Commands/BuatTenant.php): desa + RW + domain +
+  akun admin per RW (PIN acak sekali-tayang) dalam satu perintah, idempotent,
+  validasi label ala DNS, normalisasi RW dua digit seragam seed B1.
+- Penjaga login lintas tenant di WebAuthController: setelah PIN valid, user
+  yang jangkarnya (keluarga/assignment) di RW lain ditolak dengan pesan yang
+  menyebutkan alamat portal RW asalnya; akun tanpa jangkar tetap boleh
+  (transisi); dicatat `login_ditolak_lintas_tenant` di audit log.
+- Bocoran ditutup: statistik halaman login membaca `DB::table('anggotas')`
+  tanpa scope - pindah ke model Anggota.
+- `DEPLOY.md` bagian 8 "Membuka desa/RW baru": wildcard DNS sekali,
+  tenant:buat, cPanel + AutoSSL per subdomain, MPWA level desa (inheritance).
+- E2E lokal: dua desa Cibunar dibuat via perintah, login admin RW sukses di
+  subdomainnya, ditolak di RW tetangga dengan alamat benar, dashboard hidup.
+**File:** app/Console/Commands/BuatTenant.php (baru),
+app/Http/Controllers/WebAuthController.php,
+tests/Feature/BuatTenantTest.php (6 tes), tests/Feature/LoginTenantTest.php
+(6 tes), DEPLOY.md
+**Catatan:** 156 tes (415 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Verifikasi PendaftaranController::approve: user warga baru sudah ber-
+keluarga_id (jangkar tenant) - tidak perlu diubah.
+
 ## 2026-08-16 - Lock composer portabel ke PHP 8.3 + tambal 24 advisori keamanan
 **Agen:** claude | **Status:** selesai
 **Kenapa:** `composer install` GAGAL di server produksi (PHP CLI 8.3.23):

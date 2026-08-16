@@ -14,15 +14,16 @@ class WebAuthController extends Controller
 {
     public function showLoginForm() {
         $totalKK = \App\Models\Keluarga::where('status', 'aktif')->count();
-        // Use DB table directly to avoid model name issues
-        $totalA = \Illuminate\Support\Facades\DB::table('anggotas')->count() ?? 0;
+        // Lewat model, bukan DB::table: query builder polos tidak tersaring
+        // scope organisasi, jadi statistik halaman publik ini menghitung
+        // anggota tenant lain (aturan AGENTS.md #9).
+        $totalA = \App\Models\Anggota::count();
         if ($totalA == 0) $totalA = $totalKK * 3; // Fallback estimate
 
         // Count real NIK data
         $totalNIK = \App\Models\Keluarga::where('status', 'aktif')
             ->whereNotNull('nik')->where('nik', '!=', '')->count();
-        $totalNIK += \Illuminate\Support\Facades\DB::table('anggotas')
-            ->whereNotNull('nik')->where('nik', '!=', '')->count();
+        $totalNIK += \App\Models\Anggota::whereNotNull('nik')->where('nik', '!=', '')->count();
 
         $totalNoKK = \App\Models\Keluarga::where('status', 'aktif')
             ->whereNotNull('noKK')->where('noKK', '!=', '')->count();
@@ -145,6 +146,18 @@ class WebAuthController extends Controller
             return back()->with('error', 'Akun Anda dinonaktifkan. Hubungi administrator.')->withInput($request->only('username'));
         }
 
+        // --- PENJAGA TENANT (Phase D): warga hanya login di subdomain RW-nya ---
+        // Dicek SETELAH PIN valid supaya pesannya boleh menyebut alamat portal
+        // yang benar (orang tua yang salah alamat dibimbing, bukan dibiarkan
+        // menatap dashboard kosong). Akun tanpa jangkar (keluarga/assignment)
+        // dibiarkan lewat: itu akun lama, jangan dikunci dari mana-mana.
+        $tolak = $this->tolakLintasTenant($user);
+        if ($tolak !== null) {
+            AuditLogService::log('login_ditolak_lintas_tenant', 'auth',
+                'Login ' . $user->username . ' ditolak di ' . $request->getHost() . ' (IP: ' . $request->ip() . ')');
+            return back()->with('error', $tolak)->withInput($request->only('username'));
+        }
+
         // --- LOGIN SUCCESS ---
         \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
         $user->update([
@@ -159,6 +172,65 @@ class WebAuthController extends Controller
         AuditLogService::log('login', 'auth', 'Login berhasil: ' . $user->username . ' (IP: ' . $request->ip() . ')');
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    /**
+     * Pesan penolakan bila user milik tenant LAIN, atau null bila boleh masuk.
+     *
+     * Boleh masuk bila: punya assignment yang relevan dengan tenant ini
+     * (pengurus, warga hasil backfill, super admin platform - platform ada di
+     * rantai leluhur semua tenant), ATAU keluarganya terlihat di tenant ini,
+     * ATAU tidak punya jangkar sama sekali (akun lama).
+     */
+    private function tolakLintasTenant(User $user): ?string
+    {
+        $context = app(\App\Services\TenantContext::class);
+        if (!$context->sudahDitetapkan() || $context->organisasi() === null) {
+            return null;
+        }
+
+        if ($user->levelEfektifUntuk($context->organisasi()) !== null) {
+            return null;
+        }
+        if ($user->keluarga_id
+            && \App\Models\Keluarga::where('keluarga_id', $user->keluarga_id)->exists()) {
+            return null;
+        }
+
+        $rwAsal = $this->rwAsal($user);
+        if ($rwAsal === null || $rwAsal->id === $context->rw()?->id) {
+            return null;
+        }
+
+        $desaAsal = $rwAsal->leluhur(\App\Models\Organization::TYPE_DESA);
+        $tempat = trim($rwAsal->name . ' ' . ($desaAsal->name ?? ''));
+        $alamat = $rwAsal->domains()->orderByDesc('is_primary')->value('hostname');
+
+        return $alamat !== null
+            ? "Akun Anda terdaftar di {$tempat}. Silakan masuk lewat: {$alamat}"
+            : "Akun Anda terdaftar di {$tempat}. Hubungi pengurus RW Anda untuk alamat portalnya.";
+    }
+
+    /** Organisasi RW asal user, dari keluarganya atau dari assignment-nya. */
+    private function rwAsal(User $user): ?\App\Models\Organization
+    {
+        if ($user->keluarga_id) {
+            $kk = \App\Models\Keluarga::withoutGlobalScope('organisasi')
+                ->where('keluarga_id', $user->keluarga_id)->first();
+            $rw = $kk?->organization?->leluhur(\App\Models\Organization::TYPE_RW);
+            if ($rw !== null) {
+                return $rw;
+            }
+        }
+
+        foreach ($user->roleAssignments()->with('organization')->get() as $assignment) {
+            $rw = $assignment->organization?->leluhur(\App\Models\Organization::TYPE_RW);
+            if ($rw !== null) {
+                return $rw;
+            }
+        }
+
+        return null;
     }
 
     public function logout(Request $request) {

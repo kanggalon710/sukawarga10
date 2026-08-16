@@ -119,5 +119,41 @@ Catatan: `sukawarga10.jabnet.id` masih hidup di IP yang berbeda
 masih diarahkan ke sana, dan matikan atau redirect kalau memang sudah tidak
 dipakai.
 
+## 8. Membuka desa/RW baru (Phase D)
+
+Satu instalasi melayani banyak desa/RW; tiap RW adalah tenant dengan subdomain,
+identitas, tarif, dan datanya sendiri. Skema alamatnya flat:
+`{label}-rw{nn}.desa.jabnet.id` (mis. `cibunar-rw01.desa.jabnet.id`).
+
+1. **DNS wildcard (SEKALI SAJA, berlaku untuk semua tenant selamanya):**
+   tambah record A `*.desa.jabnet.id` → IP server. Setelah ini tenant baru
+   tidak butuh perubahan DNS lagi.
+2. **Jalankan perintah pembuatan tenant** di server (idempotent, aman diulang
+   untuk menambah RW ke desa yang sudah ada):
+   ```bash
+   php artisan tenant:buat "Desa Cibunar" cibunar --kecamatan="Tarogong Kidul" --rw=01,02,03
+   ```
+   Perintah membuat organisasi desa + RW, baris `domains`, dan akun admin per
+   RW (username `{label}-rw{nn}`, PIN acak dicetak SEKALI di output - catat
+   saat itu juga). Dua desa bernama sama boleh, asalkan labelnya beda
+   (mis. `cibunar` vs `cibunarkota`).
+3. **cPanel per subdomain:** Domains → Create a New Domain →
+   `cibunar-rw01.desa.jabnet.id`, document root = folder `public` aplikasi
+   (sama untuk semua tenant) → Run AutoSSL. (AutoSSL tidak menerbitkan
+   wildcard, jadi tiap subdomain tetap didaftarkan; DNS-nya sudah ditutup
+   wildcard di langkah 1.)
+4. **Serahkan akses ke admin RW:** login dengan akun dari langkah 2 →
+   menu Pengaturan: identitas (nama tampilan, tagline, lokasi),
+   **Alamat Portal = hostname RW-nya**, tarif iuran, WhatsApp API →
+   ganti PIN lewat Manajemen Akun.
+5. **Kredensial MPWA satu desa (opsional):** tanam sekali di baris
+   `app_settings` ber-`organization_id` DESA (lewat tinker), seluruh RW di
+   bawahnya mewarisi; RW yang mengisi sendiri lewat Pengaturan menimpa
+   warisan itu.
+6. **Perilaku login lintas tenant:** warga/pengurus yang mencoba login di
+   subdomain RW lain ditolak dengan pesan yang menyebutkan alamat portal
+   RW asalnya. Akun lama tanpa tautan keluarga/peran tetap bisa login di
+   mana pun (transisi).
+
 ## Ringkasan fitur yang dideploy
 Redesign UI (1 font Source Sans 3) · Dashboard indeks kesejahteraan · fix dual-write data · BI Laporan (ranked-bar/KPI/piramida diverging/tabel) · form warga lengkap (anggota demografis, kesehatan, daya listrik dll) · importer KK & anggota · **normalisasi nomor WA otomatis** (insert + broadcast MPWA).

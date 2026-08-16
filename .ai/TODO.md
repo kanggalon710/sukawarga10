@@ -43,7 +43,7 @@ Bukan pekerjaan kode, tapi jangan dilewat.
       Perbaikannya lewat Manajemen Akun: isi RT lalu simpan ulang levelnya.
       Uji juga login tiap level akun setelah deploy.
 
-## Multi-tenant (B1-F + pengerasan selesai; berikutnya D, prasyaratnya di bawah)
+## Multi-tenant (B1-F + pengerasan + D selesai; berikutnya G/H)
 
 Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
 `.ai/AUDIT-MULTITENANT.md` bagian 10.
@@ -124,8 +124,15 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       `AppSetting::nilai()`/`semuaEfektif()`, penulisan lewat `simpan()`.
       Query `where('key')` polos tidak tahu inheritance dan bisa mengambil
       baris tenant lain - sudah nol di kode, jaga tetap nol.
-- [ ] Fase G/H (manajemen tenant, impersonation ber-audit, queue, monitoring)
-      sesuai bagian 10 audit.
+- [x] **Phase D selesai 2026-08-16:** perintah `tenant:buat` (desa + RW +
+      domain + admin per RW, PIN acak sekali-tayang), skema subdomain flat
+      `{label}-rw{nn}.desa.jabnet.id`, penjaga login lintas tenant
+      (tolak + tunjukkan alamat RW asal), bocoran statistik halaman login
+      ditutup. 12 tes baru (`BuatTenantTest`, `LoginTenantTest`); runbook di
+      `DEPLOY.md` bagian 8. Operasional Cibunar: tinggal wildcard DNS
+      `*.desa.jabnet.id` + jalankan perintah + cPanel per subdomain.
+- [ ] Fase G/H (manajemen tenant via UI, impersonation ber-audit, queue,
+      monitoring) sesuai bagian 10 audit.
 
 ## Belum dikerjakan
 

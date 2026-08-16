@@ -229,14 +229,16 @@ hijau, dan bisa dirilis sendiri:
    penulisan `simpan()` di org tenant, MPWA per tenant, feature flags
    `fitur_<modul>`. Penjagaan rutenya SELESAI 2026-08-16: middleware
    `fitur:<modul>` menjawab 404 untuk modul yang dimatikan.
-7. **D:** domain tenant kedua yang sesungguhnya (desa/RW baru) baru dibuka di
-   sini, SETELAH isolasi teruji, bukan sebelumnya. **Seluruh prasyaratnya
-   selesai 2026-08-16**: fallback `users.level` pensiun (AkunController
-   memelihara assignment, `ManajemenAkunTest`), sasaran notifikasi WA per
-   tenant (`NotifikasiTenantTest`), dan verifikasi end-to-end dua tenant di
-   server lokal (12 pemeriksaan HTTP sungguhan). Membuka tenant kedua kini
-   murni urusan data + DNS: baris `organizations` + `domains` + assignment
-   pengurusnya, tanpa perubahan kode.
+7. **D - SELESAI 2026-08-16** (perintah `tenant:buat`, tes `BuatTenantTest` +
+   `LoginTenantTest`): pembukaan tenant jadi satu perintah (desa + RW +
+   domain + admin ber-PIN acak), skema subdomain flat
+   `{label}-rw{nn}.desa.jabnet.id` (wildcard DNS satu kali), login lintas
+   tenant ditolak dengan pesan yang menunjukkan alamat RW asal, bocoran
+   statistik halaman login (`DB::table('anggotas')`) ditutup. Runbook
+   operasional: `DEPLOY.md` bagian 8. Prasyarat yang menutup jalannya
+   diselesaikan lebih dulu di hari yang sama: fallback `users.level` pensiun
+   (`ManajemenAkunTest`) dan sasaran notifikasi WA per tenant
+   (`NotifikasiTenantTest`).
 8. **G/H:** UI manajemen tenant, impersonation (§23, dengan audit), queue
    worker + antrian WA, monitoring.
 
