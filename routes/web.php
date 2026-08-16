@@ -208,6 +208,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/akun/{id}/toggle', [AkunController::class, 'toggleStatus'])->name('akun.toggleStatus');
         Route::delete('/akun/{id}', [AkunController::class, 'destroy'])->name('akun.destroy');
         Route::post('/akun/permissions', [AkunController::class, 'savePermissions'])->name('akun.savePermissions');
+        Route::post('/akun/generate-warga', [AkunController::class, 'generateWarga'])->name('akun.generateWarga');
     });
 
     // Admin — Log & Settings (superadmin + ketua_rw)

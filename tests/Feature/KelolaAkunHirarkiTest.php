@@ -84,6 +84,84 @@ class KelolaAkunHirarkiTest extends TestCase
         return $user;
     }
 
+    public function test_generate_akun_warga_untuk_kk_yang_belum_punya(): void
+    {
+        // KK ketiga di rw01 tanpa akun; wargaRw01 (kk_ws1) SUDAH punya akun.
+        $kk = new Keluarga([
+            'keluarga_id' => 'kk_ws3', 'nama' => 'Cecep Tanpa Akun',
+            'alamat' => 'Jl. Uji', 'rt' => '01', 'noHP' => '081234567890',
+        ]);
+        $kk->organization_id = Organization::where('slug', 'rw-01-cibunar')->value('id');
+        $kk->saveQuietly();
+
+        $respons = $this->actingAs($this->adminRw01)
+            ->post('https://cibunar-rw01.desa.jabnet.id/akun/generate-warga');
+        $respons->assertRedirect()->assertSessionHas('hasilAkunWarga');
+
+        // Akun lahir tertaut KK-nya, level warga, wa ikut dari noHP.
+        $akun = User::where('keluarga_id', 'kk_ws3')->firstOrFail();
+        $this->assertSame('warga', $akun->level);
+        $this->assertSame('6281234567890', $akun->wa);
+        // PIN tampil sekali di hasil.
+        $baris = collect(session('hasilAkunWarga'))->firstWhere('keluarga', 'Cecep Tanpa Akun');
+        $this->assertNotNull($baris['pin']);
+        $this->assertTrue(Hash::check($baris['pin'], $akun->pin));
+
+        // KK yang sudah punya akun TIDAK dibuatkan lagi (kk_ws1 dan kk_ws2
+        // sudah ber-akun dari setUp; kk_ws2 milik tenant lain pula).
+        $this->assertSame(1, User::where('keluarga_id', 'kk_ws1')->count());
+        $this->assertSame(1, User::where('keluarga_id', 'kk_ws2')->count());
+
+        // Diulang: tidak ada akun baru.
+        $this->actingAs($this->adminRw01)
+            ->post('https://cibunar-rw01.desa.jabnet.id/akun/generate-warga')->assertRedirect();
+        $this->assertSame(1, User::where('keluarga_id', 'kk_ws3')->count());
+    }
+
+    public function test_generate_akun_warga_menangani_nama_kembar(): void
+    {
+        foreach (['kk_km1', 'kk_km2'] as $id) {
+            $kk = new Keluarga([
+                'keluarga_id' => $id, 'nama' => 'Asep Kembar', 'alamat' => 'Jl. Uji', 'rt' => '01',
+            ]);
+            $kk->organization_id = Organization::where('slug', 'rw-01-cibunar')->value('id');
+            $kk->saveQuietly();
+        }
+
+        $this->actingAs($this->adminRw01)
+            ->post('https://cibunar-rw01.desa.jabnet.id/akun/generate-warga')->assertRedirect();
+
+        $this->assertSame(2, User::whereIn('keluarga_id', ['kk_km1', 'kk_km2'])->count());
+        $this->assertSame(2, User::whereIn('keluarga_id', ['kk_km1', 'kk_km2'])
+            ->distinct('username')->count('username'));
+    }
+
+    public function test_generate_akun_warga_hanya_di_host_rw(): void
+    {
+        $this->actingAs($this->adminPlatform)
+            ->post('https://desa.jabnet.id/akun/generate-warga')
+            ->assertRedirect()->assertSessionHas('error');
+    }
+
+    public function test_akun_warga_hasil_generate_bisa_login_di_portalnya(): void
+    {
+        $kk = new Keluarga([
+            'keluarga_id' => 'kk_login', 'nama' => 'Dudung Login', 'alamat' => 'Jl. Uji', 'rt' => '01',
+        ]);
+        $kk->organization_id = Organization::where('slug', 'rw-01-cibunar')->value('id');
+        $kk->saveQuietly();
+
+        $this->actingAs($this->adminRw01)
+            ->post('https://cibunar-rw01.desa.jabnet.id/akun/generate-warga');
+        $baris = collect(session('hasilAkunWarga'))->firstWhere('keluarga', 'Dudung Login');
+
+        $this->post('https://cibunar-rw01.desa.jabnet.id/logout');
+        $this->post('https://cibunar-rw01.desa.jabnet.id/login', [
+            'username' => $baris['username'], 'pin' => $baris['pin'],
+        ])->assertRedirect('/');
+        $this->assertAuthenticated();
+    }
+
     public function test_admin_rw_hanya_melihat_akun_tenantnya(): void
     {
         $this->actingAs($this->adminRw01)

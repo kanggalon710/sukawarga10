@@ -2,6 +2,21 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Tombol "Buatkan Akun Warga" (generate massal pasca-impor)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Impor RW 07 Parung sukses tapi warganya tidak punya akun login -
+impor membuat data KK, bukan akun; membuat 72 akun manual tidak masuk akal.
+**Perubahan:** `AkunController::generateWarga` + tombol di Manajemen Akun
+(host RW saja): buat akun untuk SEMUA KK tenant yang belum tertaut akun -
+username dari nama KK (tabrakan diberi angka), PIN acak sekali-tayang
+(tabel hasil + tombol cetak), level warga, `keluarga_id` tertaut (jangkar
+login), `wa` dari noHP KK. Idempoten; KK ber-akun dilewati; di host
+platform/desa ditolak dengan pesan. 4 tes di KelolaAkunHirarkiTest.
+**File:** app/Http/Controllers/AkunController.php, routes/web.php,
+resources/views/admin/akun.blade.php
+**Catatan:** 222 tes (708 assertion) hijau di SQLite dan MariaDB. UI memakai
+pola kartu+tabel yang sudah diverifikasi 360/768/1280 di halaman lain.
+
 ## 2026-08-16 - Impor data RW 07 Kp. Parung + tiga perbaikan importer anggota web
 **Agen:** claude | **Status:** selesai (kode); impor produksi menunggu pemilik
 **Kenapa:** Pemilik membawa spreadsheet PENDATAAN RW 07 Kp. Parung (Desa

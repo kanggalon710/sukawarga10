@@ -204,6 +204,61 @@ class AkunController extends Controller
         );
     }
 
+    /**
+     * Buatkan akun login untuk SEMUA KK tenant ini yang belum punya
+     * (users.keluarga_id kosong) - jalur massal pasca-impor data warga.
+     * PIN acak per akun, tampil SEKALI di halaman hasil; distribusinya
+     * urusan pengurus RT (noHP hasil impor sering kosong).
+     */
+    public function generateWarga()
+    {
+        $this->cakupanKelola();
+        if (app(TenantContext::class)->rw() === null) {
+            return redirect()->route('akun.index')
+                ->with('error', 'Pembuatan akun warga massal dijalankan dari portal RW masing-masing, bukan dari sini.');
+        }
+
+        // KK tenant (tersaring scope) yang belum tertaut akun mana pun.
+        $terpakai = User::whereNotNull('keluarga_id')->pluck('keluarga_id');
+        $tanpaAkun = \App\Models\Keluarga::whereNotIn('keluarga_id', $terpakai)
+            ->orderBy('nama')->get(['keluarga_id', 'nama', 'rt', 'noHP']);
+
+        if ($tanpaAkun->isEmpty()) {
+            return redirect()->route('akun.index')->with('success', 'Semua KK sudah punya akun.');
+        }
+
+        $hasil = [];
+        foreach ($tanpaAkun as $kk) {
+            $dasar = preg_replace('/[^a-z0-9]/', '', strtolower($kk->nama)) ?: 'warga';
+            $username = $dasar;
+            $urut = 1;
+            while (User::where('username', $username)->exists()) {
+                $username = $dasar . $urut++;
+            }
+
+            $pin = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            User::create([
+                'user_id' => 'USR-' . uniqid(),
+                'username' => $username,
+                'namaLengkap' => $kk->nama,
+                'pin' => Hash::make($pin),
+                'level' => 'warga',
+                'rt' => $kk->rt,
+                'wa' => normalizeWa($kk->noHP),
+                'keluarga_id' => $kk->keluarga_id,
+                'isDefault' => false,
+                'status' => 'aktif',
+            ]);
+            $hasil[] = ['keluarga' => $kk->nama, 'rt' => $kk->rt, 'username' => $username, 'pin' => $pin];
+        }
+
+        AuditLogService::log('generate_akun_warga', 'user', count($hasil) . ' akun warga dibuat massal oleh ' . auth()->user()->username);
+
+        return redirect()->route('akun.index')
+            ->with('hasilAkunWarga', $hasil)
+            ->with('success', count($hasil) . ' akun warga dibuat. Catat PIN-nya SEKARANG - hanya tampil sekali.');
+    }
+
     public function updatePin(Request $request, $id)
     {
         $cakupan = $this->cakupanKelola();

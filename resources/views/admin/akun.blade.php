@@ -56,12 +56,50 @@
             <i class="fas fa-shield-alt"></i> Hak Akses
         </button>
     </div>
-    <div class="toolbar-right">
+    <div class="toolbar-right" style="gap:6px;">
+        @if(namaRw() !== '')
+        <form method="POST" action="{{ route('akun.generateWarga') }}" style="display:inline;"
+              onsubmit="return confirm('Buatkan akun login untuk SEMUA KK yang belum punya? PIN tiap akun hanya ditampilkan sekali setelah ini.')">
+            @csrf
+            <button type="submit" class="btn btn-outline btn-sm">
+                <i class="fas fa-users-gear"></i> Buatkan Akun Warga
+            </button>
+        </form>
+        @endif
         <button class="btn btn-primary btn-sm" onclick="document.getElementById('addModal').style.display='flex'">
             <i class="fas fa-plus"></i> Tambah Akun
         </button>
     </div>
 </div>
+
+@if(session('hasilAkunWarga'))
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--hijau);" id="hasilAkunWarga">
+    <div class="card-header" style="flex-wrap:wrap; gap:8px;">
+        <div class="card-title"><i class="fas fa-key" style="color:var(--emas);"></i> Kredensial akun warga baru ({{ count(session('hasilAkunWarga')) }})</div>
+        <button class="btn btn-outline btn-sm" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+    </div>
+    <p style="margin:0 0 10px; font-size:13px; color:var(--merah); font-weight:700;">
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+        Catat/cetak SEKARANG - PIN hanya ditampilkan sekali dan tidak bisa dilihat lagi.
+        Bagikan lewat pengurus RT masing-masing.
+    </p>
+    <div class="data-table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Kepala Keluarga</th><th>RT</th><th>Username</th><th>PIN</th></tr></thead>
+            <tbody>
+            @foreach(session('hasilAkunWarga') as $b)
+                <tr>
+                    <td>{{ $b['keluarga'] }}</td>
+                    <td>{{ $b['rt'] }}</td>
+                    <td><code>{{ $b['username'] }}</code></td>
+                    <td><code>{{ $b['pin'] }}</code></td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
 
 {{-- ═══════════════════════════════════════ --}}
 {{-- TAB: PENGURUS --}}
