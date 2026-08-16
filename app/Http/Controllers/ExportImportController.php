@@ -20,7 +20,12 @@ class ExportImportController extends Controller
         $num = preg_replace('/^rt\s*/i', '', $raw);
         // Zero-pad to 2 digits
         $num = str_pad(ltrim($num, '0') ?: '0', 2, '0', STR_PAD_LEFT);
-        return 'RT ' . $num;
+
+        // Dua digit POLOS ('02'), tanpa awalan "RT ": itulah format kanonik
+        // keluargas.rt di form, seed, billing, dan pendaftaran. Awalan yang
+        // dulu ditulis importer membuat baris impor tak cocok dengan filter
+        // RT mana pun.
+        return $num;
     }
 
     // ==========================================
@@ -192,9 +197,11 @@ class ExportImportController extends Controller
                 'Akses Kredit', 'BPJS/JKN', 'PKH', 'BPNT/Sembako', 'BLT/Bantuan Tunai', 
                 'Rutilahu', 'KIS (JKN PBI)', 'KIP', 'Catatan Khusus', 'Ikut Sampah', 'Ikut Padaringan'
             ];
+            // Contoh baris mengikuti wilayah tenant (data, bukan merek).
+            $wilayah = wilayahTenant();
             $sampleRow = [
-                'F-001', '2026-02-22', 'Petugas A', 'Joko Sudiro', '3205012345678901', '3205019876543210', 
-                'Jl. Contoh No 1', '01', '10', 'Sukakarya/Tarogong Kidul', '08123456789', 'Milik Sendiri', 
+                'F-001', '2026-02-22', 'Petugas A', 'Joko Sudiro', '3205012345678901', '3205019876543210',
+                'Jl. Contoh No 1', '01', $wilayah['rw'] ?: '01', trim($wilayah['kelurahan'].'/'.$wilayah['kecamatan'], '/'), '08123456789', 'Milik Sendiri',
                 'Permanen', '60', '3', 'Keramik', 'Tembok', 'Genting', 'PDAM', 'Sumur', 
                 'Gas/LPG', 'Sendiri', 'Septic Tank', 'Diangkut Petugas', 'Rp 3.000.000', 'Wiraswasta', 'Ya', 'Tidak', 
                 'Tidak', 'Ya', 'Tidak', 'Tidak', 'Tidak', 
@@ -302,16 +309,21 @@ class ExportImportController extends Controller
                 if (!empty($noKK)) $keluarga->noKK = $noKK;
                 $keluarga->rt = $rt;
                 
-                if (isset($map['RW'])) $keluarga->rw = trim($row[$map['RW']] ?: '10');
+                // Kolom kosong diisi wilayah TENANT (dulu tetap "RW 10 Sukakarya").
+                $wilayah = wilayahTenant();
+                if (isset($map['RW'])) $keluarga->rw = trim($row[$map['RW']] ?: $wilayah['rw']);
                 if (isset($map['Kelurahan/Kecamatan'])) {
                     $lokasi = explode('/', trim($row[$map['Kelurahan/Kecamatan']]));
-                    $keluarga->kelurahan = trim($lokasi[0] ?? 'Sukakarya');
-                    if (count($lokasi) > 1) {
-                        $keluarga->kecamatan = trim($lokasi[1] ?? 'Tarogong Kidul');
-                    }
+                    $keluarga->kelurahan = trim($lokasi[0] ?? '') ?: $wilayah['kelurahan'];
+                    $keluarga->kecamatan = trim($lokasi[1] ?? '') ?: $wilayah['kecamatan'];
                 }
-                
-                if (isset($map['Alamat'])) $keluarga->alamat = trim($row[$map['Alamat']] ?: 'RW 10 Sukakarya');
+
+                if (isset($map['Alamat'])) $keluarga->alamat = trim($row[$map['Alamat']]);
+                // Kolom alamat NOT NULL: CSV tanpa kolom/isi Alamat memakai
+                // wilayah tenant, bukan gagal di tengah transaksi.
+                if (empty($keluarga->alamat)) {
+                    $keluarga->alamat = trim(namaRw().' '.$wilayah['kelurahan']) ?: '-';
+                }
                 if (isset($map['No. HP'])) $keluarga->noHP = trim($row[$map['No. HP']]);
                 if (isset($map['Pekerjaan'])) {
                     $keluarga->pekerjaan = trim($row[$map['Pekerjaan']]);

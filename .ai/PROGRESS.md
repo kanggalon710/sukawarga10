@@ -2,6 +2,36 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Import KK per tenant + penutupan lubang otorisasi Data Warga
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik minta fitur import KK di halaman RW - ternyata UI-nya
+SUDAH ada (modal Import di Data Warga) tapi (1) menulis wilayah hardcoded
+"RW 10 Sukakarya Tarogong Kidul" sebagai data untuk semua tenant, dan
+(2) seluruh area /warga (daftar, CRUD, import, EXPORT PII) hanya dijaga
+`auth` - akun level warga bisa membaca dan meng-export data seluruh tenant.
+**Perubahan:**
+- KEAMANAN: grup rute /warga kini `role:petugas_rt` (warga mengurus datanya
+  lewat /profil). 6 baris baru di provider OtorisasiTest.
+- Helper `wilayahTenant()`: rw dua digit dari organisasi tenant; kelurahan/
+  kecamatan dari setting Pengaturan per tenant, fallback diturunkan dari
+  nama desa "Nama (Kecamatan)". Dipakai default impor KK (kolom kosong),
+  contoh baris template CSV, dan `PendaftaranController::approve` -
+  menutup item TODO "alamat bawaan impor masih RW 10 Sukakarya".
+- Bug importer lama: `normalizeRT` menulis "RT 02" padahal kanonik
+  keluargas.rt adalah "02" polos (form/seed/billing/pendaftaran) - baris
+  impor tak pernah cocok dengan filter RT mana pun. Kini polos.
+- Bug laten: CSV tanpa kolom/isi Alamat membuat insert gagal (alamat NOT
+  NULL) di tengah transaksi - kini default wilayah tenant.
+**File:** routes/web.php, app/helpers.php,
+app/Http/Controllers/ExportImportController.php,
+app/Http/Controllers/PendaftaranController.php,
+tests/Feature/ImportTenantTest.php (baru, 4 tes), tests/Feature/OtorisasiTest.php
+**Catatan:** 190 tes (563 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Data lama produksi yang terlanjur ber-rt "RT xx" dari importer web lama
+(bila ada) perlu normalisasi terpisah. Lubang /warga juga ada di branch
+`main` (instalasi 1-desa lama) - cherry-pick bila instalasi itu masih
+dipakai akun warga.
+
 ## 2026-08-16 - Branch production + halaman Pembaruan Sistem (update satu klik)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** `main` dibekukan untuk instalasi 1-desa khusus lama; portal

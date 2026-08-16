@@ -73,6 +73,14 @@ class OtorisasiTest extends TestCase
             'setujui surat' => ['post', '/surat/{surat}/approve'],
             'tolak surat' => ['post', '/surat/{surat}/reject'],
             'ubah status aduan' => ['put', '/aduan/{aduan}/status'],
+            // Data Warga = PII seluruh tenant; dulu hanya dijaga auth sehingga
+            // akun warga bisa membaca, mengubah, dan meng-export semuanya.
+            'daftar warga' => ['get', '/warga'],
+            'ubah kk' => ['put', '/warga/{keluarga}'],
+            'hapus kk' => ['delete', '/warga/{keluarga}'],
+            'import kk' => ['post', '/warga/import/keluarga'],
+            'export kk' => ['get', '/warga/export/keluarga'],
+            'template kk' => ['get', '/warga/template/keluarga'],
             'tambah umkm' => ['post', '/umkm'],
             'hapus umkm' => ['delete', '/umkm/{umkm}'],
             'tambah kegiatan' => ['post', '/kegiatan'],
@@ -92,6 +100,9 @@ class OtorisasiTest extends TestCase
             'pelapor' => 'X', 'rt' => '01', 'isi' => 'Uji', 'status' => 'masuk',
         ]);
         $umkm = Umkm::create(['umkm_id' => 'UMKM-1', 'pemilik' => 'X', 'namaUsaha' => 'Warung']);
+        $keluarga = Keluarga::create([
+            'keluarga_id' => 'kk_oto1', 'nama' => 'KK Uji', 'alamat' => 'Jl. Uji', 'rt' => '01',
+        ]);
         $kegiatan = Kegiatan::create([
             'kegiatan_id' => 'KGT-1', 'judul' => 'Kerja Bakti', 'tanggal' => now()->toDateString(),
         ]);
@@ -101,6 +112,7 @@ class OtorisasiTest extends TestCase
             '{aduan}' => $aduan->id,
             '{umkm}' => $umkm->id,
             '{kegiatan}' => $kegiatan->id,
+            '{keluarga}' => $keluarga->id,
         ]);
 
         $this->actingAs($warga)->{$method}($uri, ['pemohon' => 'X', 'status' => 'selesai'])

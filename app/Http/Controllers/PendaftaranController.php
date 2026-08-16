@@ -44,11 +44,12 @@ class PendaftaranController extends Controller
                 'noKK'            => $p->no_kk,
                 'nik'             => $p->nik,
                 'nama'            => $p->nama_lengkap,
-                'alamat'          => 'RT ' . str_pad($p->rt, 2, '0', STR_PAD_LEFT) . ' RW 10, Sukakarya',
+                // Wilayah dari TENANT request (dulu tetap "RW 10 Sukakarya").
+                'alamat'          => trim('RT ' . str_pad($p->rt, 2, '0', STR_PAD_LEFT) . ' ' . namaRw() . ', ' . wilayahTenant()['kelurahan'], ' ,'),
                 'rt'              => str_pad($p->rt, 2, '0', STR_PAD_LEFT),
-                'rw'              => '10',
-                'kelurahan'       => 'Sukakarya',
-                'kecamatan'       => 'Tarogong Kidul',
+                'rw'              => wilayahTenant()['rw'],
+                'kelurahan'       => wilayahTenant()['kelurahan'],
+                'kecamatan'       => wilayahTenant()['kecamatan'],
                 'noHP'            => normalizeWa($p->no_wa), // satu format nomor di seluruh aplikasi
                 'jumlahAnggota'   => 1,
                 'status'          => 'aktif',

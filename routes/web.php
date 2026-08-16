@@ -41,7 +41,11 @@ Route::middleware('auth')->group(function () {
     // `fitur:<modul>` = penjaga rute feature flag per tenant (Phase F):
     // modul yang dimatikan lewat setting `fitur_<modul>` menjawab 404,
     // konsisten dengan userCan() yang menyembunyikan menunya.
-    Route::middleware('fitur:warga')->group(function () {
+    // `role:petugas_rt` = seluruh area Data Warga (daftar, CRUD, import,
+    // export) memuat PII seluruh tenant - dulu hanya dijaga auth sehingga
+    // akun warga bisa membaca dan meng-export semuanya. Warga mengurus
+    // datanya sendiri lewat /profil.
+    Route::middleware(['fitur:warga', 'role:petugas_rt'])->group(function () {
         Route::get('/warga', [KeluargaController::class, 'indexWeb'])->name('warga.index');
         Route::get('/warga/create', [KeluargaController::class, 'create'])->name('warga.create');
         Route::post('/warga', [KeluargaController::class, 'storeWeb'])->name('warga.store');

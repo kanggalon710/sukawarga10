@@ -128,6 +128,40 @@ if (!function_exists('namaDesa')) {
     }
 }
 
+if (!function_exists('wilayahTenant')) {
+    /**
+     * Wilayah administratif tenant untuk DATA (bukan merek): nomor RW dua
+     * digit, kelurahan/desa, dan kecamatan. Dipakai default impor KK dan
+     * persetujuan pendaftaran - dulu ditulis tetap "RW 10 Sukakarya".
+     *
+     * Sumber: setting `kelurahan`/`kecamatan` (form Pengaturan, per tenant)
+     * menang; bila kosong diturunkan dari nama organisasi
+     * ("Desa Cibunar (Tarogong Kidul)" → kelurahan "Desa Cibunar",
+     * kecamatan "Tarogong Kidul").
+     */
+    function wilayahTenant(): array
+    {
+        $kelurahan = '';
+        $kecamatan = '';
+        try {
+            $kelurahan = trim((string) \App\Models\AppSetting::nilai('kelurahan'));
+            $kecamatan = trim((string) \App\Models\AppSetting::nilai('kecamatan'));
+        } catch (\Exception $e) {}
+
+        if ($kelurahan === '' || $kecamatan === '') {
+            preg_match('/^(.*?)(?:\s*\((.*)\))?$/', namaDesa(), $bagian);
+            $kelurahan = $kelurahan !== '' ? $kelurahan : trim($bagian[1] ?? '');
+            $kecamatan = $kecamatan !== '' ? $kecamatan : trim($bagian[2] ?? '');
+        }
+
+        return [
+            'rw' => trim(preg_replace('/\D+/', '', namaRw())),
+            'kelurahan' => $kelurahan,
+            'kecamatan' => $kecamatan,
+        ];
+    }
+}
+
 if (!function_exists('getDefaultPermissions')) {
     function getDefaultPermissions(): array
     {
