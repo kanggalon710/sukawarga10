@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Buku Kas')
 @section('page-title', 'Buku Kas')
-@section('page-subtitle', 'Buku besar keuangan RW 10')
+@section('page-subtitle', 'Buku besar keuangan')
 
 @section('content')
 @php $saldo = $totalMasuk - $totalKeluar; $canVoid = auth()->user()->canVoid(); @endphp

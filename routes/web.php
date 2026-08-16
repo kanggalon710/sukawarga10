@@ -212,6 +212,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:superadmin')->group(function () {
         Route::get('/tenant', [App\Http\Controllers\TenantController::class, 'index'])->name('tenant.index');
         Route::post('/tenant', [App\Http\Controllers\TenantController::class, 'store'])->name('tenant.store');
+        Route::put('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'update'])->name('tenant.update');
+        Route::delete('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'destroyDesa'])->name('tenant.destroy');
+        Route::post('/tenant/rw/{id}/toggle', [App\Http\Controllers\TenantController::class, 'toggleRw'])->name('tenant.rw.toggle');
+        Route::delete('/tenant/rw/{id}', [App\Http\Controllers\TenantController::class, 'destroyRw'])->name('tenant.rw.destroy');
     });
 
     // Global Search API (parameterized to prevent SQL injection)

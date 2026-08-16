@@ -314,7 +314,7 @@
 
             <div class="modal-header">
                 <h2>Selamat Datang 👋</h2>
-                <p>Masuk ke portal RW 10 Sukakarya</p>
+                <p>Masuk ke portal {{ trim(namaRw().' '.namaDesa()) ?: namaAplikasi() }}</p>
             </div>
 
             <form action="{{ route('login.post') }}" method="POST">

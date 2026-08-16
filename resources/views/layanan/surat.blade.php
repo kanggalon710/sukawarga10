@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Surat Menyurat')
 @section('page-title', 'Surat Menyurat')
-@section('page-subtitle', $isWarga ? 'Ajukan surat administrasi warga' : 'Administrasi surat keluar RW 10')
+@section('page-subtitle', $isWarga ? 'Ajukan surat administrasi warga' : 'Administrasi surat keluar')
 
 @section('content')
 

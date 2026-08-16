@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'UMKM Warga')
 @section('page-title', 'UMKM Warga')
-@section('page-subtitle', 'Direktori usaha milik warga RW 10')
+@section('page-subtitle', 'Direktori usaha milik warga')
 
 @section('content')
 <!-- Stats -->

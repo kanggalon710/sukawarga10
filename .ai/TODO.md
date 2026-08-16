@@ -135,6 +135,11 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       untuk buka desa/RW dari browser, khusus `adalahAdminPlatform()`;
       logika satu sumber di `App\Services\PembukaTenant` (dipakai juga CLI
       `tenant:buat`). 6 tes di `ManajemenTenantTest`.
+- [x] **G tahap 2 selesai 2026-08-16:** CRUD tenant (ubah nama desa,
+      aktif/nonaktifkan RW, hapus RW kosong / desa tanpa RW) + safeguard
+      duplikat nama+kecamatan; identitas bawaan netral "Portal Desa" +
+      label tenant dinamis (`tenantSaatIni()`); sebutan MPWA → WA.
+      9 tes baru; aturan di DECISIONS.
 - [ ] **G lanjutan:** integrasi API cPanel (buat subdomain + AutoSSL otomatis
       dari halaman Manajemen Desa) - HANYA perlu bila wildcard
       `*.desa.jabnet.id` ber-AutoSSL ternyata tidak didukung hosting; tunggu

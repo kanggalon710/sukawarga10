@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Pengeluaran Kas')
 @section('page-title', 'Pengeluaran Kas')
-@section('page-subtitle', 'Catatan pengeluaran kas RW 10')
+@section('page-subtitle', 'Catatan pengeluaran kas')
 
 @section('content')
 @php

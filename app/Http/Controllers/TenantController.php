@@ -16,9 +16,14 @@ use Illuminate\Http\Request;
  */
 class TenantController extends Controller
 {
-    public function index()
+    private function pastikanAdminPlatform(): void
     {
         abort_unless(auth()->user()->adalahAdminPlatform(), 403);
+    }
+
+    public function index()
+    {
+        $this->pastikanAdminPlatform();
 
         $desas = Organization::where('type', Organization::TYPE_DESA)
             ->with([
@@ -41,7 +46,7 @@ class TenantController extends Controller
 
     public function store(Request $request, PembukaTenant $pembuka)
     {
-        abort_unless(auth()->user()->adalahAdminPlatform(), 403);
+        $this->pastikanAdminPlatform();
 
         $validated = $request->validate([
             'nama' => 'required|string|max:100',
@@ -70,5 +75,100 @@ class TenantController extends Controller
             'desa' => $hasil['desa']->name,
             'baris' => $hasil['baris'],
         ]);
+    }
+
+    /** Ubah nama tampilan desa. Label/slug TIDAK bisa diubah: domain terikat padanya. */
+    public function update(Request $request, int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $desa = Organization::where('type', Organization::TYPE_DESA)->findOrFail($id);
+
+        $validated = $request->validate([
+            'nama' => 'required|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
+        ]);
+
+        $kecamatan = trim($validated['kecamatan'] ?? '');
+        $namaLengkap = $kecamatan !== ''
+            ? trim($validated['nama'])." ({$kecamatan})"
+            : trim($validated['nama']);
+
+        // Penjaga duplikat yang sama dengan pembuatan: ganti nama tidak boleh
+        // menabrak desa lain.
+        $kembar = Organization::where('type', Organization::TYPE_DESA)
+            ->where('id', '!=', $desa->id)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($namaLengkap)])
+            ->first();
+        if ($kembar !== null) {
+            return back()->withErrors([
+                'nama' => "{$namaLengkap} sudah terdaftar dengan label '{$kembar->slug}'.",
+            ])->withInput();
+        }
+
+        $desa->update(['name' => $namaLengkap]);
+        AuditLogService::log('ubah_tenant', 'tenant', "Ubah nama desa {$desa->slug} menjadi {$namaLengkap}");
+
+        return redirect()->route('tenant.index')->with('success', "Nama desa diperbarui: {$namaLengkap}.");
+    }
+
+    /** Aktif/nonaktifkan RW: resolver menolak seluruh domain organisasi nonaktif. */
+    public function toggleRw(int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $rw = Organization::where('type', Organization::TYPE_RW)->findOrFail($id);
+
+        $baru = ($rw->status ?? 'aktif') === 'aktif' ? 'nonaktif' : 'aktif';
+        $rw->update(['status' => $baru]);
+        AuditLogService::log('ubah_tenant', 'tenant', "Status {$rw->slug} -> {$baru}");
+
+        return redirect()->route('tenant.index')->with('success', "{$rw->name} kini {$baru}.");
+    }
+
+    /** Model data tenant yang menghalangi penghapusan RW bila masih berisi. */
+    private const MODEL_PENGHALANG_HAPUS = [
+        \App\Models\Keluarga::class, \App\Models\Transaksi::class,
+        \App\Models\Surat::class, \App\Models\Aduan::class,
+        \App\Models\Umkm::class, \App\Models\Kegiatan::class,
+        \App\Models\Pengeluaran::class, \App\Models\Sumbangan::class,
+        \App\Models\SetorSampah::class, \App\Models\Pendaftaran::class,
+    ];
+
+    public function destroyRw(int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $rw = Organization::where('type', Organization::TYPE_RW)->findOrFail($id);
+
+        foreach (self::MODEL_PENGHALANG_HAPUS as $kelas) {
+            if ($kelas::withoutGlobalScope('organisasi')->where('organization_id', $rw->id)->exists()) {
+                return redirect()->route('tenant.index')->with('error',
+                    "{$rw->name} masih berisi data warga/keuangan - nonaktifkan saja, jangan dihapus.");
+            }
+        }
+
+        // Akun admin dibiarkan hidup (tanpa assignment = warga biasa);
+        // menghapus akun orang bukan urusan tombol ini.
+        $rw->domains()->delete();
+        UserRoleAssignment::where('organization_id', $rw->id)->delete();
+        $rw->delete();
+        AuditLogService::log('hapus_tenant', 'tenant', "Hapus {$rw->slug} (kosong) beserta domain & assignment-nya");
+
+        return redirect()->route('tenant.index')->with('success', "{$rw->name} dihapus.");
+    }
+
+    public function destroyDesa(int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $desa = Organization::where('type', Organization::TYPE_DESA)->findOrFail($id);
+
+        if ($desa->children()->exists()) {
+            return redirect()->route('tenant.index')->with('error',
+                "{$desa->name} masih punya RW - hapus/pindahkan RW-nya dulu.");
+        }
+
+        $desa->domains()->delete();
+        $desa->delete();
+        AuditLogService::log('hapus_tenant', 'tenant', "Hapus desa {$desa->slug} (tanpa RW)");
+
+        return redirect()->route('tenant.index')->with('success', "{$desa->name} dihapus.");
     }
 }

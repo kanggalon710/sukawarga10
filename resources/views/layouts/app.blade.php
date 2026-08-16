@@ -47,9 +47,10 @@
                 </div>
             </div>
 
+            {{-- Label tenant dinamis: tiap RW/desa melihat namanya sendiri. --}}
             <div class="sidebar-rw-badge">
-                <div class="rw-label">KELURAHAN SUKAKARYA</div>
-                <div class="rw-name">RW 10 &bull; Tarogong Kidul</div>
+                <div class="rw-label">{{ strtoupper(namaDesa() ?: namaAplikasi()) }}</div>
+                <div class="rw-name">{{ namaRw() ?: lokasiSingkat() }}</div>
             </div>
 
             <div class="sidebar-nav">
@@ -137,7 +138,7 @@
                 @endif
                 @if(userCan('mpwa'))
                 <a href="{{ route('mpwa.index') }}" class="nav-item {{ request()->routeIs('mpwa.*') ? 'active' : '' }}">
-                    <i class="fab fa-whatsapp nav-icon"></i> MPWA Broadcast
+                    <i class="fab fa-whatsapp nav-icon"></i> Broadcast WA
                 </a>
                 @endif
                 @if(userCan('kegiatan'))
@@ -201,7 +202,7 @@
                     </button>
                     <div>
                         <span class="page-title">@yield('page-title', 'Dashboard')</span>
-                        <span class="page-subtitle">@yield('page-subtitle', 'Ringkasan data RW 10')</span>
+                        <span class="page-subtitle">@yield('page-subtitle', trim('Ringkasan data '.namaRw()) )</span>
                     </div>
                 </div>
                 <div class="header-right">

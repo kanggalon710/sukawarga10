@@ -3,6 +3,23 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Identitas bawaan netral + aturan CRUD tenant
+**Konteks:** Multi-desa hidup; bawaan kode masih "Kampung Paru", dan
+Manajemen Desa butuh aturan ubah/hapus.
+**Pilihan:** (1) Bawaan identitas jadi "Portal Desa" - identitas bermerek
+milik baris app_settings tenant, bukan kode; konsekuensi untuk instalasi
+paru lama dicatat di PROGRESS. (2) Label/slug desa TIDAK bisa diubah:
+hostname seluruh RW-nya dibangun dari label, mengubahnya mematikan semua
+alamat yang sudah dibagikan warga - ganti nama tampilan boleh, ganti label
+berarti buka desa baru + migrasi. (3) Hapus RW hanya bila kosong dari 10
+model data tenant; kalau berisi, jalannya nonaktifkan (resolver menolak
+domainnya) - data uang warga tidak boleh lenyap lewat satu tombol. Akun
+admin RW yang dihapus dibiarkan hidup tanpa assignment (efektif warga):
+menghapus akun orang bukan urusan tombol hapus organisasi. (4) Duplikat
+desa = nama+kecamatan sama (case-insensitive) di label mana pun; label
+terpakai dengan nama berbeda juga ditolak supaya salah ketik tidak
+menempelkan RW ke desa lain.
+
 ## 2026-08-16 - Phase D: subdomain flat per RW + login tolak-dengan-alamat
 **Konteks:** Membuka multi-desa (dua "Desa Cibunar" berbeda kecamatan) dengan
 syarat warga hanya login di subdomain RW-nya; alamat harus ramah orang tua.

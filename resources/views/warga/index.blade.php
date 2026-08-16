@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Data Warga')
 @section('page-title', 'Data Warga')
-@section('page-subtitle', 'Basis data KK warga RW 10')
+@section('page-subtitle', 'Basis data kartu keluarga warga')
 
 @section('content')
 <!-- Filter Bar -->

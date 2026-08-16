@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Dashboard')
 @section('page-title', 'Dashboard')
-@section('page-subtitle', 'RW 10 Sukakarya · ' . \Carbon\Carbon::now()->isoFormat('dddd, D MMMM Y'))
+@section('page-subtitle', implode(' · ', array_filter([trim(namaRw().' '.namaDesa()), \Carbon\Carbon::now()->isoFormat('dddd, D MMMM Y')])))
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/bi-report.css') }}">
@@ -49,7 +49,7 @@
 <div class="bi-page">
 
     {{-- ═══ Angka pokok. Tanpa kartu & ikon dekoratif: angka yang bicara. ═══ --}}
-    <section class="bi-stats" aria-label="Angka pokok RW 10">
+    <section class="bi-stats" aria-label="Angka pokok">
         <div class="bi-stat-cell">
             <div class="bi-stat-cell__val">{{ number_format($totalKK, 0, ',', '.') }}<small>KK</small></div>
             <div class="bi-stat-cell__lbl">Kepala Keluarga</div>

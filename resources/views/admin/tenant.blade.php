@@ -16,10 +16,25 @@
     border-radius: var(--radius, 8px); background: var(--surface, #fff);
 }
 .tenant-form .btn { min-height: 44px; }
+.tenant-aksi { display: flex; flex-wrap: wrap; gap: 8px; }
+.tenant-aksi .btn, .tenant-edit .btn { min-height: 44px; }
+.tenant-edit { padding: 12px 16px; border-top: 1px solid var(--abu2, #e3e6e2); }
+.tenant-edit summary { cursor: pointer; font-size: 13px; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 6px; }
 </style>
 @endpush
 
 @section('content')
+
+@if(session('success'))
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--hijau); padding:12px 16px;" role="status">
+    <i class="fas fa-check-circle" style="color:var(--hijau);" aria-hidden="true"></i> {{ session('success') }}
+</div>
+@endif
+@if(session('error'))
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--merah); padding:12px 16px;" role="alert">
+    <i class="fas fa-triangle-exclamation" style="color:var(--merah);" aria-hidden="true"></i> {{ session('error') }}
+</div>
+@endif
 
 @if(session('hasilTenant'))
 <div class="card" style="margin-bottom:16px; border-left:4px solid var(--hijau);">
@@ -104,7 +119,7 @@
     </div>
     <div class="data-table-wrapper">
         <table class="data-table">
-            <thead><tr><th>RW</th><th>Alamat portal</th><th>Admin</th><th>Status</th></tr></thead>
+            <thead><tr><th>RW</th><th>Alamat portal</th><th>Admin</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody>
             @foreach($desa->children as $rw)
                 <tr>
@@ -118,11 +133,58 @@
                     </td>
                     <td>{{ ($adminPerOrg[$rw->id] ?? collect())->pluck('username')->implode(', ') ?: '-' }}</td>
                     <td>{{ $rw->status ?? 'aktif' }}</td>
+                    <td>
+                        <div class="tenant-aksi">
+                            <form method="POST" action="{{ route('tenant.rw.toggle', $rw->id) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-outline btn-sm">
+                                    {{ ($rw->status ?? 'aktif') === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('tenant.rw.destroy', $rw->id) }}"
+                                  onsubmit="return confirm('Hapus {{ $rw->name }} {{ $desa->name }}? Hanya bisa bila belum berisi data.')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:var(--merah);">Hapus</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     </div>
+    <details class="tenant-edit">
+        <summary><i class="fas fa-pen" aria-hidden="true"></i> Ubah nama desa @if($desa->children->isEmpty()) / hapus desa @endif</summary>
+        @php
+            // Nama tersimpan berformat "Nama (Kecamatan)" - pecah untuk form.
+            preg_match('/^(.*?)(?:\s*\((.*)\))?$/', $desa->name, $bagian);
+        @endphp
+        <form method="POST" action="{{ route('tenant.update', $desa->id) }}" class="tenant-form" style="margin-top:10px;">
+            @csrf @method('PUT')
+            <div style="margin-bottom:12px;">
+                <label class="sak-label" for="nama-{{ $desa->id }}">Nama desa *</label>
+                <input type="text" id="nama-{{ $desa->id }}" name="nama" required maxlength="100"
+                       class="sak-input" value="{{ old('nama', $bagian[1] ?? $desa->name) }}">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label class="sak-label" for="kecamatan-{{ $desa->id }}">Kecamatan</label>
+                <input type="text" id="kecamatan-{{ $desa->id }}" name="kecamatan" maxlength="100"
+                       class="sak-input" value="{{ old('kecamatan', $bagian[2] ?? '') }}">
+            </div>
+            <div class="tenant-aksi">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save" aria-hidden="true"></i> Simpan nama</button>
+            </div>
+        </form>
+        @if($desa->children->isEmpty())
+        <form method="POST" action="{{ route('tenant.destroy', $desa->id) }}" style="margin-top:10px;"
+              onsubmit="return confirm('Hapus {{ $desa->name }}?')">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--merah); min-height:44px;">
+                <i class="fas fa-trash" aria-hidden="true"></i> Hapus desa (tanpa RW)
+            </button>
+        </form>
+        @endif
+    </details>
 </div>
 @empty
 <div class="card" style="text-align:center; padding:40px 20px;">Belum ada desa terdaftar.</div>

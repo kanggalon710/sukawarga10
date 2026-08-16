@@ -49,7 +49,7 @@
 
 @php
     $rw = $settings['nama_rw'] ?? '10';
-    $kel = $settings['kelurahan'] ?? 'Kelurahan Sukakarya';
+    $kel = $settings['kelurahan'] ?? (namaDesa() ?: 'Kelurahan/Desa');
     $kec = $settings['kecamatan'] ?? 'Warudoyong';
     $kab = $settings['kabupaten'] ?? 'Kota Sukabumi';
     $ketua = $settings['ketua_rw'] ?? '___________________';

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'MPWA Broadcast')
-@section('page-title', 'MPWA Broadcast')
+@section('title', 'Broadcast WA')
+@section('page-title', 'Broadcast WA')
 @section('page-subtitle', 'Kirim pesan WhatsApp ke warga')
 
 @section('content')

@@ -47,9 +47,9 @@
     <div class="card-header"><div class="card-title"><i class="fas fa-map-marker-alt" style="color:var(--biru);" aria-hidden="true"></i> Informasi RW</div></div>
     <div class="card-sub">Data administrasi RW, dipakai untuk kop surat</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
-        <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama RW</label><input type="text" name="nama_rw" value="{{ $settings['nama_rw'] ?? 'RW 10' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
-        <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kelurahan</label><input type="text" name="kelurahan" value="{{ $settings['kelurahan'] ?? 'Sukakarya' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
-        <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kecamatan</label><input type="text" name="kecamatan" value="{{ $settings['kecamatan'] ?? 'Tarogong Kidul' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
+        <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama RW</label><input type="text" name="nama_rw" value="{{ $settings['nama_rw'] ?? namaRw() }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
+        <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kelurahan</label><input type="text" name="kelurahan" value="{{ $settings['kelurahan'] ?? namaDesa() }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
+        <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kecamatan</label><input type="text" name="kecamatan" value="{{ $settings['kecamatan'] ?? '' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
         <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kabupaten</label><input type="text" name="kabupaten" value="{{ $settings['kabupaten'] ?? 'Garut' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
         <div style="grid-column:span 2;"><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Ketua RW</label><input type="text" name="ketua_rw" value="{{ $settings['ketua_rw'] ?? '' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;" placeholder="Nama ketua RW (untuk header surat)"></div>
     </div>
@@ -57,7 +57,7 @@
 
 <!-- Tab WhatsApp API -->
 <div class="card" id="panelWa" style="display:none;">
-    <div class="card-header"><div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp API · MPWA</div></div>
+    <div class="card-header"><div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp API</div></div>
     <div class="card-sub">Konfigurasi koneksi ke gateway <strong>mpwa.jabnet.id</strong> · isi API Key dan nomor pengirim dari akun MPWA Anda.</div>
     <div style="display:grid; gap:16px; margin-top:16px;">
 
@@ -68,7 +68,7 @@
             </label>
             <input type="text" id="mpwaApiKeyInput" name="mpwa_api_key"
                    value="{{ $settings['mpwa_api_key'] ?? '' }}"
-                   placeholder="Masukkan API Key MPWA Anda"
+                   placeholder="Masukkan API Key WhatsApp Anda"
                    style="width:100%; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; font-family:monospace; background:var(--abu);">
             <span style="font-size:11px; color:var(--text3); margin-top:4px; display:block;">
                 Dapatkan API Key dari menu <strong>Setting</strong> di dashboard <a href="https://mpwa.jabnet.id" target="_blank" style="color:var(--hijau);">mpwa.jabnet.id</a>.
@@ -85,7 +85,7 @@
                    placeholder="628xxxxxxxxxx"
                    style="width:100%; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;">
             <span style="font-size:11px; color:var(--text3); margin-top:4px; display:block;">
-                Nomor WhatsApp yang terdaftar sebagai <em>device</em> di akun MPWA. Format: 628xxxxx (tanpa + atau spasi).
+                Nomor WhatsApp yang terdaftar sebagai <em>device</em> di akun gateway WhatsApp. Format: 628xxxxx (tanpa + atau spasi).
             </span>
         </div>
 
@@ -213,7 +213,7 @@ async function doMpwaTest() {
     const resultEl = document.getElementById('pgTestResult');
     const btn = document.getElementById('mpwaTestBtn');
 
-    if (!apiKey)  return alert('Isi API Key MPWA terlebih dahulu.');
+    if (!apiKey)  return alert('Isi API Key WhatsApp terlebih dahulu.');
     if (!sender)  return alert('Isi Nomor Pengirim (Sender) terlebih dahulu.');
     if (!testNo)  return alert('Masukkan nomor WA tujuan test.');
 

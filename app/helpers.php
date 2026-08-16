@@ -23,15 +23,14 @@ if (!function_exists('identitasAplikasi')) {
      */
     function identitasAplikasi(): array
     {
+        // Bawaan NETRAL sejak multi-desa: tiap tenant menetapkan identitasnya
+        // sendiri lewat Pengaturan ("Kampung Paru" milik RW 10 kini baris
+        // app_settings, bukan bawaan kode).
         $bawaan = [
-            'nama_aplikasi' => 'Kampung Paru',
-            'tagline_aplikasi' => "Portal warga Kampung Paru.\nData keluarga, iuran, dan surat dalam satu tempat.",
+            'nama_aplikasi' => 'Portal Desa',
+            'tagline_aplikasi' => "Portal warga digital.\nData keluarga, iuran, dan surat dalam satu tempat.",
             'lokasi_singkat' => 'Garut, Jawa Barat',
-            // Rencana pindah ke desa.jabnet.id. Bawaannya tetap paru.jabnet.id
-            // karena itu yang sudah hidup; desa.jabnet.id belum resolve, dan
-            // alamat mati di pesan WhatsApp lebih buruk daripada alamat lama.
-            // Saat DNS siap, ganti lewat Pengaturan tanpa menyentuh kode.
-            'alamat_portal' => 'paru.jabnet.id',
+            'alamat_portal' => 'desa.jabnet.id',
         ];
 
         try {
@@ -86,6 +85,46 @@ if (!function_exists('alamatPortal')) {
     function alamatPortal(): string
     {
         return identitasAplikasi()['alamat_portal'];
+    }
+}
+
+if (!function_exists('tenantSaatIni')) {
+    /**
+     * Nama organisasi tenant request untuk label UI:
+     * ['rw' => 'RW 01', 'desa' => 'Desa Cibunar (Tarogong Kidul)'].
+     * Null bila context belum ada (konsol) - pemanggil pakai fallback netral.
+     * Rantai leluhur di-cache pada instance organisasi, jadi pemanggilan
+     * berulang dalam satu request tidak menambah query.
+     */
+    function tenantSaatIni(): array
+    {
+        try {
+            $context = app(\App\Services\TenantContext::class);
+            if (!$context->sudahDitetapkan()) return ['rw' => null, 'desa' => null];
+
+            return $context->ingat('label.tenant', fn () => [
+                'rw' => $context->rw()?->name,
+                'desa' => $context->desa()?->name,
+            ]);
+        } catch (\Exception $e) {
+            return ['rw' => null, 'desa' => null];
+        }
+    }
+}
+
+if (!function_exists('namaRw')) {
+    /** Nama RW tenant ('RW 01') atau string kosong di luar request tenant. */
+    function namaRw(): string
+    {
+        return tenantSaatIni()['rw'] ?? '';
+    }
+}
+
+if (!function_exists('namaDesa')) {
+    /** Nama desa tenant ('Desa Cibunar (Tarogong Kidul)') atau string kosong. */
+    function namaDesa(): string
+    {
+        return tenantSaatIni()['desa'] ?? '';
     }
 }
 
@@ -181,7 +220,7 @@ if (!function_exists('getAllMenuItems')) {
             ['key' => 'sumbangan',   'label' => 'Sumbangan',       'icon' => 'fa-gift',           'section' => 'KEUANGAN'],
             ['key' => 'setor',       'label' => 'Setor Sampah RT', 'icon' => 'fa-recycle',        'section' => 'ADMINISTRASI'],
             ['key' => 'aduan',       'label' => 'Aduan Warga',     'icon' => 'fa-headset',        'section' => 'ADMINISTRASI'],
-            ['key' => 'mpwa',        'label' => 'MPWA Broadcast',  'icon' => 'fab fa-whatsapp',   'section' => 'ADMINISTRASI'],
+            ['key' => 'mpwa',        'label' => 'Broadcast WA',    'icon' => 'fab fa-whatsapp',   'section' => 'ADMINISTRASI'],
             ['key' => 'kegiatan',    'label' => 'Kegiatan RW',     'icon' => 'fa-calendar-alt',   'section' => 'ADMINISTRASI'],
             ['key' => 'laporan',     'label' => 'Laporan',         'icon' => 'fa-chart-bar',      'section' => 'ADMIN'],
             ['key' => 'akun',        'label' => 'Manajemen Akun',  'icon' => 'fa-user-shield',    'section' => 'ADMIN'],

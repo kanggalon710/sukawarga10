@@ -112,7 +112,7 @@
 @if($tab === 'ringkasan')
 <div class="laporan-banner">
     <h3>Laporan Keuangan {{ $tahun }}</h3>
-    <p>Total pemasukan vs pengeluaran RW 10</p>
+    <p>Total pemasukan vs pengeluaran</p>
     <div class="banner-amount">Rp {{ number_format($totalMasuk - $totalKeluar, 0, ',', '.') }}</div>
     <div class="banner-sub">Saldo bersih (Masuk: {{ number_format($totalMasuk, 0, ',', '.') }} · Keluar: {{ number_format($totalKeluar, 0, ',', '.') }})</div>
 </div>
@@ -186,7 +186,7 @@
 <section class="bi-hero">
     <div class="bi-hero__inner">
         <div class="bi-hero__eyebrow t-label">Profil Demografi</div>
-        <h1 class="bi-hero__title t-display"><i class="fas fa-chart-pie" aria-hidden="true"></i> RW 10 Sukakarya</h1>
+        <h1 class="bi-hero__title t-display"><i class="fas fa-chart-pie" aria-hidden="true"></i> {{ trim(namaRw().' '.namaDesa()) ?: namaAplikasi() }}</h1>
         <p class="bi-hero__desc t-sm">Data kependudukan, kondisi sosial-ekonomi, dan kesejahteraan masyarakat · dasar perencanaan program warga.</p>
         <div class="bi-hero__stats">
             <div class="bi-stat">
@@ -264,7 +264,7 @@
             {!! biKpi($ert['kkTanpaPekerja'], 'KK Tanpa Pekerja', 'prioritas bantuan & pemberdayaan', 'red', 'fa-user-slash', $demografi['totalKK'] > 0 ? round($ert['kkTanpaPekerja'] / $demografi['totalKK'] * 100) : 0) !!}
             {!! biKpi($ert['bawahGaris'], 'KK di Bawah Garis', 'per kapita < Rp ' . number_format($ert['garis'], 0, ',', '.') . '/bulan', 'red', 'fa-arrow-trend-down', $demografi['totalKK'] > 0 ? round($ert['bawahGaris'] / $demografi['totalKK'] * 100) : 0) !!}
             {!! biKpi($ert['mencariKerja'], 'Mencari Kerja', 'calon program pelatihan/lapangan kerja', 'amber', 'fa-magnifying-glass') !!}
-            {!! biKpi($ert['pekerjaTanpaPenghasilan'], 'Pekerja Belum Terdata Gajinya', 'target pendataan lanjutan via MPWA', 'blue', 'fa-clipboard-question') !!}
+            {!! biKpi($ert['pekerjaTanpaPenghasilan'], 'Pekerja Belum Terdata Gajinya', 'target pendataan lanjutan via WA', 'blue', 'fa-clipboard-question') !!}
         </div>
 
         <h4 class="t-sub" style="margin:4px 0 3px;"><i class="fas fa-users-gear bi-ico" aria-hidden="true"></i> Status Kerja Seluruh Jiwa</h4>

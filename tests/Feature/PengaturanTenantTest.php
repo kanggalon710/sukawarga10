@@ -61,9 +61,11 @@ class PengaturanTenantTest extends TestCase
         // Tenant asing memakai identitasnya sendiri...
         $this->get('https://rw99.desa.test/login')
             ->assertOk()->assertSee('Kampung Sebelah', false);
-        // ...dan tenant utama TIDAK ikut berubah (§37: isolasi setting).
+        // ...dan tenant utama TIDAK ikut berubah (§37: isolasi setting) -
+        // tanpa baris setting sendiri, ia memakai bawaan netral (taglinenya
+        // jadi penanda karena "Portal Desa" juga ada di alt logo).
         $this->get('https://paru.jabnet.id/login')
-            ->assertOk()->assertSee('Kampung Paru', false)->assertDontSee('Kampung Sebelah');
+            ->assertOk()->assertSee('Portal warga digital', false)->assertDontSee('Kampung Sebelah');
     }
 
     public function test_default_platform_diwarisi_dan_ditimpa_baris_tenant(): void

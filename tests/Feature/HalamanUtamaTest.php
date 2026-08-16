@@ -116,7 +116,11 @@ class HalamanUtamaTest extends TestCase
 
     public function test_halaman_login_bisa_dibuka_tanpa_akun(): void
     {
-        $this->get('/login')->assertOk()->assertSee('Kampung Paru', false);
+        // Identitas bawaan netral "Portal Desa"; tenant menggantinya lewat
+        // Pengaturan (RW 10 produksi menyimpan "Kampung Paru" di app_settings).
+        $this->get('/login')->assertOk()
+            ->assertSee('Portal Desa', false)
+            ->assertDontSee('Kampung Paru', false);
     }
 
     /**
@@ -134,7 +138,7 @@ class HalamanUtamaTest extends TestCase
             ->assertSee('Kampung Uji', false)
             ->assertSee('Baris satu.<br />', false)
             ->assertSee('Tasikmalaya', false)
-            ->assertDontSee('Kampung Paru', false);
+            ->assertDontSee('Portal warga digital', false);
 
         $this->actingAs($this->admin)->get('/')->assertOk()->assertSee('Kampung Uji', false);
     }
@@ -153,7 +157,8 @@ class HalamanUtamaTest extends TestCase
      *
      * Rincian plafon: 16 query dashboard + 2 resolver tenant (Phase B2:
      * domains + organizations) + 2 level efektif (Phase E1: assignment; peta
-     * induk hanya bila user punya assignment). Kalau menaikkan plafon ini,
+     * induk hanya bila user punya assignment) + 1 label tenant sidebar
+     * (leluhur desa, di-memo per request). Kalau menaikkan plafon ini,
      * tulis komponen barunya - dan ingat penjaga strukturalnya tes di bawah.
      */
     public function test_dashboard_tidak_menjalankan_query_di_dalam_loop(): void
@@ -164,7 +169,7 @@ class HalamanUtamaTest extends TestCase
         DB::disableQueryLog();
 
         $this->assertLessThanOrEqual(
-            21,
+            22,
             $jumlahQuery,
             "Dashboard menjalankan {$jumlahQuery} query — indikasi query di dalam loop muncul lagi."
         );

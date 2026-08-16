@@ -120,6 +120,118 @@ class ManajemenTenantTest extends TestCase
             ->where('name', 'like', '%Cibunar%')->count());
     }
 
+    private function buatCibunar(string $rw = '01'): Organization
+    {
+        $this->actingAs($this->adminPlatform)->post('/tenant', [
+            'nama' => 'Desa Cibunar', 'label' => 'cibunar',
+            'kecamatan' => 'Tarogong Kidul', 'rw' => $rw,
+        ])->assertRedirect(route('tenant.index'));
+
+        return Organization::where('slug', 'cibunar')->firstOrFail();
+    }
+
+    public function test_ubah_nama_desa_dan_penjaga_duplikatnya(): void
+    {
+        $desa = $this->buatCibunar();
+
+        $this->actingAs($this->adminPlatform)->put("/tenant/{$desa->id}", [
+            'nama' => 'Desa Cibunar Hilir', 'kecamatan' => 'Tarogong Kidul',
+        ])->assertRedirect(route('tenant.index'));
+        $this->assertSame('Desa Cibunar Hilir (Tarogong Kidul)', $desa->fresh()->name);
+
+        // Ganti nama menjadi desa lain yang sudah ada = duplikat, tolak.
+        $this->actingAs($this->adminPlatform)->post('/tenant', [
+            'nama' => 'Desa Cimanuk', 'label' => 'cimanuk',
+            'kecamatan' => 'Garut Kota', 'rw' => '01',
+        ]);
+        $this->actingAs($this->adminPlatform)->put("/tenant/{$desa->id}", [
+            'nama' => 'Desa Cimanuk', 'kecamatan' => 'Garut Kota',
+        ])->assertSessionHasErrors('nama');
+        $this->assertSame('Desa Cibunar Hilir (Tarogong Kidul)', $desa->fresh()->name);
+    }
+
+    public function test_nonaktifkan_rw_menutup_portalnya(): void
+    {
+        $this->buatCibunar();
+        $rw = Organization::where('slug', 'rw-01-cibunar')->firstOrFail();
+
+        $this->actingAs($this->adminPlatform)
+            ->post("/tenant/rw/{$rw->id}/toggle")->assertRedirect(route('tenant.index'));
+        $this->assertSame('nonaktif', $rw->fresh()->status);
+        $this->get('https://cibunar-rw01.desa.jabnet.id/login')->assertNotFound();
+
+        // Host eksplisit: klien tes menempelkan host request terakhir, dan
+        // host cibunar sedang nonaktif (404) - toggle dikirim lewat localhost.
+        $this->actingAs($this->adminPlatform)
+            ->post("http://localhost/tenant/rw/{$rw->id}/toggle")->assertRedirect(route('tenant.index'));
+        $this->get('https://cibunar-rw01.desa.jabnet.id/login')->assertOk();
+    }
+
+    public function test_hapus_rw_kosong_membersihkan_domain_dan_assignment(): void
+    {
+        $this->buatCibunar('01,02');
+        $rw = Organization::where('slug', 'rw-02-cibunar')->firstOrFail();
+        $admin = User::where('username', 'cibunar-rw02')->firstOrFail();
+
+        $this->actingAs($this->adminPlatform)
+            ->delete("/tenant/rw/{$rw->id}")->assertRedirect(route('tenant.index'));
+
+        $this->assertNull(Organization::find($rw->id));
+        $this->assertNull(Domain::where('hostname', 'cibunar-rw02.desa.jabnet.id')->first());
+        $this->assertSame(0, UserRoleAssignment::where('organization_id', $rw->id)->count());
+        // Akun admin dibiarkan (tanpa assignment = warga biasa), bukan ikut lenyap.
+        $this->assertNotNull(User::find($admin->id));
+    }
+
+    public function test_hapus_rw_berisi_data_ditolak(): void
+    {
+        $this->buatCibunar();
+        $rw = Organization::where('slug', 'rw-01-cibunar')->firstOrFail();
+        $kk = new \App\Models\Keluarga([
+            'keluarga_id' => 'kk_isi01', 'nama' => 'Keluarga Isi',
+            'alamat' => 'Jl. Isi', 'rt' => '01',
+        ]);
+        $kk->organization_id = $rw->id;
+        // saveQuietly: hook MilikOrganisasi menimpa organization_id dengan
+        // tenant request (context sudah hidup dari POST di atas).
+        $kk->saveQuietly();
+
+        $this->actingAs($this->adminPlatform)
+            ->delete("/tenant/rw/{$rw->id}")
+            ->assertRedirect(route('tenant.index'))->assertSessionHas('error');
+
+        $this->assertNotNull(Organization::find($rw->id));
+    }
+
+    public function test_hapus_desa_hanya_bila_tanpa_rw(): void
+    {
+        $desa = $this->buatCibunar();
+        $rw = Organization::where('slug', 'rw-01-cibunar')->firstOrFail();
+
+        $this->actingAs($this->adminPlatform)
+            ->delete("/tenant/{$desa->id}")
+            ->assertRedirect(route('tenant.index'))->assertSessionHas('error');
+        $this->assertNotNull(Organization::find($desa->id));
+
+        $this->actingAs($this->adminPlatform)->delete("/tenant/rw/{$rw->id}");
+        $this->actingAs($this->adminPlatform)
+            ->delete("/tenant/{$desa->id}")->assertRedirect(route('tenant.index'));
+        $this->assertNull(Organization::find($desa->id));
+    }
+
+    public function test_aksi_crud_tertutup_untuk_admin_tenant(): void
+    {
+        $desa = $this->buatCibunar();
+        $rw = Organization::where('slug', 'rw-01-cibunar')->firstOrFail();
+
+        $this->actingAs($this->adminTenant)->put("/tenant/{$desa->id}", [
+            'nama' => 'Desa Bajakan', 'kecamatan' => 'X',
+        ])->assertForbidden();
+        $this->actingAs($this->adminTenant)->post("/tenant/rw/{$rw->id}/toggle")->assertForbidden();
+        $this->actingAs($this->adminTenant)->delete("/tenant/rw/{$rw->id}")->assertForbidden();
+        $this->actingAs($this->adminTenant)->delete("/tenant/{$desa->id}")->assertForbidden();
+    }
+
     public function test_admin_tenant_tidak_bisa_menembak_post_langsung(): void
     {
         $this->actingAs($this->adminTenant)->post('/tenant', [

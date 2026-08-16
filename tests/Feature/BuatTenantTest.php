@@ -116,6 +116,34 @@ class BuatTenantTest extends TestCase
         $this->assertDatabaseHas('domains', ['hostname' => 'cibunar-rw01.desa.jabnet.id']);
     }
 
+    public function test_nama_dan_kecamatan_sama_dengan_label_lain_ditolak(): void
+    {
+        $this->jalankan('cibunar')->assertSuccessful();
+
+        // Desa yang sama tidak boleh terdaftar dua kali di bawah label lain -
+        // dua "Desa Cibunar (Tarogong Kidul)" adalah duplikat, bukan tetangga.
+        $this->artisan('tenant:buat', [
+            'nama' => 'Desa Cibunar', 'label' => 'cibunar-dua',
+            '--kecamatan' => 'Tarogong Kidul', '--rw' => ['01'],
+        ])->assertFailed();
+
+        $this->assertNull(Organization::where('slug', 'cibunar-dua')->first());
+    }
+
+    public function test_label_terpakai_dengan_nama_berbeda_ditolak(): void
+    {
+        $this->jalankan('cibunar')->assertSuccessful();
+
+        // Salah ketik nama saat menambah RW tidak boleh diam-diam menempelkan
+        // RW ke desa lain.
+        $this->artisan('tenant:buat', [
+            'nama' => 'Desa Cimanuk', 'label' => 'cibunar',
+            '--kecamatan' => 'Garut Kota', '--rw' => ['07'],
+        ])->assertFailed();
+
+        $this->assertNull(Organization::where('slug', 'rw-07-cibunar')->first());
+    }
+
     public function test_label_tidak_sah_ditolak(): void
     {
         // Label jadi bagian hostname; huruf besar/spasi/karakter aneh merusak DNS.

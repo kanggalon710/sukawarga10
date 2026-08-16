@@ -129,6 +129,18 @@ class LoginTenantTest extends TestCase
         $this->assertAuthenticated();
     }
 
+    public function test_sidebar_menampilkan_nama_tenant_saat_ini(): void
+    {
+        // Badge sidebar dulunya menulis tetap "RW 10 Sukakarya"; kini
+        // mengikuti tenant request - Cibunar melihat namanya sendiri.
+        $this->actingAs($this->wargaRw01())
+            ->get('https://cibunar-rw01.desa.jabnet.id/')
+            ->assertOk()
+            ->assertSee('RW 01')
+            ->assertSee('DESA CIBUNAR', false)
+            ->assertDontSee('RW 10 &bull; Tarogong Kidul', false);
+    }
+
     public function test_statistik_halaman_login_tidak_menghitung_tenant_lain(): void
     {
         // Keluarga + anggota milik RW 10 (tenant lain bagi Cibunar).

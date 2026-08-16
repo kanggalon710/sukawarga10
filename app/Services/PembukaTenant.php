@@ -65,14 +65,35 @@ class PembukaTenant
 
         $nama = trim($nama);
         $kecamatan = trim($kecamatan);
-        $desa = Organization::firstOrCreate(
-            ['slug' => $label],
-            [
+        $namaLengkap = $kecamatan !== '' ? "{$nama} ({$kecamatan})" : $nama;
+
+        $desa = Organization::where('slug', $label)->first();
+        if ($desa !== null) {
+            // Salah ketik nama saat menambah RW tidak boleh diam-diam
+            // menempelkan RW ke desa lain.
+            if (strcasecmp($desa->name, $namaLengkap) !== 0) {
+                throw new \InvalidArgumentException(
+                    "Label '{$label}' sudah dipakai {$desa->name}. Samakan nama & kecamatannya untuk menambah RW, atau pakai label lain untuk desa baru."
+                );
+            }
+        } else {
+            // Desa yang sama tidak boleh terdaftar dua kali di bawah label
+            // lain: dua "Desa Cibunar (Tarogong Kidul)" itu duplikat.
+            $kembar = Organization::where('type', Organization::TYPE_DESA)
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($namaLengkap)])
+                ->first();
+            if ($kembar !== null) {
+                throw new \InvalidArgumentException(
+                    "{$namaLengkap} sudah terdaftar dengan label '{$kembar->slug}'. Tambahkan RW lewat label itu, atau bedakan nama/kecamatannya."
+                );
+            }
+
+            $desa = Organization::create([
                 'parent_id' => $platformId, 'type' => Organization::TYPE_DESA,
-                'name' => $kecamatan !== '' ? "{$nama} ({$kecamatan})" : $nama,
+                'name' => $namaLengkap, 'slug' => $label,
                 'code' => strtoupper($label), 'status' => 'aktif',
-            ]
-        );
+            ]);
+        }
 
         $roleRwAdmin = Role::where('slug', 'rw_admin')->value('id');
         $baris = [];

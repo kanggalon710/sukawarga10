@@ -2,6 +2,38 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Identitas netral "Portal Desa", label tenant dinamis, WA, CRUD tenant
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Permintaan pemilik: nama dinamis per tenant dengan bawaan
+"Portal Desa" di desa.jabnet.id, sebutan "MPWA" diganti "WA", safeguard
+duplikat desa/RW, dan CRUD desa/RW di halaman Manajemen Desa.
+**Perubahan:**
+- Bawaan identitas netral: nama "Portal Desa", tagline "Portal warga
+  digital...", alamat_portal desa.jabnet.id. "Kampung Paru" kini milik baris
+  app_settings RW 10, bukan kode.
+- Helper baru `tenantSaatIni()`/`namaRw()`/`namaDesa()` (memo per request):
+  badge sidebar, subtitle default, sapaan login, hero laporan, dan fallback
+  form Pengaturan/kop surat mengikuti tenant request - 13 teks "RW 10
+  Sukakarya" hardcoded dibersihkan. Plafon query dashboard 21 -> 22
+  (+1 leluhur desa, terdokumentasi di tesnya).
+- Label "MPWA" hilang dari seluruh teks yang tampil (menu "Broadcast WA",
+  judul halaman, placeholder); key/route/setting `mpwa_*` tidak berubah.
+- Safeguard `PembukaTenant`: nama+kecamatan sama di label lain = duplikat
+  (ditolak); label terpakai dengan nama berbeda = salah sasaran (ditolak).
+- CRUD Manajemen Desa: ubah nama desa (label/slug tetap - domain terikat),
+  aktif/nonaktifkan RW (resolver menolak domain org nonaktif), hapus RW
+  hanya bila kosong dari 10 model data tenant (akun admin dibiarkan hidup),
+  hapus desa hanya bila tanpa RW. Semua platform-admin-only + audit log.
+- Temuan tes: klien tes Laravel menempelkan host request terakhir; toggle
+  kedua dikirim dengan host eksplisit.
+**File:** app/helpers.php, app/Services/PembukaTenant.php,
+app/Http/Controllers/TenantController.php, routes/web.php, 12 berkas view,
+5 berkas tes (9 tes baru)
+**Catatan:** 171 tes (504 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Konsekuensi deploy paru lama: bila instalasi paru menarik rilis ini tanpa
+baris setting, namanya jadi "Portal Desa" - isi `nama_aplikasi` "Kampung
+Paru" lewat Pengaturan dulu.
+
 ## 2026-08-16 - Phase G tahap 1: Manajemen Desa - buka desa/RW lewat website
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik ingin membuka desa/RW tanpa terminal. Halaman ini
