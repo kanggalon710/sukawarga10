@@ -144,6 +144,26 @@ class User extends Authenticatable
         );
     }
 
+    /**
+     * Pemegang super_admin di organisasi PLATFORM - gerbang fitur lintas
+     * tenant (Manajemen Desa). Superadmin ber-scope tenant (buatan Manajemen
+     * Akun) bukan admin platform. Memo per request di TenantContext.
+     */
+    public function adalahAdminPlatform(): bool
+    {
+        $context = app(\App\Services\TenantContext::class);
+
+        return $context->ingat("admin.platform.{$this->id}", function () {
+            return UserRoleAssignment::query()
+                ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
+                ->join('organizations', 'organizations.id', '=', 'user_role_assignments.organization_id')
+                ->where('user_role_assignments.user_id', $this->id)
+                ->where('roles.slug', 'super_admin')
+                ->where('organizations.type', Organization::TYPE_PLATFORM)
+                ->exists();
+        });
+    }
+
     public function isSuperAdmin(): bool { return in_array($this->levelEfektif(), self::LEVEL_ADMIN, true); }
     public function isKetuaRW(): bool { return $this->levelEfektif() === 'ketua_rw'; }
     public function isBendahara(): bool { return $this->levelEfektif() === 'bendahara'; }

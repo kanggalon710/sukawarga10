@@ -204,6 +204,16 @@ Route::middleware('auth')->group(function () {
         });
     });
 
+    // Platform — Manajemen Desa (buka tenant baru). Dijaga role:superadmin
+    // lalu dipersempit ke super_admin PLATFORM di controller. Sengaja TANPA
+    // middleware fitur:<modul>: ini fitur platform lintas tenant, bukan modul
+    // tenant yang boleh dimatikan lewat feature flag (aturan AGENTS.md #11
+    // berlaku untuk modul di getAllMenuItems).
+    Route::middleware('role:superadmin')->group(function () {
+        Route::get('/tenant', [App\Http\Controllers\TenantController::class, 'index'])->name('tenant.index');
+        Route::post('/tenant', [App\Http\Controllers\TenantController::class, 'store'])->name('tenant.store');
+    });
+
     // Global Search API (parameterized to prevent SQL injection)
     // Hanya pengurus: hasilnya memuat nama + nomor HP seluruh warga, jadi tidak
     // boleh terbuka untuk akun level warga.

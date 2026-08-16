@@ -2,6 +2,33 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Phase G tahap 1: Manajemen Desa - buka desa/RW lewat website
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik ingin membuka desa/RW tanpa terminal. Halaman ini
+membungkus logika yang sama dengan `tenant:buat` - logika dipindah ke
+service `PembukaTenant` supaya CLI dan web satu sumber (DRY).
+**Perubahan:**
+- `App\Services\PembukaTenant`: ekstraksi utuh logika pembukaan tenant;
+  `BuatTenant` (CLI) dan `TenantController` (web) tinggal membungkus.
+- Halaman `/tenant` "Manajemen Desa": form buka desa / tambah RW + daftar
+  seluruh desa-RW-domain-admin. PIN admin tampil SEKALI (flash session).
+- Gerbang baru `User::adalahAdminPlatform()` (super_admin di organisasi
+  PLATFORM, memo per request): superadmin ber-scope tenant TIDAK bisa
+  membuka desa. Menu sidebar pakai gerbang ini, bukan userCan() - userCan
+  meloloskan semua level admin. Rute sengaja tanpa `fitur:` (fitur platform,
+  bukan modul tenant; alasan dikomentari di routes).
+- Gaya form ber-scope halaman (44px target sentuh, font 16px) karena
+  `.sak-input` global masih polos; diverifikasi tangkapan layar 360/768/1280.
+**File:** app/Services/PembukaTenant.php (baru),
+app/Http/Controllers/TenantController.php (baru),
+resources/views/admin/tenant.blade.php (baru), app/Console/Commands/BuatTenant.php,
+app/Models/User.php, routes/web.php, resources/views/layouts/app.blade.php,
+tests/Feature/ManajemenTenantTest.php (baru, 6 tes)
+**Catatan:** 162 tes (446 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Belum termasuk integrasi API cPanel (vhost+SSL otomatis) - menunggu hasil uji
+wildcard `*.desa.jabnet.id` di hosting; kalau AutoSSL wildcard jalan,
+integrasi itu tidak diperlukan sama sekali.
+
 ## 2026-08-16 - Phase D: tenant:buat, subdomain per RW, login terkunci per tenant
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik membuka dua desa baru bernama sama ("Desa Cibunar" di

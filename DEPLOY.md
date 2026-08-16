@@ -128,15 +128,19 @@ identitas, tarif, dan datanya sendiri. Skema alamatnya flat:
 1. **DNS wildcard (SEKALI SAJA, berlaku untuk semua tenant selamanya):**
    tambah record A `*.desa.jabnet.id` → IP server. Setelah ini tenant baru
    tidak butuh perubahan DNS lagi.
-2. **Jalankan perintah pembuatan tenant** di server (idempotent, aman diulang
-   untuk menambah RW ke desa yang sudah ada):
-   ```bash
-   php artisan tenant:buat "Desa Cibunar" cibunar --kecamatan="Tarogong Kidul" --rw=01,02,03
-   ```
-   Perintah membuat organisasi desa + RW, baris `domains`, dan akun admin per
-   RW (username `{label}-rw{nn}`, PIN acak dicetak SEKALI di output - catat
-   saat itu juga). Dua desa bernama sama boleh, asalkan labelnya beda
-   (mis. `cibunar` vs `cibunarkota`).
+2. **Buka tenant** - dua cara, hasilnya sama (logika satu sumber):
+   - **Lewat website:** login sebagai admin platform → menu **Manajemen
+     Desa** → form "Buka Desa / Tambah RW". PIN admin per RW tampil SEKALI
+     di halaman hasil - catat saat itu juga.
+   - **Lewat terminal** (idempotent, aman diulang untuk menambah RW):
+     ```bash
+     php artisan tenant:buat "Desa Cibunar" cibunar --kecamatan="Tarogong Kidul" --rw=01,02,03
+     ```
+   Keduanya membuat organisasi desa + RW, baris `domains`, dan akun admin per
+   RW (username `{label}-rw{nn}`, PIN acak sekali-tayang). Dua desa bernama
+   sama boleh, asalkan labelnya beda (mis. `cibunar` vs `cibunarkota`).
+   Menu Manajemen Desa hanya tampil untuk pemegang super_admin PLATFORM
+   (akun `admin`/`jabnet` bawaan) - superadmin buatan Manajemen Akun tidak.
 3. **cPanel per subdomain:** Domains → Create a New Domain →
    `cibunar-rw01.desa.jabnet.id`, document root = folder `public` aplikasi
    (sama untuk semua tenant) → Run AutoSSL. (AutoSSL tidak menerbitkan

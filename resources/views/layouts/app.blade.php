@@ -164,6 +164,13 @@
                     <i class="fas fa-cog nav-icon"></i> Pengaturan
                 </a>
                 @endif
+                {{-- Fitur platform lintas tenant: gerbangnya admin platform,
+                     bukan userCan() yang meloloskan semua level admin. --}}
+                @if(auth()->user()->adalahAdminPlatform())
+                <a href="{{ route('tenant.index') }}" class="nav-item {{ request()->routeIs('tenant.*') ? 'active' : '' }}">
+                    <i class="fas fa-city nav-icon"></i> Manajemen Desa
+                </a>
+                @endif
             </div>
             <div class="sidebar-scroll-hint"></div>
 

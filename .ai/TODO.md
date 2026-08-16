@@ -131,7 +131,15 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       ditutup. 12 tes baru (`BuatTenantTest`, `LoginTenantTest`); runbook di
       `DEPLOY.md` bagian 8. Operasional Cibunar: tinggal wildcard DNS
       `*.desa.jabnet.id` + jalankan perintah + cPanel per subdomain.
-- [ ] Fase G/H (manajemen tenant via UI, impersonation ber-audit, queue,
+- [x] **G tahap 1 selesai 2026-08-16:** halaman "Manajemen Desa" (/tenant)
+      untuk buka desa/RW dari browser, khusus `adalahAdminPlatform()`;
+      logika satu sumber di `App\Services\PembukaTenant` (dipakai juga CLI
+      `tenant:buat`). 6 tes di `ManajemenTenantTest`.
+- [ ] **G lanjutan:** integrasi API cPanel (buat subdomain + AutoSSL otomatis
+      dari halaman Manajemen Desa) - HANYA perlu bila wildcard
+      `*.desa.jabnet.id` ber-AutoSSL ternyata tidak didukung hosting; tunggu
+      hasil uji pemilik. Butuh API token cPanel disimpan aman di server.
+- [ ] Fase G/H sisanya (impersonation ber-audit, queue worker + antrian WA,
       monitoring) sesuai bagian 10 audit.
 
 ## Belum dikerjakan
