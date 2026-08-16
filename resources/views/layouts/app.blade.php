@@ -171,6 +171,12 @@
                 <a href="{{ route('tenant.index') }}" class="nav-item {{ request()->routeIs('tenant.*') ? 'active' : '' }}">
                     <i class="fas fa-city nav-icon"></i> Manajemen Desa
                 </a>
+                <a href="{{ route('pembaruan.index') }}" class="nav-item {{ request()->routeIs('pembaruan.*') ? 'active' : '' }}" style="position:relative;">
+                    <i class="fas fa-arrows-rotate nav-icon"></i> Pembaruan Sistem
+                    @if(\App\Services\PembaruAplikasi::statusTercatat()['tersedia'])
+                    <span class="pembaruan-badge" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); width:10px; height:10px; border-radius:50%; background:var(--emas, #d97706);" aria-label="Pembaruan tersedia"></span>
+                    @endif
+                </a>
                 @endif
             </div>
             <div class="sidebar-scroll-hint"></div>

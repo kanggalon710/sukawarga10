@@ -1,4 +1,36 @@
-# Deploy ke Production - Kampung Paru
+# Deploy ke Production - Portal Desa
+
+## Kebijakan branch (sejak 2026-08-16)
+
+| Branch | Peruntukan |
+|---|---|
+| `production` | Rilis portal multi-desa (`desa.jabnet.id`). Server produksi HANYA menarik dari sini; tombol "Pembaruan Sistem" di website juga menarik branch ini. |
+| `dev` | Pengembangan & testing. Rilis = merge fast-forward `dev` → `production`. |
+| `main` | Dibekukan untuk instalasi 1-desa khusus yang lama; TIDAK menerima rilis multi-desa lagi. |
+
+Cara merilis: kerjakan & uji di `dev`, lalu
+`git checkout production && git merge --ff-only dev && git push origin production`.
+
+## Memperbarui server produksi
+
+Dua cara, hasil sama:
+
+1. **Dari website (disarankan):** login sebagai admin platform → menu
+   **Pembaruan Sistem** → "Periksa Pembaruan" → "Perbarui Sekarang".
+   Tombolnya menjalankan `git pull --ff-only origin production`,
+   `composer install` (hanya bila dependensi berubah), `migrate --force`,
+   dan membangun ulang cache; lognya tampil di halaman. Ada penanda
+   notifikasi di menu bila versi baru terdeteksi.
+2. **Dari terminal cPanel:**
+   ```bash
+   cd ~/repositories/desa-manage
+   git pull origin production
+   composer install --no-dev --optimize-autoloader   # bila composer.lock berubah
+   php artisan migrate --force
+   php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan view:cache
+   ```
+
+Backup database tetap wajib sebelum update yang membawa migrasi.
 
 Paket ini berisi seluruh perubahan + data terbaru (101 KK RW-10 + 280 anggota, nomor WA ter-normalisasi).
 Production memakai **MySQL** (`jabnet_rw10`). Data dibawa lewat artisan importer (DB-agnostic), bukan file SQLite.

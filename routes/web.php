@@ -216,6 +216,11 @@ Route::middleware('auth')->group(function () {
         Route::delete('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'destroyDesa'])->name('tenant.destroy');
         Route::post('/tenant/rw/{id}/toggle', [App\Http\Controllers\TenantController::class, 'toggleRw'])->name('tenant.rw.toggle');
         Route::delete('/tenant/rw/{id}', [App\Http\Controllers\TenantController::class, 'destroyRw'])->name('tenant.rw.destroy');
+
+        // Pembaruan Sistem: cek & jalankan update dari branch production.
+        Route::get('/pembaruan', [App\Http\Controllers\PembaruanController::class, 'index'])->name('pembaruan.index');
+        Route::post('/pembaruan/cek', [App\Http\Controllers\PembaruanController::class, 'cek'])->name('pembaruan.cek');
+        Route::post('/pembaruan/jalankan', [App\Http\Controllers\PembaruanController::class, 'jalankan'])->name('pembaruan.jalankan');
     });
 
     // Global Search API (parameterized to prevent SQL injection)

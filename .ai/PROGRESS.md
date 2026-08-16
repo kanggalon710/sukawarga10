@@ -2,6 +2,38 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Branch production + halaman Pembaruan Sistem (update satu klik)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** `main` dibekukan untuk instalasi 1-desa khusus lama; portal
+multi-desa butuh jalur rilisnya sendiri, dan pemilik ingin update tanpa
+terminal: notifikasi versi baru + tombol update di website, hanya untuk
+admin platform.
+**Perubahan:**
+- Kebijakan branch: `production` (rilis portal, ditarik server & tombol
+  update), `dev` (pengembangan/testing), `main` (beku, 1-desa khusus).
+  Tabel di DEPLOY.md.
+- `App\Services\PembaruAplikasi`: cek versi (fetch + rev-list ke
+  `origin/production`, hasil dicatat di cache 7 hari → penanda menu) dan
+  jalankan update (pull --ff-only, composer HANYA bila composer.lock
+  berubah, migrate --force, bangun cache; log per langkah; gagal = berhenti,
+  tidak ada langkah lanjutan). Remote/branch konstanta - tak pernah dari
+  input request. Kunci Cache::lock menahan klik ganda.
+- Halaman `/pembaruan` + menu "Pembaruan Sistem" ber-penanda kuning bila
+  ada versi baru; gerbang `pastikanAdminPlatform()` dipindah ke base
+  Controller (dipakai Tenant + Pembaruan).
+- Bug nyata tertangkap saat verifikasi visual: `--format=%h|%cs|%s` tanpa
+  kutip ditafsirkan shell sebagai pipe (Process::fake tidak menangkapnya) -
+  kini dikutip.
+**File:** app/Services/PembaruAplikasi.php (baru),
+app/Http/Controllers/PembaruanController.php (baru),
+resources/views/admin/pembaruan.blade.php (baru), Controller.php,
+TenantController.php, routes/web.php, layouts/app.blade.php, DEPLOY.md,
+tests/Feature/PembaruanTest.php (baru, 9 tes)
+**Catatan:** 180 tes (534 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Server perlu SEKALI pindah branch: `git fetch origin && git checkout
+production`. Cek pembaruan butuh kredensial git server bisa fetch (sudah
+ada, server selama ini pull manual).
+
 ## 2026-08-16 - Identitas netral "Portal Desa", label tenant dinamis, WA, CRUD tenant
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Permintaan pemilik: nama dinamis per tenant dengan bawaan

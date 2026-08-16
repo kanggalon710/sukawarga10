@@ -16,11 +16,6 @@ use Illuminate\Http\Request;
  */
 class TenantController extends Controller
 {
-    private function pastikanAdminPlatform(): void
-    {
-        abort_unless(auth()->user()->adalahAdminPlatform(), 403);
-    }
-
     public function index()
     {
         $this->pastikanAdminPlatform();

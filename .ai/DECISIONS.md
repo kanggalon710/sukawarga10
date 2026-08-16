@@ -3,6 +3,22 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Branch production terpisah + update dari website
+**Konteks:** `main` dipakai instalasi 1-desa khusus lama; portal multi-desa
+butuh jalur rilis sendiri dan pemilik ingin update tanpa terminal.
+**Pilihan:** (1) Branch `production` = satu-satunya sumber rilis portal;
+`dev` = pengembangan; `main` dibekukan tanpa rewrite history (rilis
+multi-desa berhenti mengalir ke sana - menulis ulang main lebih merusak
+daripada membiarkannya). (2) Tombol update di website menjalankan shell
+lewat Process dengan remote/branch DIKUNCI konstanta (tidak pernah dari
+input), pull `--ff-only` saja (server yang berubah lokal = berhenti dengan
+pesan, bukan merge diam-diam), composer hanya bila composer.lock berubah
+(langkah termahal & paling rawan timeout), gagal = berhenti tanpa langkah
+lanjutan, dan Cache::lock menahan klik ganda. Gerbangnya
+`adalahAdminPlatform()` - admin tenant tidak boleh menyentuh kode server.
+(3) Badge notifikasi hanya membaca cache (diisi saat "Periksa Pembaruan");
+tidak ada fetch jaringan di jalur render halaman biasa.
+
 ## 2026-08-16 - Identitas bawaan netral + aturan CRUD tenant
 **Konteks:** Multi-desa hidup; bawaan kode masih "Kampung Paru", dan
 Manajemen Desa butuh aturan ubah/hapus.

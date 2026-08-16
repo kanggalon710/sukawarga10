@@ -140,6 +140,11 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       duplikat nama+kecamatan; identitas bawaan netral "Portal Desa" +
       label tenant dinamis (`tenantSaatIni()`); sebutan MPWA → WA.
       9 tes baru; aturan di DECISIONS.
+- [x] **G tahap 3 selesai 2026-08-16:** branch `production` (rilis portal)
+      terpisah dari `main` (beku, 1-desa lama); halaman "Pembaruan Sistem"
+      dengan notifikasi versi baru + update satu klik (pull ff-only +
+      composer kondisional + migrate + cache), khusus admin platform.
+      9 tes di `PembaruanTest`. Rilis = ff-merge dev → production.
 - [ ] **G lanjutan:** integrasi API cPanel (buat subdomain + AutoSSL otomatis
       dari halaman Manajemen Desa) - HANYA perlu bila wildcard
       `*.desa.jabnet.id` ber-AutoSSL ternyata tidak didukung hosting; tunggu
