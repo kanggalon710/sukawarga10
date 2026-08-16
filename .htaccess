@@ -1,0 +1,17 @@
+# Jaring pengaman shared hosting: bila document root vhost salah menunjuk ke
+# ROOT REPO (bukan public/), file ini mencegah source code dan daftar berkas
+# tersaji ke publik - semua permintaan dialihkan ke public/. Kejadian nyata
+# 2026-08-16: domain baru di cPanel sempat menyajikan "Index of /" root repo.
+#
+# Vhost yang benar (docroot = public/) TIDAK terpengaruh: public/.htaccess
+# punya RewriteEngine sendiri yang menggantikan aturan per-direktori ini.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "^(\.env.*|composer\.(json|lock)|artisan|phpunit\.xml)$">
+    Require all denied
+</FilesMatch>
