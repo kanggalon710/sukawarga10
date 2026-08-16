@@ -2,6 +2,33 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Notifikasi WA per tenant + verifikasi end-to-end dua tenant
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Prasyarat Phase D terakhir: `notifyPengurus()`/`notifyByLevel()`/
+`notifyRT()` menyapu users lewat kolom `level` lintas tenant - aduan RW A
+membunyikan WA pengurus RW B. Sekaligus tahap "testing sebelum publish":
+membuktikan seluruh tumpukan multi-tenant bekerja lewat HTTP sungguhan,
+bukan hanya di test harness.
+**Perubahan:**
+- `NotificationService::penerimaLevel()`: sasaran = pemegang assignment yang
+  organisasinya di rantai leluhur tenant (super_admin platform ikut) atau
+  subtree-nya; `notifyRT` mencari organisasi RT tenant via
+  `Organization::slugRt()` (helper baru, dipakai juga AkunController supaya
+  format slug RT satu sumber). Jalur konsol tetap berbasis kolom (fase G).
+- Smoke test E2E di `artisan serve` port 8124, DB scratch + tenant kedua
+  (rw99.localtest): identitas per host benar, host asing 404, `/up` bebas,
+  login dua tenant, admin99 (kolom level=warga, hak dari assignment) 200 di
+  tenantnya dan 403 saat sesinya dipaksa ke tenant A, data & IDOR terisolasi,
+  feature flag menutup rute hanya di tenantnya. 12 pemeriksaan, semua lolos.
+- `DEPLOY.md` langkah 2 & 6 diperbarui: lima migrasi multi-tenant + cara
+  membaca output backfill + verifikasi pasca-deploy per level akun.
+**File:** app/Services/NotificationService.php, app/Models/Organization.php,
+app/Http/Controllers/AkunController.php, DEPLOY.md,
+tests/Feature/NotifikasiTenantTest.php (baru, 5 tes)
+**Catatan:** 144 tes (347 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Seluruh prasyarat Phase D selesai; pembukaan tenant kedua tinggal urusan
+data + DNS (organizations/domains), bukan kode.
+
 ## 2026-08-16 - Fallback users.level pensiun; Manajemen Akun memelihara assignment
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Prasyarat terakhir Phase D: fallback membuat kolom level lama

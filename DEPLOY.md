@@ -27,6 +27,16 @@ Menjalankan migrasi baru:
 - `..._migrate_keluarga_canonical_format` - rapikan sanitasi/bansos ke format kanonik (idempotent)
 - `..._normalize_wa_numbers` - normalisasi semua nomor WA lama → `62xxxx` (idempotent)
 
+Ditambah lima migrasi fondasi multi-tenant (`2026_08_15_000004` s.d. `000008`):
+organizations + domains + seed hierarki RW 10, pendaftaran hostname dev,
+kolom `organization_id` + backfill di 12 tabel, katalog peran +
+`user_role_assignments` + backfill dari `users.level`, dan `app_settings`
+per organisasi. Semuanya additive dan idempotent, tapi **BACA OUTPUTNYA**:
+- Baris backfill per tabel harus menyebut jumlah yang masuk akal (≈101 KK dst).
+- `PERINGATAN` pada backfill peran berarti ada akun `petugas_rt` tanpa
+  organisasi RT. Sejak hak akses hanya dari assignment, akun itu efektif
+  warga - buka Manajemen Akun, isi RT-nya, lalu simpan ulang levelnya.
+
 ## 3. Muat data warga (101 KK + 280 anggota)
 
 ### ⚠️ PENTING soal `--fresh`
@@ -58,8 +68,17 @@ chmod -R ug+rw storage bootstrap/cache
 
 ## 6. Verifikasi
 - Buka `https://paru.jabnet.id` → login → **Dashboard** (101 KK, indeks kesejahteraan terisi).
+- **Uji login SEMUA level akun** (ketua RW, bendahara, petugas RT, warga) -
+  hak akses kini dari tabel assignment hasil backfill, bukan kolom level.
+  Kalau ada akun yang mendadak "jadi warga", lihat catatan PERINGATAN di
+  langkah 2.
+- **Akses lewat hostname selain `paru.jabnet.id`/`sukawarga10.jabnet.id`
+  (termasuk IP server langsung) kini 404.** Itu disengaja (resolver tenant).
+  Kalau operator butuh hostname tambahan, daftarkan barisnya di tabel
+  `domains`, jangan mengubah kode.
 - **Laporan → Demografi** → piramida penduduk + section Pendidikan & Kesehatan aktif.
 - **Pengaturan → WhatsApp API** → isi API key & sender MPWA → test koneksi → broadcast (nomor otomatis `62xxxx`).
+- Satu pembayaran uji → cek kolom `kas`, `transaksi_id`, dan `organization_id` terisi.
 
 ## 7. Pindah domain (paru.jabnet.id → desa.jabnet.id)
 

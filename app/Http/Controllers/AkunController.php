@@ -132,7 +132,7 @@ class AkunController extends Controller
         $rt = str_pad(trim($rt), 2, '0', STR_PAD_LEFT);
 
         return Organization::firstOrCreate(
-            ['slug' => "rt-{$rt}-{$rw->slug}"],
+            ['slug' => Organization::slugRt($rw, $rt)],
             [
                 'parent_id' => $rw->id, 'type' => Organization::TYPE_RT,
                 'name' => "RT {$rt}", 'code' => "RT{$rt}", 'status' => 'aktif',

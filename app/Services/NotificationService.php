@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Organization;
 use App\Models\User;
+use App\Models\UserRoleAssignment;
 
 /**
  * NotificationService — PENYALURAN notifikasi (siapa yang dikirimi).
@@ -31,18 +33,43 @@ class NotificationService
     }
 
     /**
+     * Penerima aktif ber-WA yang assignment perannya relevan dengan tenant
+     * request: organisasinya ada di rantai leluhur tenant (super_admin
+     * platform ikut menerima) atau di subtree-nya (pengurus RT).
+     *
+     * Kolom users.level TIDAK dipakai di jalur ber-tenant - kolom itu berlaku
+     * lintas tenant, dan aduan RW A tidak boleh membunyikan WA pengurus RW B.
+     * Jalur konsol (importer/artisan) belum ber-tenant: penyaluran lama
+     * berbasis kolom dipertahankan sampai pengiriman pindah ke queue (fase G).
+     */
+    private static function penerimaLevel(array $levels): \Illuminate\Support\Collection
+    {
+        $context = app(TenantContext::class);
+        if (!$context->sudahDitetapkan() || $context->organisasi() === null) {
+            return User::whereIn('level', $levels)
+                ->where('status', 'aktif')->whereNotNull('wa')->get(['wa']);
+        }
+
+        $orgRelevan = array_unique(array_merge(
+            $context->rantaiLeluhurIds(),
+            Organization::idSubtree($context->organisasi()->id)
+        ));
+
+        return User::where('status', 'aktif')->whereNotNull('wa')
+            ->whereIn('id', UserRoleAssignment::query()
+                ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
+                ->whereIn('roles.legacy_level', $levels)
+                ->whereIn('user_role_assignments.organization_id', $orgRelevan)
+                ->select('user_role_assignments.user_id'))
+            ->get(['wa']);
+    }
+
+    /**
      * Send notification to all pengurus (RT/RW/Admin).
      */
     public static function notifyPengurus(string $message): void
     {
-        if (!class_exists(\App\Models\User::class)) return;
-
-        $pengurus = User::whereIn('level', ['superadmin', 'ketua_rw', 'bendahara', 'petugas_rt'])
-            ->where('status', 'aktif')
-            ->whereNotNull('wa')
-            ->get();
-
-        foreach ($pengurus as $u) {
+        foreach (self::penerimaLevel(['superadmin', 'ketua_rw', 'bendahara', 'petugas_rt']) as $u) {
             self::sendWA($u->wa, $message);
         }
     }
@@ -52,12 +79,7 @@ class NotificationService
      */
     public static function notifyByLevel(string $level, string $message): void
     {
-        $users = User::where('level', $level)
-            ->where('status', 'aktif')
-            ->whereNotNull('wa')
-            ->get();
-
-        foreach ($users as $u) {
+        foreach (self::penerimaLevel([$level]) as $u) {
             self::sendWA($u->wa, $message);
         }
     }
@@ -78,23 +100,37 @@ class NotificationService
      */
     public static function notifyRT(string $rt, string $message): void
     {
-        $users = User::where('level', 'petugas_rt')
-            ->where('rt', $rt)
-            ->where('status', 'aktif')
-            ->whereNotNull('wa')
-            ->get();
+        $context = app(TenantContext::class);
+        $rw = $context->sudahDitetapkan() ? $context->rw() : null;
+
+        if ($rw === null) {
+            // Jalur konsol: penyaluran lama berbasis kolom (lihat penerimaLevel).
+            $users = User::where('level', 'petugas_rt')
+                ->where('rt', $rt)
+                ->where('status', 'aktif')
+                ->whereNotNull('wa')
+                ->get(['wa']);
+        } else {
+            // Pengurus RT = pemegang assignment di organisasi RT tenant ini;
+            // RT tenant lain bernomor sama tidak ikut terbunyikan.
+            $orgRtId = Organization::where('slug', Organization::slugRt($rw, $rt))->value('id');
+            $users = $orgRtId === null
+                ? collect()
+                : User::where('status', 'aktif')->whereNotNull('wa')
+                    ->whereIn('id', UserRoleAssignment::query()
+                        ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
+                        ->where('roles.legacy_level', 'petugas_rt')
+                        ->where('user_role_assignments.organization_id', $orgRtId)
+                        ->select('user_role_assignments.user_id'))
+                    ->get(['wa']);
+        }
 
         foreach ($users as $u) {
             self::sendWA($u->wa, $message);
         }
 
         // Also notify superadmin & ketua_rw
-        $admins = User::whereIn('level', ['superadmin', 'ketua_rw'])
-            ->where('status', 'aktif')
-            ->whereNotNull('wa')
-            ->get();
-
-        foreach ($admins as $u) {
+        foreach (self::penerimaLevel(['superadmin', 'ketua_rw']) as $u) {
             self::sendWA($u->wa, $message);
         }
     }

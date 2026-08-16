@@ -10,8 +10,11 @@ Riwayat lengkap ada di `.ai/PROGRESS.md`.
 Bukan pekerjaan kode, tapi jangan dilewat.
 
 - [ ] **Backup database produksi** sebelum `php artisan migrate --force`.
-      Ada tiga migrasi baru: `users.keluarga_id` (+backfill),
-      `transaksis.periode`, dan index pada 9 tabel.
+      Selain migrasi lama (`users.keluarga_id`, `transaksis.periode`, index),
+      kini ada LIMA migrasi multi-tenant `2026_08_15_000004`-`000008`
+      (organizations/domains, hostname dev, organization_id + backfill,
+      peran + assignment + backfill, app_settings per org). Baca output
+      backfill-nya - rincian di `DEPLOY.md` langkah 2.
 - [ ] **Cek hasil backfill `users.keluarga_id`.** Migrasi mencetak berapa akun
       warga yang tertaut dan berapa yang ambigu. Akun yang ambigu tidak bisa
       membuka menu "Profil Saya" sampai `keluarga_id`-nya diisi manual. Ini
@@ -80,11 +83,13 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       assignment platform tak tersentuh form). `levelEfektif()` tanpa
       assignment = warga. Kolom `users.level` tinggal catatan tampilan &
       sasaran notifikasi. 7 tes di `ManajemenAkunTest`.
-- [ ] **Sasaran notifikasi WA masih lintas tenant** (prasyarat D):
-      `notifyPengurus()`/`notifyByLevel()` menyapu users via kolom `level`
-      tanpa organisasi, dan broadcast MPWA loop semua KK (yang ini sudah
-      ter-scope lewat model). Pindahkan sasaran ke assignment ber-scope
-      sebelum tenant kedua dibuka.
+- [x] **Sasaran notifikasi WA per tenant selesai 2026-08-16:**
+      `notifyPengurus()`/`notifyByLevel()`/`notifyRT()` menyasar pemegang
+      assignment yang relevan dengan tenant request (leluhur + subtree);
+      jalur konsol tetap berbasis kolom sampai fase queue (G). 5 tes di
+      `NotifikasiTenantTest`. Broadcast MPWA sudah ter-scope lewat model
+      Keluarga. **Seluruh prasyarat Phase D kini selesai** - tinggal
+      menyediakan domain + organisasi tenant kedua sungguhan.
 - [x] **E2 tahap 1 (jalur uang) selesai 2026-08-15:** global scope
       `ScopedKeOrganisasi` di `Transaksi` + `Keluarga`; findOrFail lintas
       tenant otomatis 404. 8 tes di `IsolasiTenantTest`.

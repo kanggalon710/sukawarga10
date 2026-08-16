@@ -62,6 +62,19 @@ class Organization extends Model
     }
 
     /**
+     * Slug organisasi RT di bawah sebuah RW, dengan normalisasi dua digit
+     * yang sama dengan seed migrasi B1 ('1' dan '01' adalah RT yang sama).
+     * Satu-satunya sumber format slug RT: pembuatan (AkunController) dan
+     * pencarian (NotificationService) harus selalu sepakat.
+     */
+    public static function slugRt(self $rw, string $rt): string
+    {
+        $rt = str_pad(trim($rt), 2, '0', STR_PAD_LEFT);
+
+        return "rt-{$rt}-{$rw->slug}";
+    }
+
+    /**
      * Seluruh id organisasi di subtree $akarId, termasuk akarnya sendiri.
      * $petaInduk opsional untuk pemanggil yang sudah memegang hasil
      * `pluck('parent_id', 'id')` dan tidak boleh menambah query (jalur
