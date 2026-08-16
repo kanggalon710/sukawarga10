@@ -20,6 +20,12 @@
 .tenant-aksi .btn, .tenant-edit .btn { min-height: 44px; }
 .tenant-edit { padding: 12px 16px; border-top: 1px solid var(--abu2, #e3e6e2); }
 .tenant-edit summary { cursor: pointer; font-size: 13px; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 6px; }
+.rw-nomor-form { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.rw-nomor-input {
+    width: 64px; min-height: 44px; font-size: 16px; text-align: center;
+    padding: 8px; border: 1px solid var(--abu2, #d5d9d4);
+    border-radius: var(--radius, 8px); background: var(--surface, #fff);
+}
 </style>
 @endpush
 
@@ -33,6 +39,13 @@
 @if(session('error'))
 <div class="card" style="margin-bottom:16px; border-left:4px solid var(--merah); padding:12px 16px;" role="alert">
     <i class="fas fa-triangle-exclamation" style="color:var(--merah);" aria-hidden="true"></i> {{ session('error') }}
+</div>
+@endif
+{{-- Kolom Aksi bisa berada di area scroll tabel pada layar sempit, jadi
+     kegagalan ganti nomor juga ditampilkan sebagai banner di atas. --}}
+@if($errors->has('nomor'))
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--merah); padding:12px 16px;" role="alert">
+    <i class="fas fa-triangle-exclamation" style="color:var(--merah);" aria-hidden="true"></i> Ganti nomor RW gagal: {{ $errors->first('nomor') }}
 </div>
 @endif
 
@@ -154,6 +167,21 @@
                     <td>{{ $rw->status ?? 'aktif' }}</td>
                     <td>
                         <div class="tenant-aksi">
+                            @php $galat = $errors->has('nomor') && (string) old('_rw_org') === (string) $rw->id; @endphp
+                            <form method="POST" action="{{ route('tenant.rw.update', $rw->id) }}" class="rw-nomor-form"
+                                  onsubmit="return confirm('Ganti nomor {{ $rw->name }} {{ $desa->name }}? Alamat portal ikut berganti; alamat lama tetap hidup sebagai alias.')">
+                                @csrf @method('PUT')
+                                <input type="hidden" name="_rw_org" value="{{ $rw->id }}">
+                                <label class="visually-hidden" for="nomor-{{ $rw->id }}">Nomor RW baru</label>
+                                <input type="text" inputmode="numeric" pattern="\d{1,2}" maxlength="2" required
+                                       id="nomor-{{ $rw->id }}" name="nomor" class="rw-nomor-input"
+                                       value="{{ $galat ? old('nomor') : trim(preg_replace('/\D+/', '', $rw->name)) }}"
+                                       @if($galat) aria-invalid="true" aria-describedby="err-nomor-{{ $rw->id }}" @endif>
+                                <button type="submit" class="btn btn-outline btn-sm">Ganti nomor</button>
+                                @if($galat)
+                                    <p id="err-nomor-{{ $rw->id }}" role="alert" style="color:var(--merah); font-size:12px; margin:0; flex-basis:100%;">{{ $errors->first('nomor') }}</p>
+                                @endif
+                            </form>
                             <form method="POST" action="{{ route('tenant.rw.toggle', $rw->id) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-outline btn-sm">
@@ -173,7 +201,7 @@
         </table>
     </div>
     <details class="tenant-edit">
-        <summary><i class="fas fa-pen" aria-hidden="true"></i> Ubah nama desa @if($desa->children->isEmpty()) / hapus desa @endif</summary>
+        <summary><i class="fas fa-pen" aria-hidden="true"></i> Ubah identitas desa @if($desa->children->isEmpty()) / hapus desa @endif</summary>
         @php
             // Nama tersimpan berformat "Nama (Kecamatan)" - pecah untuk form.
             preg_match('/^(.*?)(?:\s*\((.*)\))?$/', $desa->name, $bagian);
@@ -190,8 +218,14 @@
                 <input type="text" id="kecamatan-{{ $desa->id }}" name="kecamatan" maxlength="100"
                        class="sak-input" value="{{ old('kecamatan', $bagian[2] ?? '') }}">
             </div>
+            <div style="margin-bottom:12px;">
+                <label class="sak-label" for="kabupaten-{{ $desa->id }}">Kabupaten/Kota</label>
+                <input type="text" id="kabupaten-{{ $desa->id }}" name="kabupaten" maxlength="100"
+                       class="sak-input" value="{{ old('kabupaten', $kabupatenPerDesa[$desa->id] ?? '') }}"
+                       placeholder="mis. Kota Sukabumi">
+            </div>
             <div class="tenant-aksi">
-                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save" aria-hidden="true"></i> Simpan nama</button>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save" aria-hidden="true"></i> Simpan identitas</button>
             </div>
         </form>
         <form method="POST" action="{{ route('tenant.adminDesa', $desa->id) }}" style="margin-top:10px;">

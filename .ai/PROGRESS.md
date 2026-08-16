@@ -2,6 +2,29 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-17 - Edit identitas tenant: ganti nomor RW + hostname, kabupaten desa
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Tenant produksi "RW 07 Bagendit" ternyata salah identitas -
+yang benar RW 10, Kec. Warudoyong, Kota Sukabumi. Manajemen Desa belum
+punya UI untuk nomor RW/hostname (keputusan lama: slug beku), jadi koreksi
+butuh SQL manual. Dibangun fitur Edit supaya kasus serupa selesai lewat UI.
+**Perubahan:** TenantController@updateRw (PUT /tenant/rw/{id}): ganti nomor
+RW -> name/code, hostname primary baru {label}-rw{nn}.<basis>, hostname
+lama jadi alias aktif non-primary (pola legacy resolver), AppSetting
+nama_rw (bila ada) + alamat_portal (bila masih menunjuk hostname lama),
+backfill keluargas.rw + REPLACE alamat, semua satu transaksi. Slug SENGAJA
+tetap (slug RT anak & lookup dibangun darinya). update() desa diperluas:
+field kabupaten (AppSetting org desa, diwarisi RW), timpa override
+kelurahan/kecamatan subtree + backfill KK. Bonus: storeWeb KeluargaController
+tidak lagi hardcode "RW 10 Sukakarya" - pakai wilayahTenant().
+**File:** app/Http/Controllers/TenantController.php, app/Models/AppSetting.php
+(simpanUntuk), routes/web.php, resources/views/admin/tenant.blade.php,
+app/Http/Controllers/KeluargaController.php, tests/Feature/EditTenantTest.php
+**Catatan:** 244 tes (832 assertion) hijau SQLite + MariaDB; screenshot
+360/768/1280 aman. Ganti hostname tetap butuh langkah cPanel manual
+(Create a New Domain + AutoSSL) untuk alamat baru - alamat lama JANGAN
+dihapus dari cPanel karena masih dipakai sebagai alias.
+
 ## 2026-08-16 - Kepala keluarga ikut dihitung L/P Laporan + pekerjaan kepala tersimpan saat impor
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik lapor angka Laporan tak masuk akal pasca-impor RW 07

@@ -84,4 +84,20 @@ class AppSetting extends Model
 
         return $baris;
     }
+
+    /**
+     * Tulis setting untuk organisasi TERTENTU, bukan organisasi host request.
+     * Dipakai alat koreksi lintas-tenant (Manajemen Desa mengedit setting
+     * milik RW/desa dari host platform).
+     */
+    public static function simpanUntuk(?int $orgId, string $key, $value): static
+    {
+        $baris = static::updateOrCreate(
+            ['key' => $key, 'organization_id' => $orgId],
+            ['value' => $value]
+        );
+        app(TenantContext::class)->lupakan('app_settings.efektif');
+
+        return $baris;
+    }
 }

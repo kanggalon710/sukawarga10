@@ -3,6 +3,21 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-17 - Nomor RW & hostname bisa diganti; slug tetap beku
+**Konteks:** Tenant Bagendit salah nomor RW + wilayah; keputusan
+2026-08-16 menyatakan label/slug tak bisa diubah karena hostname terikat.
+**Pilihan:** Revisi sebagian: hostname TIDAK lagi dianggap beku - resolver
+membaca murni tabel domains (tanpa cache), jadi ganti nomor RW membuat
+hostname primary baru dan menurunkan hostname lama jadi alias aktif
+non-primary (alamat yang sudah dibagikan warga tetap hidup). Slug TETAP
+beku: Organization::slugRt() membangun slug RT anak dari slug RW, dan
+NotificationService/AkunController mencari org RT lewat slug itu -
+mengubah slug memutus seluruh RT + assignment petugasnya. Konsekuensi:
+slug lama (rw-07-bagendit) bisa tidak cocok dengan nama baru (RW 10);
+itu diterima sebagai identifier historis, bukan tampilan. AppSetting
+alamat_portal hanya dikoreksi bila masih menunjuk hostname lama - override
+kustom milik tenant dihormati.
+
 ## 2026-08-16 - Cakupan kelola akun mengikuti tingkat HOST, bukan level user
 **Konteks:** Owner minta kelola akun bertingkat; /akun lama menampilkan
 semua user lintas tenant.

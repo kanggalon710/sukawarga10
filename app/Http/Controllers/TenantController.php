@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
+use App\Models\Domain;
+use App\Models\Keluarga;
 use App\Models\Organization;
 use App\Models\UserRoleAssignment;
 use App\Services\AuditLogService;
 use App\Services\PembukaTenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Manajemen Desa (Phase G tahap 1): membuka desa + RW + domain + admin dari
@@ -36,7 +40,11 @@ class TenantController extends Controller
             ->get(['user_role_assignments.organization_id', 'users.username'])
             ->groupBy('organization_id');
 
-        return view('admin.tenant', compact('desas', 'adminPerOrg'));
+        // Prefill form edit desa: kabupaten per desa dalam satu query.
+        $kabupatenPerDesa = AppSetting::whereIn('organization_id', $desas->pluck('id'))
+            ->where('key', 'kabupaten')->pluck('value', 'organization_id');
+
+        return view('admin.tenant', compact('desas', 'adminPerOrg', 'kabupatenPerDesa'));
     }
 
     public function store(Request $request, PembukaTenant $pembuka)
@@ -72,7 +80,12 @@ class TenantController extends Controller
         ]);
     }
 
-    /** Ubah nama tampilan desa. Label/slug TIDAK bisa diubah: domain terikat padanya. */
+    /**
+     * Ubah identitas desa: nama, kecamatan, kabupaten. Label/slug TIDAK bisa
+     * diubah: domain terikat padanya. Ini alat KOREKSI identitas, jadi
+     * override kelurahan/kecamatan yang pernah diisi tenant di bawahnya dan
+     * data KK lama ikut ditimpa nilai baru - konsistensi menang.
+     */
     public function update(Request $request, int $id)
     {
         $this->pastikanAdminPlatform();
@@ -81,6 +94,7 @@ class TenantController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:100',
             'kecamatan' => 'nullable|string|max:100',
+            'kabupaten' => 'nullable|string|max:100',
         ]);
 
         $kecamatan = trim($validated['kecamatan'] ?? '');
@@ -100,10 +114,127 @@ class TenantController extends Controller
             ])->withInput();
         }
 
-        $desa->update(['name' => $namaLengkap]);
-        AuditLogService::log('ubah_tenant', 'tenant', "Ubah nama desa {$desa->slug} menjadi {$namaLengkap}");
+        $namaPolos = trim($validated['nama']);
+        $kabupaten = trim($validated['kabupaten'] ?? '');
+        DB::transaction(function () use ($desa, $namaLengkap, $namaPolos, $kecamatan, $kabupaten) {
+            $desa->update(['name' => $namaLengkap]);
 
-        return redirect()->route('tenant.index')->with('success', "Nama desa diperbarui: {$namaLengkap}.");
+            $subtree = Organization::idSubtree($desa->id);
+            if ($kabupaten !== '') {
+                // Di org desa supaya diwarisi semua RW (kop surat dsb).
+                AppSetting::simpanUntuk($desa->id, 'kabupaten', $kabupaten);
+            }
+            AppSetting::whereIn('organization_id', $subtree)
+                ->where('key', 'kelurahan')->update(['value' => $namaPolos]);
+            if ($kecamatan !== '') {
+                AppSetting::whereIn('organization_id', $subtree)
+                    ->where('key', 'kecamatan')->update(['value' => $kecamatan]);
+            }
+
+            Keluarga::withoutGlobalScope('organisasi')
+                ->whereIn('organization_id', $subtree)
+                ->update(array_merge(
+                    ['kelurahan' => $namaPolos],
+                    $kecamatan !== '' ? ['kecamatan' => $kecamatan] : []
+                ));
+        });
+        // Update query builder di atas melewati invalidasi memo simpan().
+        app(\App\Services\TenantContext::class)->lupakan('app_settings.efektif');
+
+        AuditLogService::log('ubah_tenant', 'tenant', "Ubah identitas desa {$desa->slug} menjadi {$namaLengkap}".($kabupaten !== '' ? ", kabupaten {$kabupaten}" : ''));
+
+        return redirect()->route('tenant.index')->with('success', "Identitas desa diperbarui: {$namaLengkap}.");
+    }
+
+    /**
+     * Ganti nomor RW: name/code dimutakhirkan, hostname portal ikut berganti,
+     * dan alamat lama dipertahankan sebagai alias (non-primary, tetap aktif)
+     * supaya tautan/kredensial yang sudah dibagikan warga tidak putus.
+     * Slug SENGAJA tidak disentuh: slug RT anak dan lookup NotificationService/
+     * AkunController dibangun darinya (lihat .ai/DECISIONS.md).
+     */
+    public function updateRw(Request $request, int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $rw = Organization::where('type', Organization::TYPE_RW)
+            ->with(['parent', 'domains'])->findOrFail($id);
+        $desa = $rw->parent;
+
+        $validated = $request->validate([
+            'nomor' => ['required', 'regex:/^\d{1,2}$/'],
+        ], [
+            'nomor.regex' => 'Nomor RW berupa 1-2 digit angka.',
+        ]);
+        $nn = str_pad($validated['nomor'], 2, '0', STR_PAD_LEFT);
+
+        $lama = trim(preg_replace('/\D+/', '', $rw->name));
+        if ($lama === $nn) {
+            return redirect()->route('tenant.index')
+                ->with('success', "{$rw->name} sudah bernomor {$nn} - tidak ada yang diubah.");
+        }
+
+        $primaryLama = $rw->domains->firstWhere('is_primary', true);
+        if ($desa === null || $primaryLama === null) {
+            return back()->withErrors([
+                'nomor' => 'RW ini belum punya desa induk/domain utama - perbaiki datanya dulu.',
+            ]);
+        }
+
+        if (Organization::where('parent_id', $desa->id)
+            ->where('type', Organization::TYPE_RW)
+            ->where('id', '!=', $rw->id)
+            ->where('name', "RW {$nn}")->exists()) {
+            return back()->withErrors(['nomor' => "RW {$nn} sudah ada di {$desa->name}."])->withInput();
+        }
+
+        $basis = substr($primaryLama->hostname, strpos($primaryLama->hostname, '.') + 1);
+        $hostBaru = "{$desa->slug}-rw{$nn}.{$basis}";
+        if (Domain::where('hostname', $hostBaru)->where('organization_id', '!=', $rw->id)->exists()) {
+            return back()->withErrors(['nomor' => "Alamat {$hostBaru} sudah dipakai organisasi lain."])->withInput();
+        }
+
+        DB::transaction(function () use ($rw, $desa, $nn, $lama, $primaryLama, $hostBaru) {
+            $rw->update([
+                'name' => "RW {$nn}",
+                'code' => strtoupper("{$desa->slug}-RW{$nn}"),
+            ]);
+
+            $primaryLama->update(['is_primary' => false]);
+            // Ganti-balik ke nomor lama: baris alias lama dipromosikan lagi,
+            // bukan digandakan (hostname unique).
+            Domain::firstOrCreate(
+                ['hostname' => $hostBaru],
+                ['organization_id' => $rw->id, 'is_primary' => true, 'status' => 'aktif']
+            )->update(['is_primary' => true, 'status' => 'aktif']);
+
+            // Setting hanya dikoreksi bila memang menunjuk nilai lama; override
+            // kustom (mis. domain milik sendiri) dibiarkan.
+            if (AppSetting::where('organization_id', $rw->id)->where('key', 'nama_rw')->exists()) {
+                AppSetting::simpanUntuk($rw->id, 'nama_rw', "RW {$nn}");
+            }
+            $portal = AppSetting::where('organization_id', $rw->id)
+                ->where('key', 'alamat_portal')->first();
+            if ($portal === null || $portal->value === $primaryLama->hostname) {
+                AppSetting::simpanUntuk($rw->id, 'alamat_portal', $hostBaru);
+            }
+
+            Keluarga::withoutGlobalScope('organisasi')
+                ->where('organization_id', $rw->id)->update(['rw' => $nn]);
+            if ($lama !== '') {
+                // $lama/$nn dijamin digit (regex + preg_replace \D), aman
+                // diinterpolasi; REPLACE() ada di SQLite maupun MariaDB.
+                Keluarga::withoutGlobalScope('organisasi')
+                    ->where('organization_id', $rw->id)
+                    ->update(['alamat' => DB::raw("REPLACE(alamat, 'RW {$lama}', 'RW {$nn}')")]);
+            }
+        });
+
+        AuditLogService::log('ubah_tenant', 'tenant',
+            "Ganti nomor {$rw->slug}: RW {$lama} -> RW {$nn}, portal {$hostBaru}");
+
+        return redirect()->route('tenant.index')->with('success',
+            "{$desa->name} RW {$nn}: portal baru https://{$hostBaru} - daftarkan subdomainnya di cPanel + AutoSSL. ".
+            "Alamat lama {$primaryLama->hostname} tetap hidup sebagai alias; username admin tidak berubah.");
     }
 
     /**

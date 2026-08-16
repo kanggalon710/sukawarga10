@@ -57,9 +57,11 @@ class KeluargaController extends Controller
 
         $data['noHP'] = normalizeWa($request->input('noHP')); // auto → 62xxxx
         $data['keluarga_id'] = uniqid('kk_');
-        $data['rw'] = '10';
-        $data['kelurahan'] = 'Sukakarya';
-        $data['kecamatan'] = 'Tarogong Kidul';
+        // Wilayah mengikuti tenant request - dulu hardcode RW 10 Sukakarya.
+        $wilayah = wilayahTenant();
+        $data['rw'] = $wilayah['rw'];
+        $data['kelurahan'] = $wilayah['kelurahan'];
+        $data['kecamatan'] = $wilayah['kecamatan'];
         $data['status'] = 'aktif';
         $data['ikutSampah'] = $request->boolean('ikutSampah');
         $data['ikutPadaringan'] = $request->boolean('ikutPadaringan');

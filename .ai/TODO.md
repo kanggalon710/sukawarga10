@@ -9,6 +9,11 @@ Riwayat lengkap ada di `.ai/PROGRESS.md`.
 
 Bukan pekerjaan kode, tapi jangan dilewat.
 
+- [ ] **Koreksi identitas tenant Bagendit di produksi (2026-08-17).** Lewat
+      `desa.jabnet.id/tenant`: edit desa (kecamatan Warudoyong, kabupaten
+      Kota Sukabumi) lalu ganti nomor RW 07 -> 10. Setelahnya buat subdomain
+      `bagendit-rw10.desa.jabnet.id` di cPanel (docroot `public`) + AutoSSL.
+      Alamat lama JANGAN dihapus dari cPanel - masih hidup sebagai alias.
 - [ ] **Backup database produksi** sebelum `php artisan migrate --force`.
       Selain migrasi lama (`users.keluarga_id`, `transaksis.periode`, index),
       kini ada LIMA migrasi multi-tenant `2026_08_15_000004`-`000008`

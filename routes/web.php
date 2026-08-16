@@ -233,6 +233,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'update'])->name('tenant.update');
         Route::delete('/tenant/{id}', [App\Http\Controllers\TenantController::class, 'destroyDesa'])->name('tenant.destroy');
         Route::post('/tenant/{id}/admin', [App\Http\Controllers\TenantController::class, 'buatAdminDesa'])->name('tenant.adminDesa');
+        Route::put('/tenant/rw/{id}', [App\Http\Controllers\TenantController::class, 'updateRw'])->name('tenant.rw.update');
         Route::post('/tenant/rw/{id}/toggle', [App\Http\Controllers\TenantController::class, 'toggleRw'])->name('tenant.rw.toggle');
         Route::delete('/tenant/rw/{id}', [App\Http\Controllers\TenantController::class, 'destroyRw'])->name('tenant.rw.destroy');
 
