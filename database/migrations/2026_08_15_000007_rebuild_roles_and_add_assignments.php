@@ -119,7 +119,7 @@ return new class extends Migration
             $rtOrgId = DB::table('organizations')
                 ->where('slug', "rt-{$rt}-rw-10-sukakarya")->value('id');
             if (! $rtOrgId) {
-                echo "  PERINGATAN: {$u->username} (RT '{$u->rt}') tidak punya organisasi RT; dilewati, fallback level tetap berlaku.\n";
+                echo "  PERINGATAN: {$u->username} (RT '{$u->rt}') tidak punya organisasi RT; dilewati. TANPA assignment akun ini efektif warga - buka Manajemen Akun, isi RT-nya, dan simpan ulang levelnya.\n";
                 $tanpaRt++;
 
                 continue;

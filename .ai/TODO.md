@@ -34,6 +34,11 @@ Bukan pekerjaan kode, tapi jangan dilewat.
       perhitungan iuran aman.
 - [ ] **Uji satu pembayaran sungguhan di produksi** setelah deploy, lalu cek
       kolom `kas` dan `transaksi_id` benar terisi.
+- [ ] **Baca output backfill peran migrasi `2026_08_15_000007`.** Sejak
+      fallback `users.level` dicabut, `petugas_rt` yang dilewati backfill
+      (kolom `rt` kosong/tidak cocok organisasi RT) efektif jadi warga.
+      Perbaikannya lewat Manajemen Akun: isi RT lalu simpan ulang levelnya.
+      Uji juga login tiap level akun setelah deploy.
 
 ## Multi-tenant (B1-F + pengerasan selesai; berikutnya D, prasyaratnya di bawah)
 
@@ -69,12 +74,17 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       level efektif (assignment ber-scope, fallback `users.level`). Tabel
       `roles` lama di-rename ke `roles_legacy_pwa` - **drop manual setelah
       produksi dipastikan tidak menyimpan baris berharga.**
-- [ ] **Pensiunkan fallback `users.level`** saat tenant kedua sungguhan
-      dibuka: fallback membuat level lama berlaku di SEMUA tenant, aman
-      selama single-tenant, bocor begitu multi. Sekalian: user BARU yang
-      dibuat lewat Manajemen Akun belum otomatis dapat assignment (masih
-      mengandalkan fallback) - AkunController perlu memasang assignment saat
-      pembuatan akun sebelum fallback dicabut.
+- [x] **Fallback `users.level` pensiun 2026-08-16.** AkunController kini
+      memasang/menyelaraskan/menghapus assignment (satu peran per tenant di
+      subtree RW; petugas_rt di organisasi RT-nya, dibuat bila belum ada;
+      assignment platform tak tersentuh form). `levelEfektif()` tanpa
+      assignment = warga. Kolom `users.level` tinggal catatan tampilan &
+      sasaran notifikasi. 7 tes di `ManajemenAkunTest`.
+- [ ] **Sasaran notifikasi WA masih lintas tenant** (prasyarat D):
+      `notifyPengurus()`/`notifyByLevel()` menyapu users via kolom `level`
+      tanpa organisasi, dan broadcast MPWA loop semua KK (yang ini sudah
+      ter-scope lewat model). Pindahkan sasaran ke assignment ber-scope
+      sebelum tenant kedua dibuka.
 - [x] **E2 tahap 1 (jalur uang) selesai 2026-08-15:** global scope
       `ScopedKeOrganisasi` di `Transaksi` + `Keluarga`; findOrFail lintas
       tenant otomatis 404. 8 tes di `IsolasiTenantTest`.

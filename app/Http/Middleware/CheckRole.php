@@ -15,9 +15,9 @@ class CheckRole
             return redirect()->route('login');
         }
 
-        // Phase E1: assignment ber-scope (user, peran, organisasi) menang bila
-        // ada yang relevan dengan tenant request ini; tanpa assignment, jatuh
-        // ke users.level supaya perilaku lama utuh selama transisi.
+        // Phase E1: level efektif datang dari assignment ber-scope
+        // (user, peran, organisasi) yang relevan dengan tenant request;
+        // tanpa assignment, lantainya warga (fallback users.level sudah dicabut).
         $userLevel = $user->levelEfektif();
 
         // Hierarki level: sumber tunggalnya User::LEVEL_POWER.

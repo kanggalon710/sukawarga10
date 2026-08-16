@@ -60,10 +60,10 @@ class IsolasiTenantTest extends TestCase
         $this->trxAsing->organization_id = $this->rwAsing->id;
         $this->trxAsing->save();
 
-        $this->admin = User::create([
+        $this->admin = $this->pasangPeranSetaraLevel(User::create([
             'user_id' => 'u_iso', 'username' => 'isoadmin', 'namaLengkap' => 'Iso Admin',
             'pin' => Hash::make('123456'), 'level' => 'superadmin', 'status' => 'aktif',
-        ]);
+        ]));
     }
 
     public function test_daftar_warga_tidak_memuat_kk_tenant_lain(): void

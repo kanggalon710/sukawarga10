@@ -12,9 +12,9 @@ use Tests\TestCase;
 
 /**
  * Phase E1 multi-tenant: peran + scope menggantikan level global.
- * Prinsipnya: assignment yang relevan dengan tenant request MENANG; tanpa
- * assignment, users.level tetap berlaku (jembatan transisi); assignment di
- * tenant LAIN tidak memberi hak apa-apa di sini.
+ * Prinsipnya: hak HANYA dari assignment yang relevan dengan tenant request;
+ * tanpa assignment lantainya warga (fallback users.level dicabut 2026-08-16);
+ * assignment di tenant LAIN tidak memberi hak apa-apa di sini.
  */
 class PeranScopeTest extends TestCase
 {
@@ -105,14 +105,16 @@ class PeranScopeTest extends TestCase
         $this->actingAs($user)->get('/pengaturan')->assertForbidden();
     }
 
-    public function test_tanpa_assignment_jatuh_ke_level_lama(): void
+    public function test_kolom_level_tanpa_assignment_tidak_memberi_hak(): void
     {
-        // Jembatan transisi: user lama tanpa assignment berperilaku persis
-        // seperti sebelum E1.
-        $user = $this->buatUser('bendahara', 'bendaharalama');
+        // Jembatan transisi fallback users.level sudah dicabut: tanpa
+        // assignment, kolom level hanyalah catatan - user berhak sebagai warga.
+        $user = $this->buatUser('ketua_rw', 'levellama');
 
-        $this->actingAs($user)->get('/bukukas')->assertOk();
+        $this->actingAs($user)->get('/pengaturan')->assertForbidden();
         $this->actingAs($user)->get('/akun')->assertForbidden();
+        // Akunnya sendiri tetap hidup di lantai warga.
+        $this->actingAs($user)->get('/aduan')->assertOk();
     }
 
     public function test_diambil_yang_terkuat_bila_assignment_lebih_dari_satu(): void

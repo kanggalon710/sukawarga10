@@ -32,11 +32,11 @@ class HalamanUtamaTest extends TestCase
         parent::setUp();
         Http::fake();
 
-        $this->admin = User::create([
+        $this->admin = $this->pasangPeranSetaraLevel(User::create([
             'user_id' => 'usr_admin', 'username' => 'admin',
             'namaLengkap' => 'Administrator', 'pin' => Hash::make('123456'),
             'level' => 'superadmin', 'status' => 'aktif', 'isDefault' => true,
-        ]);
+        ]));
 
         AppSetting::create(['key' => 'tarif_sampah', 'value' => '5000']);
 

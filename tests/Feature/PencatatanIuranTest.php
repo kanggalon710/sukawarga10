@@ -34,7 +34,7 @@ class PencatatanIuranTest extends TestCase
 
     private function pengurus(string $level = 'superadmin'): User
     {
-        return User::create([
+        return $this->pasangPeranSetaraLevel(User::create([
             'user_id' => 'usr_'.$level,
             'username' => $level,
             'namaLengkap' => 'Pengurus '.$level,
@@ -42,7 +42,7 @@ class PencatatanIuranTest extends TestCase
             'level' => $level,
             'status' => 'aktif',
             'isDefault' => false,
-        ]);
+        ]));
     }
 
     private function keluarga(array $atribut = []): Keluarga

@@ -230,9 +230,10 @@ hijau, dan bisa dirilis sendiri:
    `fitur_<modul>`. Penjagaan rutenya SELESAI 2026-08-16: middleware
    `fitur:<modul>` menjawab 404 untuk modul yang dimatikan.
 7. **D:** domain tenant kedua yang sesungguhnya (desa/RW baru) baru dibuka di
-   sini, SETELAH isolasi teruji, bukan sebelumnya. Prasyarat tersisa
-   (`.ai/TODO.md`): pensiunkan fallback `users.level` + AkunController
-   memasang assignment saat pembuatan akun.
+   sini, SETELAH isolasi teruji, bukan sebelumnya. Fallback `users.level`
+   sudah pensiun (2026-08-16; AkunController memelihara assignment, 7 tes
+   `ManajemenAkunTest`). Prasyarat tersisa (`.ai/TODO.md`): sasaran
+   notifikasi WA masih membaca kolom level lintas tenant.
 8. **G/H:** UI manajemen tenant, impersonation (§23, dengan audit), queue
    worker + antrian WA, monitoring.
 

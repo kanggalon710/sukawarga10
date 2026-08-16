@@ -144,8 +144,8 @@ if (!function_exists('userCan')) {
         // tertutup oleh middleware `fitur:` (PastikanFiturAktif).
         if (!fiturAktif($menuKey)) return false;
 
-        // Phase E1: menu mengikuti level efektif (assignment ber-scope dengan
-        // fallback users.level), sama dengan CheckRole - kalau tidak, hak dari
+        // Phase E1: menu mengikuti level efektif (hanya dari assignment
+        // ber-scope), sama dengan CheckRole - kalau tidak, hak dari
         // assignment lolos middleware tapi menunya tidak pernah tampil.
         $level = $user->levelEfektif();
 

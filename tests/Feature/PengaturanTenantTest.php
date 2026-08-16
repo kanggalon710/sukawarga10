@@ -40,10 +40,10 @@ class PengaturanTenantTest extends TestCase
             'hostname' => 'rw99.desa.test', 'is_primary' => true,
         ]);
 
-        $this->admin = User::create([
+        $this->admin = $this->pasangPeranSetaraLevel(User::create([
             'user_id' => 'u_set', 'username' => 'setadmin', 'namaLengkap' => 'Set Admin',
             'pin' => Hash::make('123456'), 'level' => 'superadmin', 'status' => 'aktif',
-        ]);
+        ]));
     }
 
     private function idRw10(): int

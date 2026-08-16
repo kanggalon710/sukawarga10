@@ -60,4 +60,36 @@ class Organization extends Model
 
         return null;
     }
+
+    /**
+     * Seluruh id organisasi di subtree $akarId, termasuk akarnya sendiri.
+     * $petaInduk opsional untuk pemanggil yang sudah memegang hasil
+     * `pluck('parent_id', 'id')` dan tidak boleh menambah query (jalur
+     * levelEfektifUntuk yang dijaga tes hitung-query).
+     */
+    public static function idSubtree(int $akarId, $petaInduk = null): array
+    {
+        $petaInduk ??= static::pluck('parent_id', 'id');
+
+        $anakDari = [];
+        foreach ($petaInduk as $anakId => $indukId) {
+            if ($indukId !== null) {
+                $anakDari[$indukId][] = $anakId;
+            }
+        }
+
+        // Digali per tingkat; batas 10 = pagar terhadap data siklik.
+        $hasil = [$akarId];
+        $frontier = [$akarId];
+        for ($i = 0; $frontier !== [] && $i < 10; $i++) {
+            $berikut = [];
+            foreach ($frontier as $fid) {
+                $berikut = array_merge($berikut, $anakDari[$fid] ?? []);
+            }
+            $hasil = array_merge($hasil, $berikut);
+            $frontier = $berikut;
+        }
+
+        return $hasil;
+    }
 }

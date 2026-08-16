@@ -3,6 +3,23 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Superadmin dari Manajemen Akun ber-scope tenant, bukan platform
+**Konteks:** Fallback `users.level` dicabut, jadi AkunController wajib
+memasang assignment. Untuk level `superadmin`, assignment-nya bisa dipasang
+di organisasi platform (kuasa semua tenant) atau di RW tenant request.
+**Opsi:** (a) platform, meniru makna lama "superadmin = operator penuh";
+(b) RW tenant.
+**Pilihan:** (b). Assignment platform hanya lewat seeder/konsol, dan form
+tenant tidak pernah menyentuh assignment di luar subtree RW-nya.
+**Alasan:** Dengan (a), admin satu RW bisa mencetak admin lintas platform
+dari form biasa - eskalasi hak antar tenant. Dengan (b), "superadmin" buatan
+form berkuasa penuh DI TENANT ITU saja; efeknya identik selama single-tenant.
+Konsekuensi lain yang diputuskan sekalian: satu peran per tenant per user
+(form mengganti, tidak menumpuk); akun warga tidak diberi baris assignment
+(lantai default `levelEfektif()`); lookup peran dari level lama
+didisambiguasi `scope_type` karena `legacy_level` 'ketua_rw' dimiliki dua
+peran (desa_admin & rw_admin).
+
 ## 2026-08-16 - Modul yang dimatikan dijawab 404, dan reset data mengikuti scope
 **Konteks:** Penjaga rute feature flag butuh kode respons, dan `resetData`
 harus berhenti TRUNCATE lintas tenant.

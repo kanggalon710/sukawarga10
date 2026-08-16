@@ -142,6 +142,14 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    menu key yang sama dari `getAllMenuItems()`. Menambah modul baru tanpa
    membungkus rutenya berarti modul itu tidak bisa dimatikan per tenant.
    Dijaga `tests/Feature/PengaturanTenantTest.php`.
+12. **`users.level` BUKAN sumber otorisasi.** Hak akses hanya dari assignment
+   `(user, peran, organisasi)` yang dibaca `levelEfektif()`; tanpa assignment,
+   lantainya warga. Kolom `level` tinggal catatan tampilan & sasaran
+   notifikasi, dan Manajemen Akun-lah yang memelihara assignment-nya
+   (`AkunController::selaraskanAssignment`). Cek izin baru wajib lewat
+   `levelEfektif()`/helper `is*()`, jangan membaca kolom `level`. Fixture tes
+   pengurus dipasangkan perannya lewat `TestCase::pasangPeranSetaraLevel()`.
+   Dijaga `tests/Feature/ManajemenAkunTest.php` dan `PeranScopeTest.php`.
 
 ## Konvensi kode
 

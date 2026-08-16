@@ -2,6 +2,38 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Fallback users.level pensiun; Manajemen Akun memelihara assignment
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Prasyarat terakhir Phase D: fallback membuat kolom level lama
+berlaku di SEMUA tenant - aman selama single-tenant, bocor begitu tenant kedua
+hidup. Fallback tidak bisa dicabut sebelum AkunController memasang assignment,
+karena akun baru dari Manajemen Akun akan lahir tanpa hak.
+**Perubahan:**
+- `AkunController::store/update` memanggil `selaraskanAssignment()`: satu
+  peran per tenant di subtree RW request (yang lama diganti), petugas_rt
+  ditempatkan di organisasi RT-nya (dibuat bila belum ada, normalisasi sama
+  dengan seed B1), assignment platform tidak pernah disentuh form tenant.
+  `destroy` ikut menghapus assignment (tabel tanpa FK cascade). Validasi baru:
+  `rt` wajib bila level petugas_rt.
+- `User::levelEfektif()`: `?? $this->level` dicabut; tanpa assignment relevan,
+  lantainya warga. Kolom `users.level` tinggal catatan tampilan & sasaran
+  notifikasi.
+- `Organization::idSubtree()` diekstrak (dipakai AkunController dan
+  `levelEfektifUntuk` tanpa query tambahan).
+- Temuan saat implementasi: lookup peran via `legacy_level` ambigu
+  (desa_admin & rw_admin sama-sama 'ketua_rw') - didisambiguasi lewat
+  `scope_type` organisasi sasaran.
+- Fixture tes pengurus kini lewat `TestCase::pasangPeranSetaraLevel()`;
+  pesan peringatan backfill E1 diperbarui (migrasi belum pernah jalan di
+  produksi).
+**File:** app/Http/Controllers/AkunController.php, app/Models/User.php,
+app/Models/Organization.php, app/Http/Middleware/CheckRole.php,
+app/helpers.php, database/migrations/2026_08_15_000007, tests/TestCase.php,
+tests/Feature/ManajemenAkunTest.php (baru, 7 tes), 6 file tes lain
+**Catatan:** 139 tes (333 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Sasaran notifikasi WA masih membaca kolom level lintas tenant - tercatat
+sebagai prasyarat D tersisa di TODO.
+
 ## 2026-08-16 - Pengerasan pra-tenant-kedua: sisa E2 + penjaga rute feature flag
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Empat lubang yang tercatat di TODO harus tertutup sebelum Phase D

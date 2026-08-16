@@ -36,7 +36,7 @@ class OtorisasiTest extends TestCase
     {
         $username = $username ?: $level;
 
-        return User::create([
+        return $this->pasangPeranSetaraLevel(User::create([
             'user_id' => 'usr_'.$username,
             'username' => $username,
             'namaLengkap' => 'Akun '.$username,
@@ -44,7 +44,7 @@ class OtorisasiTest extends TestCase
             'level' => $level,
             'status' => 'aktif',
             'isDefault' => false,
-        ]);
+        ]));
     }
 
     private function surat(?int $userId = null): Surat

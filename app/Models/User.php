@@ -66,9 +66,9 @@ class User extends Authenticatable
      * bawahnya) ATAU di subtree-nya (rt_admin RT 01 berlaku di tenant RW
      * induknya). Dari yang relevan diambil legacy_level terkuat.
      *
-     * Return null bila tidak ada assignment relevan; pemanggil jatuh kembali
-     * ke users.level - jembatan transisi yang membuat perilaku lama utuh dan
-     * dihapus saat kolom level pensiun (tercatat di TODO).
+     * Return null bila tidak ada assignment relevan; pemanggil memakai lantai
+     * 'warga'. Jembatan fallback ke users.level sudah dicabut (2026-08-16):
+     * kolom level kini hanya catatan tampilan & sasaran notifikasi.
      */
     public function levelEfektifUntuk(?Organization $org): ?string
     {
@@ -101,23 +101,12 @@ class User extends Authenticatable
             $id = $petaInduk[$id] ?? null;
         }
 
-        // Subtree, digali per tingkat dari peta yang sama.
-        $anakDari = [];
-        foreach ($petaInduk as $anakId => $indukId) {
-            if ($indukId !== null) {
-                $anakDari[$indukId][] = $anakId;
-            }
-        }
-        $frontier = [$org->id];
-        for ($i = 0; $frontier !== [] && $i < 10; $i++) {
-            $berikut = [];
-            foreach ($frontier as $fid) {
-                $berikut = array_merge($berikut, $anakDari[$fid] ?? []);
-            }
-            $relevan = array_merge($relevan, $berikut);
-            $frontier = $berikut;
-        }
-        $relevan = array_flip($relevan);
+        // Subtree, digali dari peta yang sama (tanpa query tambahan);
+        // akar ganda tidak masalah karena array_flip mendedupe.
+        $relevan = array_flip(array_merge(
+            $relevan,
+            Organization::idSubtree($org->id, $petaInduk)
+        ));
 
         $terkuat = null;
         foreach ($milik as $assignment) {
@@ -134,10 +123,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Level efektif untuk tenant request ini (Phase E1): assignment ber-scope
-     * menang, users.level jadi fallback transisi. Seluruh cek izin di bawah
-     * WAJIB lewat ini, bukan kolom level mentah - kalau tidak, hak dari
-     * assignment lolos middleware tapi ditolak controller.
+     * Level efektif untuk tenant request ini: HANYA dari assignment ber-scope
+     * (Phase E1); tanpa assignment yang relevan, lantainya 'warga'. Fallback
+     * transisi ke users.level dicabut 2026-08-16 - fallback membuat level lama
+     * berlaku di SEMUA tenant, bocor begitu tenant kedua hidup. Seluruh cek
+     * izin di bawah WAJIB lewat ini, bukan kolom level mentah.
      *
      * Memo-nya dititip di TenantContext (scoped per request), BUKAN di
      * instance model: instance user bisa hidup melintasi beberapa request
@@ -150,7 +140,7 @@ class User extends Authenticatable
 
         return $context->ingatLevelEfektif(
             $this->id ?? spl_object_id($this),
-            fn () => $this->levelEfektifUntuk($context->organisasi()) ?? $this->level ?? 'warga'
+            fn () => $this->levelEfektifUntuk($context->organisasi()) ?? 'warga'
         );
     }
 
