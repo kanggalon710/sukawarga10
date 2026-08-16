@@ -138,10 +138,12 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       rujukan `asset()` sekaligus memastikan cache browser dan PWA tidak memegang
       yang lama, jadi dijadikan pekerjaan tersendiri.
 - [ ] **Pindah domain ke `desa.jabnet.id`.** Langkah lengkap ada di `DEPLOY.md`
-      bagian "Pindah domain". Penghambat: per 2026-08-15 `desa.jabnet.id` belum
-      resolve, sedangkan `paru.jabnet.id` hidup di 103.194.47.165. Tidak ada
-      perubahan kode yang diperlukan; setelah DNS jadi, cukup ubah `APP_URL` dan
-      setting `alamat_portal` lewat menu Pengaturan.
+      bagian "Pindah domain". Update 2026-08-16: DNS SUDAH resolve ke IP yang
+      sama dengan paru (103.194.47.165), tapi web server belum mengenal
+      hostname-nya (HTTPS jatuh ke vhost default akun lain). Sisa pekerjaan:
+      buat domainnya di cPanel (document root sama, folder `public`), AutoSSL,
+      daftarkan hostname di tabel `domains` (kalau tidak: 404), lalu ubah
+      `APP_URL` + setting `alamat_portal`. Tanpa perubahan kode.
 - [ ] **`sukawarga10.jabnet.id` masih hidup** di IP berbeda (103.194.46.164),
       kemungkinan deployment lama. Pastikan tidak ada warga yang masih diarahkan
       ke sana; matikan atau redirect kalau sudah tidak dipakai. Pesan WhatsApp

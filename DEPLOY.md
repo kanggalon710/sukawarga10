@@ -82,27 +82,36 @@ chmod -R ug+rw storage bootstrap/cache
 
 ## 7. Pindah domain (paru.jabnet.id → desa.jabnet.id)
 
-Domain produksi saat ini `paru.jabnet.id`. Rencananya pindah ke
-`desa.jabnet.id`; per 2026-08-15 domain itu **belum resolve**, jadi jangan
-diarahkan sebelum DNS-nya jadi. Tidak ada perubahan kode yang diperlukan.
+Domain produksi saat ini `paru.jabnet.id`. Per 2026-08-16 DNS `desa.jabnet.id`
+**sudah resolve** ke IP yang sama (103.194.47.165), tapi web server belum
+mengenalnya (HTTPS masih jatuh ke vhost default akun lain). Tidak ada
+perubahan kode yang diperlukan - hanya konfigurasi server + dua baris data.
 
-Urutan yang benar, DNS dulu baru aplikasi:
+Urutan yang benar:
 
-1. **Buat DNS `desa.jabnet.id`** mengarah ke server yang sama, lalu terbitkan
-   sertifikat TLS-nya. Pastikan `https://desa.jabnet.id` sudah membuka aplikasi.
+1. **DNS `desa.jabnet.id`** mengarah ke server yang sama (SUDAH), lalu
+   terbitkan sertifikat TLS-nya (di cPanel: AutoSSL setelah domainnya dibuat).
 2. **Tambahkan domain baru ke konfigurasi web server** sebagai `ServerAlias` /
-   `server_name` tambahan, jangan langsung menggantikan yang lama. Selama masa
-   transisi keduanya harus hidup, karena warga masih memegang link lama dari
-   pesan WhatsApp yang sudah terkirim.
-3. **Ubah `APP_URL`** di `.env` produksi jadi `https://desa.jabnet.id`, lalu
+   `server_name` tambahan (di cPanel: Domains → Create a New Domain dengan
+   document root yang SAMA dengan paru, yaitu folder `public` aplikasi),
+   jangan langsung menggantikan yang lama. Selama masa transisi keduanya harus
+   hidup, karena warga masih memegang link lama dari pesan WhatsApp yang
+   sudah terkirim.
+3. **Daftarkan hostname di tabel `domains`** - resolver tenant menjawab 404
+   untuk hostname yang tidak terdaftar (`desa.jabnet.id` sengaja tidak ikut
+   seed migrasi):
+   ```bash
+   php artisan tinker --execute="\App\Models\Domain::firstOrCreate(['hostname' => 'desa.jabnet.id'], ['organization_id' => \App\Models\Organization::where('slug', 'rw-10-sukakarya')->value('id'), 'is_primary' => false, 'status' => 'aktif']);"
+   ```
+4. **Ubah `APP_URL`** di `.env` produksi jadi `https://desa.jabnet.id`, lalu
    `php artisan config:clear && php artisan config:cache`.
-4. **Ubah "Alamat Portal"** di menu **Pengaturan > Info RW > Identitas Aplikasi**
+5. **Ubah "Alamat Portal"** di menu **Pengaturan > Info RW > Identitas Aplikasi**
    jadi `desa.jabnet.id`. Ini yang menentukan link di pesan WhatsApp ke warga.
    Isi nama domain saja, tanpa `https://` dan tanpa garis miring; form menolak
    nilai yang memakai skema atau path.
-5. **Uji satu pesan sungguhan**: Pengaturan > WhatsApp API > test koneksi, lalu
+6. **Uji satu pesan sungguhan**: Pengaturan > WhatsApp API > test koneksi, lalu
    periksa link di pesan yang masuk sudah memakai domain baru dan bisa dibuka.
-6. **Biarkan `paru.jabnet.id` hidup** dengan redirect 301 ke domain baru,
+7. **Biarkan `paru.jabnet.id` hidup** dengan redirect 301 ke domain baru,
    setidaknya sampai satu siklus tagihan penuh berlalu.
 
 Catatan: `sukawarga10.jabnet.id` masih hidup di IP yang berbeda
