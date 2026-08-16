@@ -2,6 +2,21 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Lock composer portabel ke PHP 8.3 + tambal 24 advisori keamanan
+**Agen:** claude | **Status:** selesai
+**Kenapa:** `composer install` GAGAL di server produksi (PHP CLI 8.3.23):
+lock ter-resolve di mesin dev ber-PHP 8.4 sehingga memuat symfony v8 yang
+menuntut >=8.4. Sekalian: `composer audit` menemukan 24 advisori pada
+guzzle/psr7/laravel-framework/commonmark.
+**Perubahan:** `config.platform.php = 8.3.0` di composer.json (lock kini
+selalu ter-resolve untuk PHP terendah yang didukung produksi); symfony turun
+ke jalur 7.3; guzzle 7.15.3, psr7 2.13.0, laravel/framework 12.66.0,
+commonmark 2.10.0. Audit bersih.
+**File:** composer.json, composer.lock
+**Catatan:** 144 tes hijau di SQLite + MariaDB setelah update. Server cukup
+`git pull` lalu ulangi `composer install --no-dev --optimize-autoloader`.
+Peringatan ioncube di server (loader 8.3 hilang) kosmetik, bukan dari kita.
+
 ## 2026-08-16 - Notifikasi WA per tenant + verifikasi end-to-end dua tenant
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Prasyarat Phase D terakhir: `notifyPengurus()`/`notifyByLevel()`/
