@@ -59,7 +59,7 @@
                     <i class="fas fa-home nav-icon"></i> Dashboard
                 </a>
                 @endif
-                @if(auth()->user()->level === 'warga')
+                @if(auth()->user()->levelEfektif() === 'warga')
                 <a href="{{ route('profil.index') }}" class="nav-item {{ request()->routeIs('profil.*') ? 'active' : '' }}">
                     <i class="fas fa-user-circle nav-icon"></i> Profil Saya
                 </a>
@@ -172,7 +172,7 @@
                     <div class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->namaLengkap ?? 'A', 0, 1)) }}</div>
                     <div>
                         <div class="sidebar-user-name">{{ Auth::user()->namaLengkap ?? 'Admin' }}</div>
-                        <div class="sidebar-user-role">{{ ucfirst(Auth::user()->level ?? 'admin') }}</div>
+                        <div class="sidebar-user-role">{{ Auth::user()->level_efektif_label }}</div>
                     </div>
                 </div>
                 <form action="{{ route('logout') }}" method="POST">
@@ -198,7 +198,7 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    @if(auth()->user()->level !== 'warga')
+                    @if(auth()->user()->levelEfektif() !== 'warga')
                     {{-- Pencarian global memuat data seluruh warga, jadi hanya untuk pengurus --}}
                     <div class="header-search">
                         <i class="fas fa-search header-search-icon"></i>
@@ -213,7 +213,7 @@
                         <div id="avatarDropdown" style="display:none; position:absolute; right:0; top:44px; background:white; border-radius:var(--radius); box-shadow:var(--shadow-lg); min-width:220px; z-index:999; overflow:hidden; border:1px solid var(--abu2);">
                             <div style="padding:14px 16px; background:var(--abu); border-bottom:1px solid var(--abu2);">
                                 <div style="font-weight:700; font-size:14px;">{{ Auth::user()->namaLengkap ?? 'Admin' }}</div>
-                                <div style="font-size:11px; color:var(--text3);">{{ Auth::user()->level_label ?? Auth::user()->level ?? 'User' }}</div>
+                                <div style="font-size:11px; color:var(--text3);">{{ Auth::user()->level_efektif_label }}</div>
                             </div>
                             <a href="{{ route('pengaturan.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:13px; color:var(--text2); text-decoration:none; transition:background 0.2s;"><i class="fas fa-cog" style="width:16px; color:var(--text3);"></i> Pengaturan</a>
                             <form method="POST" action="{{ route('logout') }}" style="border-top:1px solid var(--abu2);">

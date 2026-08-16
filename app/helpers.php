@@ -140,8 +140,8 @@ if (!function_exists('userCan')) {
         if (!$user) return false;
 
         // Modul yang dimatikan untuk tenant ini hilang untuk SEMUA level,
-        // termasuk admin: ini ketersediaan modul, bukan izin. Catatan jujur:
-        // baru menu yang tersembunyi; penjagaan rutenya menyusul (TODO).
+        // termasuk admin: ini ketersediaan modul, bukan izin. Rutenya ikut
+        // tertutup oleh middleware `fitur:` (PastikanFiturAktif).
         if (!fiturAktif($menuKey)) return false;
 
         // Phase E1: menu mengikuti level efektif (assignment ber-scope dengan

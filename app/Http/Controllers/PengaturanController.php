@@ -72,7 +72,7 @@ class PengaturanController extends Controller
     }
 
     /**
-     * Reset ALL operational data. Preserves users, roles, and app_settings.
+     * Reset data operasional TENANT INI. Users, roles, dan app_settings utuh.
      */
     public function resetData(Request $request)
     {
@@ -80,26 +80,33 @@ class PengaturanController extends Controller
             return back()->with('error', 'Konfirmasi salah. Ketik "RESET" untuk melanjutkan.');
         }
 
-        // TIDAK dibungkus transaksi: TRUNCATE memicu implicit commit di MySQL,
-        // jadi beginTransaction/rollback di sini hanya memberi rasa aman palsu.
-        // Operasi ini memang tidak bisa dibatalkan; konfirmasi "RESET" adalah
-        // satu-satunya penjaga. Urutan dijaga dari tabel anak ke tabel induk.
-        $tabel = [
-            'iuran_sampahs', 'iuran_padaringans', 'setor_sampahs',
-            'transaksis', 'pengeluarans', 'sumbangans',
-            'aduans', 'surats', 'kegiatans', 'umkms',
-            'pendaftarans', 'anggotas', 'keluargas', 'audit_logs',
+        // Lewat Eloquent, BUKAN TRUNCATE: global scope organisasi membatasi
+        // penghapusan ke tenant request, sedangkan TRUNCATE mengosongkan tabel
+        // lintas tenant. Bonusnya kini bisa dibungkus transaksi (TRUNCATE
+        // memicu implicit commit di MySQL, DELETE tidak).
+        // Urutan dari anak ke induk; model ber-scope turunan (iuran, anggota)
+        // wajib dihapus SEBELUM keluargas karena scope-nya subquery keluargas.
+        $model = [
+            \App\Models\IuranSampah::class, \App\Models\IuranPadaringan::class,
+            \App\Models\SetorSampah::class, \App\Models\Transaksi::class,
+            \App\Models\Pengeluaran::class, \App\Models\Sumbangan::class,
+            \App\Models\Aduan::class, \App\Models\Surat::class,
+            \App\Models\Kegiatan::class, \App\Models\Umkm::class,
+            \App\Models\Pendaftaran::class, \App\Models\Anggota::class,
+            \App\Models\Keluarga::class, \App\Models\AuditLog::class,
         ];
 
         try {
-            foreach ($tabel as $t) {
-                DB::table($t)->truncate();
-            }
+            DB::transaction(function () use ($model) {
+                foreach ($model as $kelas) {
+                    $kelas::query()->delete();
+                }
+            });
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal reset data: ' . $e->getMessage());
         }
 
-        // Ditulis SETELAH truncate, supaya jejaknya tidak ikut terhapus.
+        // Ditulis SETELAH penghapusan, supaya jejaknya tidak ikut terhapus.
         // Lewat AuditLogService, bukan AuditLog::create langsung: skema audit_logs
         // tidak punya kolom user_id/ip, dan penulisan langsung sebelumnya selalu
         // melempar exception sehingga reset yang berhasil dilaporkan sebagai gagal.
@@ -115,57 +122,58 @@ class PengaturanController extends Controller
     }
 
     /**
-     * Remove duplicate Keluarga entries (keep the earliest created one).
+     * Hapus KK & anggota duplikat TENANT INI (yang paling awal dipertahankan).
      */
     public function removeDuplicates(Request $request)
     {
         DB::beginTransaction();
         try {
-            // Find keluargas with same nama + rt, keep the one with lowest id
-            $duplicates = DB::select("
-                SELECT k.id FROM keluargas k
-                INNER JOIN (
-                    SELECT nama, rt, MIN(id) as min_id
-                    FROM keluargas
-                    GROUP BY nama, rt
-                    HAVING COUNT(*) > 1
-                ) dup ON k.nama = dup.nama AND k.rt = dup.rt AND k.id != dup.min_id
-            ");
-
-            $dupIds = array_map(fn($d) => $d->id, $duplicates);
+            // Deteksi lewat Eloquent supaya tersaring scope organisasi: duplikat
+            // tenant lain bukan urusan tenant ini. Deretan KK satu tenant cukup
+            // kecil untuk dibandingkan di memori (kolom seperlunya saja).
+            $dupIds = [];
+            $dupKeluargaIds = [];
+            $terlihat = [];
+            foreach (\App\Models\Keluarga::orderBy('id')->get(['id', 'keluarga_id', 'nama', 'rt']) as $kk) {
+                $kunci = $kk->nama . '|' . $kk->rt;
+                if (isset($terlihat[$kunci])) {
+                    $dupIds[] = $kk->id;
+                    $dupKeluargaIds[] = $kk->keluarga_id;
+                } else {
+                    $terlihat[$kunci] = true;
+                }
+            }
             $countKeluarga = count($dupIds);
 
             if ($countKeluarga > 0) {
-                // Get keluarga_ids for these duplicate IDs
-                $keluargaIds = DB::table('keluargas')->whereIn('id', $dupIds)->pluck('keluarga_id');
-                
-                // Delete related anggotas first
-                $countAnggota = DB::table('anggotas')->whereIn('keluarga_id', $keluargaIds)->delete();
-                
-                // Delete related iuran
-                DB::table('iuran_sampahs')->whereIn('keluarga_id', $keluargaIds)->delete();
-                DB::table('iuran_padaringans')->whereIn('keluarga_id', $keluargaIds)->delete();
-                
-                // Delete the duplicate keluargas
-                DB::table('keluargas')->whereIn('id', $dupIds)->delete();
+                \App\Models\Anggota::whereIn('keluarga_id', $dupKeluargaIds)->delete();
+
+                // iuran_*.keluarga_id menyimpan id numerik keluargas.id (alur
+                // bayar), tapi data lama bisa berisi ID bisnis string - hapus
+                // lewat kedua bentuk rujukan.
+                \App\Models\IuranSampah::whereIn('keluarga_id', $dupIds)->delete();
+                \App\Models\IuranSampah::whereIn('keluarga_id', $dupKeluargaIds)->delete();
+                \App\Models\IuranPadaringan::whereIn('keluarga_id', $dupIds)->delete();
+                \App\Models\IuranPadaringan::whereIn('keluarga_id', $dupKeluargaIds)->delete();
+
+                \App\Models\Keluarga::whereIn('id', $dupIds)->delete();
             }
 
-            // Also remove duplicate anggotas (same keluarga_id + nama)
-            $dupAnggotas = DB::select("
-                SELECT a.id FROM anggotas a
-                INNER JOIN (
-                    SELECT keluarga_id, nama, MIN(id) as min_id
-                    FROM anggotas
-                    GROUP BY keluarga_id, nama
-                    HAVING COUNT(*) > 1
-                ) dup ON a.keluarga_id = dup.keluarga_id AND a.nama = dup.nama AND a.id != dup.min_id
-            ");
-
-            $dupAnggotaIds = array_map(fn($d) => $d->id, $dupAnggotas);
+            // Anggota duplikat (keluarga_id + nama sama) di tenant ini.
+            $dupAnggotaIds = [];
+            $terlihatAnggota = [];
+            foreach (\App\Models\Anggota::orderBy('id')->get(['id', 'keluarga_id', 'nama']) as $a) {
+                $kunci = $a->keluarga_id . '|' . $a->nama;
+                if (isset($terlihatAnggota[$kunci])) {
+                    $dupAnggotaIds[] = $a->id;
+                } else {
+                    $terlihatAnggota[$kunci] = true;
+                }
+            }
             $countDupAnggota = count($dupAnggotaIds);
 
             if ($countDupAnggota > 0) {
-                DB::table('anggotas')->whereIn('id', $dupAnggotaIds)->delete();
+                \App\Models\Anggota::whereIn('id', $dupAnggotaIds)->delete();
             }
 
             DB::commit();

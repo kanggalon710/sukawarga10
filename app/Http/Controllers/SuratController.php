@@ -15,7 +15,7 @@ class SuratController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $level = $user->level ?? 'warga';
+        $level = $user->levelEfektif();
         $isWarga = $level === 'warga';
         $isRT = $level === 'petugas_rt';
         $isRW = in_array($level, ['ketua_rw']);
@@ -40,7 +40,7 @@ class SuratController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        $level = $user->level ?? 'warga';
+        $level = $user->levelEfektif();
         $isWarga = ($level === 'warga');
 
         $pemohon = $request->pemohon === '__luar__'
@@ -99,7 +99,7 @@ class SuratController extends Controller
     {
         $surat = Surat::findOrFail($id);
         $user = auth()->user();
-        $level = $user->level ?? 'warga';
+        $level = $user->levelEfektif();
         $step = $surat->approval_step;
 
         // Determine what this user can approve
@@ -192,7 +192,7 @@ class SuratController extends Controller
     private function pastikanBolehLihat(Surat $surat): void
     {
         $user = auth()->user();
-        if (($user->level ?? 'warga') === 'warga' && $surat->user_id !== $user->id) {
+        if ($user->levelEfektif() === 'warga' && $surat->user_id !== $user->id) {
             abort(403, 'Anda hanya dapat membuka surat milik sendiri.');
         }
     }

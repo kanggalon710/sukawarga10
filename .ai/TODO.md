@@ -35,7 +35,7 @@ Bukan pekerjaan kode, tapi jangan dilewat.
 - [ ] **Uji satu pembayaran sungguhan di produksi** setelah deploy, lalu cek
       kolom `kas` dan `transaksi_id` benar terisi.
 
-## Multi-tenant (implementasi berjalan: B1-E2 selesai, berikutnya F)
+## Multi-tenant (B1-F + pengerasan selesai; berikutnya D, prasyaratnya di bawah)
 
 Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
 `.ai/AUDIT-MULTITENANT.md` bagian 10.
@@ -81,12 +81,12 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
 - [x] **E2 tahap 2 selesai 2026-08-15:** seluruh 9 area sisa ber-scope, plus
       scope turunan untuk Anggota/IuranSampah/IuranPadaringan lewat subquery
       keluargas. 14 tes isolasi total di `IsolasiTenantTest`.
-- [ ] **Sisa kecil E2:** ganti `$user->level` mentah ke `levelEfektif()`
-      (mis. `SuratController::index`), dan ganti pembaca `DB::table` resource
-      tenant ke Eloquent (`PengaturanController::removeDuplicates`, sebagian
-      `LaporanController`) karena DB::table tidak tersaring scope.
-      `resetData` juga masih TRUNCATE lintas tenant - wajib dibereskan
-      sebelum tenant kedua dibuka.
+- [x] **Sisa kecil E2 selesai 2026-08-16:** `$user->level` mentah di
+      Surat/AduanController + layout diganti `levelEfektif()`; pembaca
+      `DB::table` (`removeDuplicates`, ranking RT laporan) pindah ke Eloquent
+      ber-scope; `resetData` kini mass delete ber-scope dalam transaksi,
+      bukan TRUNCATE lintas tenant. Sisa `$user->level` mentah tinggal
+      rujukan hantu `sekretaris` (lihat "Belum dikerjakan").
 - [ ] **Inkonsistensi warisan `keluarga_id`:** `anggotas.keluarga_id` berisi
       ID bisnis string, `iuran_*.keluarga_id` berisi id numerik keluargas.id
       (alur bayar menyimpan parameter rute). Scope turunan sudah sadar-kolom;
@@ -101,10 +101,10 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       `AppSetting::nilai()/semuaEfektif()/simpan()`, kredensial & template
       MPWA per tenant, feature flags `fitur_<modul>` di `userCan()`.
       6 tes di `PengaturanTenantTest`.
-- [ ] **Feature flag baru menyembunyikan menu, belum menjaga rute.** Modul
-      yang dimatikan (`fitur_umkm = 0`) hilang dari sidebar semua level, tapi
-      rutenya masih bisa diakses langsung. Butuh middleware `fitur:` atau cek
-      di CheckRole saat ada tenant yang sungguhan memakai flag.
+- [x] **Penjaga rute feature flag selesai 2026-08-16:** middleware
+      `fitur:<modul>` (`PastikanFiturAktif`) membungkus seluruh blok rute
+      modul; modul mati menjawab 404 konsisten dengan resource tenant lain.
+      Rute modul BARU wajib ikut dibungkus (aturan di `AGENTS.md`).
 - [ ] **Aturan wajib baca setting:** SELURUH pembacaan lewat
       `AppSetting::nilai()`/`semuaEfektif()`, penulisan lewat `simpan()`.
       Query `where('key')` polos tidak tahu inheritance dan bisa mengambil

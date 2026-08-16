@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'fitur' => \App\Http\Middleware\PastikanFiturAktif::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         ]);
     })

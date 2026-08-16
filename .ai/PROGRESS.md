@@ -2,6 +2,35 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Pengerasan pra-tenant-kedua: sisa E2 + penjaga rute feature flag
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Empat lubang yang tercatat di TODO harus tertutup sebelum Phase D
+(tenant kedua) aman dibuka: `resetData` masih TRUNCATE lintas tenant,
+`removeDuplicates` dan ranking laporan membaca `DB::table` (tak tersaring
+scope), beberapa controller/view masih membaca `users.level` mentah (hak dari
+assignment tidak pernah tampil), dan feature flag baru menyembunyikan menu
+tanpa menjaga rutenya.
+**Perubahan:**
+- Middleware `fitur:<modul>` (`PastikanFiturAktif`): modul yang dimatikan
+  (`fitur_<modul> = 0`) kini 404 di rutenya, bukan cuma hilang dari sidebar.
+  Seluruh blok rute modul di `routes/web.php` dibungkus per menu key.
+- `resetData` diganti dari TRUNCATE ke mass delete Eloquent ber-scope: hanya
+  data tenant request yang terhapus, kini juga terbungkus transaksi.
+  `removeDuplicates` dan ranking RT laporan pindah ke Eloquent.
+- `SuratController`, `AduanController`, layout sidebar/header memakai
+  `levelEfektif()`; `level_label` dipecah dua accessor (mentah untuk daftar
+  Manajemen Akun agar tidak N+1, efektif untuk user login).
+- Temuan tes: fixture `trxAsing` di `IsolasiTenantTest` selama ini
+  ber-organization_id NULL karena `Transaksi` ber-`$fillable` membuang kiriman
+  `organization_id`; diperbaiki lewat penetapan properti langsung.
+**File:** app/Http/Middleware/PastikanFiturAktif.php, routes/web.php,
+app/Http/Controllers/{Pengaturan,Laporan,Surat,Aduan}Controller.php,
+app/Models/User.php, app/helpers.php, resources/views/layouts/app.blade.php,
+bootstrap/app.php, tests/Feature/{PeranScope,IsolasiTenant,PengaturanTenant}Test.php
+**Catatan:** 132 tes (301 assertion) hijau di SQLite dan MariaDB 11.8.8.
+Fallback `users.level` sendiri BELUM dipensiunkan (tetap prasyarat tenant
+kedua, butuh AkunController memasang assignment saat pembuatan akun).
+
 ## 2026-08-16 - Phase F: app_settings per organisasi + inheritance + feature flags
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Blocker skema terakhir dari audit (unique `app_settings.key`

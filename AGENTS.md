@@ -136,6 +136,12 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    Sengaja tidak dari `APP_URL` karena di lokal nilainya `http://localhost:8000`,
    dan salah setel berarti warga menerima link yang tidak bisa dibuka. Nilainya
    divalidasi sebagai nama host (tanpa skema, tanpa path) di `PengaturanController`.
+11. **Rute modul wajib dibungkus `fitur:<menu key>`.** Feature flag per tenant
+   (`fitur_<modul> = 0`) menyembunyikan menu lewat `userCan()` DAN menutup
+   rutenya (404) lewat middleware `PastikanFiturAktif` - dua-duanya memakai
+   menu key yang sama dari `getAllMenuItems()`. Menambah modul baru tanpa
+   membungkus rutenya berarti modul itu tidak bisa dimatikan per tenant.
+   Dijaga `tests/Feature/PengaturanTenantTest.php`.
 
 ## Konvensi kode
 

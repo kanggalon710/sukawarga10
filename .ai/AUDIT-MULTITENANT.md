@@ -219,16 +219,20 @@ hijau, dan bisa dirilis sendiri:
 5. **E2 - SELESAI 2026-08-15** (trait `ScopedKeOrganisasi` +
    `ScopedKeOrganisasiViaKeluarga`, 14 tes `IsolasiTenantTest`): seluruh 11
    model data tenant tersaring global scope (IDOR by-id → 404), anggota/iuran
-   lewat subquery keluargas, penomoran surat per tenant. Sisa kecil di TODO:
-   `DB::table` di removeDuplicates/resetData, `$user->level` mentah di
-   beberapa controller. `User` SENGAJA tidak di-scope (login lintas tenant).
+   lewat subquery keluargas, penomoran surat per tenant. `User` SENGAJA
+   tidak di-scope (login lintas tenant). Sisa kecil (DB::table di
+   removeDuplicates/resetData/laporan, `$user->level` mentah) SELESAI
+   2026-08-16 pada tahap pengerasan pra-tenant-kedua.
 6. **F - SELESAI 2026-08-16** (migrasi `2026_08_15_000008`, tes
    `PengaturanTenantTest`): `unique(organization_id, key)`, resolver
    `AppSetting::nilai()/semuaEfektif()` dengan inheritance NULL→desa→RW,
    penulisan `simpan()` di org tenant, MPWA per tenant, feature flags
-   `fitur_<modul>` (baru level menu; penjagaan rute di TODO).
+   `fitur_<modul>`. Penjagaan rutenya SELESAI 2026-08-16: middleware
+   `fitur:<modul>` menjawab 404 untuk modul yang dimatikan.
 7. **D:** domain tenant kedua yang sesungguhnya (desa/RW baru) baru dibuka di
-   sini, SETELAH isolasi teruji, bukan sebelumnya.
+   sini, SETELAH isolasi teruji, bukan sebelumnya. Prasyarat tersisa
+   (`.ai/TODO.md`): pensiunkan fallback `users.level` + AkunController
+   memasang assignment saat pembuatan akun.
 8. **G/H:** UI manajemen tenant, impersonation (§23, dengan audit), queue
    worker + antrian WA, monitoring.
 

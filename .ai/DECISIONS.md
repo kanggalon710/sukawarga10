@@ -3,6 +3,23 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-16 - Modul yang dimatikan dijawab 404, dan reset data mengikuti scope
+**Konteks:** Penjaga rute feature flag butuh kode respons, dan `resetData`
+harus berhenti TRUNCATE lintas tenant.
+**Opsi:** (a) 403 "tidak berhak" vs (b) 404 "tidak ada" untuk modul mati;
+(x) DELETE ber-scope vs (y) TRUNCATE + where manual untuk reset.
+**Pilihan:** (b) dan (x).
+**Alasan:** Bagi tenant yang modulnya dimatikan, modul itu memang tidak ada -
+sama seperti resource tenant lain yang juga 404 (405/403 membocorkan
+keberadaan). Untuk reset: DELETE lewat model ber-scope otomatis terbatas ke
+tenant request dan bisa dibungkus transaksi (TRUNCATE memicu implicit commit).
+Konsekuensi yang diterima: (1) auto-increment tidak ter-reset - tidak ada
+yang bergantung padanya; (2) baris warisan ber-organization_id NULL tidak
+ikut terhapus - itu bukan milik tenant mana pun, dan di produksi backfill
+migrasi 000006 sudah mengisi semuanya; (3) `level_label` dipecah dua accessor
+(mentah vs efektif) karena label efektif di loop daftar akun berarti satu
+query assignment per baris (N+1).
+
 ## 2026-08-15 - Phase E2: isolasi tenant lewat global scope opt-in, bukan where manual
 **Konteks:** Jalur uang memakai `findOrFail` polos; §21 menuntut setiap query
 resource tenant menjawab scope-nya.

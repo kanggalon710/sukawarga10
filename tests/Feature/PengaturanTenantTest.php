@@ -148,4 +148,30 @@ class PengaturanTenantTest extends TestCase
 
         $this->assertTrue(userCan('umkm'));
     }
+
+    public function test_modul_mati_menutup_rutenya_juga_bukan_hanya_menu(): void
+    {
+        AppSetting::create([
+            'key' => 'fitur_umkm', 'value' => '0', 'organization_id' => $this->idRw10(),
+        ]);
+
+        // Menyembunyikan menu saja bukan pengamanan: rute langsung harus 404,
+        // untuk membaca maupun menulis, bahkan bagi superadmin.
+        $this->actingAs($this->admin)->get('/umkm')->assertNotFound();
+        $this->actingAs($this->admin)->post('/umkm', [
+            'namaUsaha' => 'Warung Uji', 'pemilik' => 'Uji', 'rt' => '01',
+        ])->assertNotFound();
+
+        // Modul lain tidak ikut tertutup.
+        $this->actingAs($this->admin)->get('/kegiatan')->assertOk();
+    }
+
+    public function test_flag_tenant_lain_tidak_menutup_rute_di_sini(): void
+    {
+        AppSetting::create([
+            'key' => 'fitur_umkm', 'value' => '0', 'organization_id' => $this->rwAsing->id,
+        ]);
+
+        $this->actingAs($this->admin)->get('/umkm')->assertOk();
+    }
 }

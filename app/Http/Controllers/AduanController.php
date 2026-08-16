@@ -11,7 +11,7 @@ class AduanController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $level = $user->level ?? 'warga';
+        $level = $user->levelEfektif();
         $isWarga = ($level === 'warga');
 
         $status = $request->get('status', '');
@@ -35,7 +35,7 @@ class AduanController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        $level = $user->level ?? 'warga';
+        $level = $user->levelEfektif();
         $isWarga = ($level === 'warga');
 
         $request->validate(['isi' => 'required']);

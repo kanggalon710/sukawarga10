@@ -52,8 +52,13 @@ class IsolasiTenantTest extends TestCase
             'transaksi_id' => 'TRX-asing01', 'tanggal' => '2026-08-01',
             'jenis' => 'masuk', 'kas' => 'sampah', 'kategori' => 'Iuran Sampah',
             'keterangan' => 'Iuran rahasia tetangga', 'jumlah' => 987654,
-            'operator' => 'op-tetangga', 'organization_id' => $this->rwAsing->id,
+            'operator' => 'op-tetangga',
         ]);
+        // Transaksi ber-$fillable eksplisit tanpa organization_id, jadi nilai
+        // kiriman create() dibuang mass assignment; isi langsung lewat properti
+        // supaya fixture ini sungguh milik RW asing, bukan baris ber-org NULL.
+        $this->trxAsing->organization_id = $this->rwAsing->id;
+        $this->trxAsing->save();
 
         $this->admin = User::create([
             'user_id' => 'u_iso', 'username' => 'isoadmin', 'namaLengkap' => 'Iso Admin',
@@ -224,6 +229,102 @@ class IsolasiTenantTest extends TestCase
         // Setelah context hidup: anggota tenant lain tak terlihat model mana pun.
         $this->assertSame(0, \App\Models\Anggota::count());
         $this->assertSame(1, \App\Models\Anggota::withoutGlobalScope('organisasi')->count());
+    }
+
+    public function test_reset_data_hanya_mengosongkan_tenant_aktif(): void
+    {
+        // Baris lokal dibuat lewat jalur request supaya tercap RW 10.
+        $this->actingAs($this->admin)->get('/warga')->assertOk();
+        Keluarga::create([
+            'keluarga_id' => 'kk_lokal01', 'nama' => 'Keluarga Lokal',
+            'alamat' => 'Jl. Lokal', 'rt' => '01',
+        ]);
+        Transaksi::create([
+            'transaksi_id' => 'TRX-lokal01', 'tanggal' => '2026-08-10',
+            'jenis' => 'masuk', 'kas' => 'umum', 'kategori' => 'Uji',
+            'keterangan' => 'Kas lokal', 'jumlah' => 5000, 'operator' => 'tes',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post('/pengaturan/reset-data', ['confirm' => 'RESET'])
+            ->assertRedirect();
+
+        $semuaKk = Keluarga::withoutGlobalScope('organisasi');
+        $this->assertSame(
+            0, (clone $semuaKk)->where('organization_id', '!=', $this->rwAsing->id)->count(),
+            'Data tenant aktif harus terhapus.'
+        );
+        $this->assertSame(
+            1, (clone $semuaKk)->where('organization_id', $this->rwAsing->id)->count(),
+            'Reset tenant ini tidak boleh menghapus keluarga tenant lain.'
+        );
+        $semuaTrx = Transaksi::withoutGlobalScope('organisasi');
+        $this->assertSame(
+            0, (clone $semuaTrx)->where('transaksi_id', 'TRX-lokal01')->count(),
+            'Transaksi tenant aktif harus ikut terhapus.'
+        );
+        $this->assertSame(
+            1, (clone $semuaTrx)->where('organization_id', $this->rwAsing->id)->count(),
+            'Reset tenant ini tidak boleh menghapus transaksi tenant lain.'
+        );
+    }
+
+    public function test_pembersihan_duplikat_tidak_menyentuh_tenant_lain(): void
+    {
+        // Nama+RT sama dengan kkAsing di setUp: pasangan duplikat di tenant
+        // lain, dibuat konsol sebelum request pertama.
+        Keluarga::create([
+            'keluarga_id' => 'kk_asing_dup', 'nama' => 'Keluarga Tetangga',
+            'alamat' => 'Jl. Tetangga', 'rt' => '01',
+            'organization_id' => $this->rwAsing->id,
+        ]);
+
+        // Duplikat lokal membuktikan pembersihannya sendiri tetap bekerja.
+        $this->actingAs($this->admin)->get('/warga')->assertOk();
+        foreach (['kk_dup_a', 'kk_dup_b'] as $id) {
+            Keluarga::create([
+                'keluarga_id' => $id, 'nama' => 'Keluarga Kembar',
+                'alamat' => 'Jl. Lokal', 'rt' => '02',
+            ]);
+        }
+
+        $this->actingAs($this->admin)->post('/pengaturan/remove-duplicates')->assertRedirect();
+
+        $this->assertSame(1, Keluarga::where('nama', 'Keluarga Kembar')->count());
+        $this->assertSame(
+            2, Keluarga::withoutGlobalScope('organisasi')
+                ->where('organization_id', $this->rwAsing->id)->count(),
+            'Duplikat tenant lain bukan urusan tenant ini.'
+        );
+    }
+
+    public function test_laporan_tidak_menghitung_transaksi_tenant_lain(): void
+    {
+        // KK lokal dibuat konsol dengan organisasi eksplisit: dua RW aktif
+        // membuat fallback berhenti menebak, dan request belum ada.
+        Keluarga::create([
+            'keluarga_id' => 'kk_lokal_lap', 'nama' => 'Keluarga Lokal',
+            'alamat' => 'Jl. Lokal', 'rt' => '05', 'status' => 'aktif',
+            'organization_id' => Organization::where('slug', 'rw-10-sukakarya')->value('id'),
+        ]);
+        // Transaksi tenant lain menunjuk keluarga_id yang kebetulan sama dengan
+        // milik tenant ini - jalur bocor lama: pembaca DB::table tanpa scope.
+        $trxRef = Transaksi::create([
+            'transaksi_id' => 'TRX-asing-ref', 'tanggal' => date('Y').'-08-02',
+            'jenis' => 'masuk', 'kas' => 'sampah', 'keterangan' => 'x',
+            'jumlah' => 987654, 'operator' => 'op-tetangga',
+            'refKeluargaId' => 'kk_lokal_lap',
+        ]);
+        $trxRef->organization_id = $this->rwAsing->id; // organization_id bukan fillable
+        $trxRef->save();
+
+        $respons = $this->actingAs($this->admin)->get('/laporan/ringkasan');
+        $respons->assertOk();
+
+        $this->assertNull(
+            $respons->viewData('rankingRT')->firstWhere('rt', '05'),
+            'Transaksi tenant lain ikut terhitung di ranking RT.'
+        );
     }
 
     public function test_scope_aktif_di_dalam_request_dan_bisa_dibuka_eksplisit(): void

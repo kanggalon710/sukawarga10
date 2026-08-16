@@ -128,6 +128,52 @@ class PeranScopeTest extends TestCase
         $this->assertSame('ketua_rw', $user->levelEfektifUntuk($this->rw()));
     }
 
+    public function test_daftar_surat_mengikuti_level_efektif_bukan_kolom_level(): void
+    {
+        $pemilik = $this->buatUser('warga', 'pemiliksurat');
+        \App\Models\Surat::create([
+            'surat_id' => 'SRT-peran01', 'kodeSurat' => 'SKD', 'tahun' => date('Y'),
+            'nomorUrut' => 1, 'nomorSurat' => '001/SKD/RW10/'.date('Y'),
+            'tanggal' => now()->toDateString(), 'pemohon' => 'Pemohon Orang Lain',
+            'keperluan' => 'uji', 'user_id' => $pemilik->id,
+            'approval_step' => 'diajukan', 'status' => 'draft',
+        ]);
+
+        $user = $this->buatUser('warga', 'diangkatsurat');
+        $this->pasang($user, 'rw_admin', $this->rw());
+
+        // Pengurus efektif melihat seluruh surat, bukan hanya miliknya.
+        $this->actingAs($user)->get('/surat')->assertOk()->assertSee('Pemohon Orang Lain');
+    }
+
+    public function test_daftar_aduan_mengikuti_level_efektif_bukan_kolom_level(): void
+    {
+        $pemilik = $this->buatUser('warga', 'pemilikaduan');
+        \App\Models\Aduan::create([
+            'aduan_id' => 'ADU-peran01', 'tanggal' => now()->toDateString(),
+            'pelapor' => 'Pelapor Lain', 'rt' => '01', 'user_id' => $pemilik->id,
+            'isi' => 'Aduan milik orang lain', 'status' => 'masuk',
+        ]);
+
+        $user = $this->buatUser('warga', 'diangkataduan');
+        $this->pasang($user, 'rw_admin', $this->rw());
+
+        $this->actingAs($user)->get('/aduan')->assertOk()->assertSee('Aduan milik orang lain');
+    }
+
+    public function test_header_dan_label_peran_mengikuti_level_efektif(): void
+    {
+        $user = $this->buatUser('warga', 'diangkatrw');
+        $this->pasang($user, 'rw_admin', $this->rw());
+
+        // Kotak pencarian pengurus tampil (rutenya memang sudah lolos untuknya),
+        // dan label peran di sidebar menunjukkan peran efektif, bukan kolom level.
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('Cari warga...')
+            ->assertSee('Ketua RW');
+    }
+
     public function test_seeder_memasang_super_admin_untuk_akun_bawaan(): void
     {
         $this->seed();

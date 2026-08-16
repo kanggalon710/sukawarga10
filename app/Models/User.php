@@ -165,14 +165,29 @@ class User extends Authenticatable
 
     public function isActive(): bool { return $this->status === 'aktif'; }
 
-    public function getLevelLabelAttribute(): string {
-        return match($this->level) {
+    public static function labelUntukLevel(string $level): string {
+        return match($level) {
             'superadmin' => 'Super Admin',
             'ketua_rw' => 'Ketua RW',
             'bendahara' => 'Bendahara',
             'petugas_rt' => 'Petugas RT',
             'warga' => 'Warga',
-            default => ucfirst($this->level),
+            default => ucfirst($level),
         };
+    }
+
+    /** Label kolom level tersimpan — untuk daftar Manajemen Akun (tanpa query per baris). */
+    public function getLevelLabelAttribute(): string {
+        return self::labelUntukLevel($this->level ?? 'warga');
+    }
+
+    /**
+     * Label level EFEKTIF — untuk identitas user yang sedang login: warga yang
+     * diangkat lewat assignment harus melihat peran yang berlaku, bukan kolom
+     * lama. Jangan dipakai di loop daftar user: levelEfektif() menjalankan
+     * query assignment per user.
+     */
+    public function getLevelEfektifLabelAttribute(): string {
+        return self::labelUntukLevel($this->levelEfektif());
     }
 }

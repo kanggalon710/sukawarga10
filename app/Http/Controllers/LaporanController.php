@@ -19,11 +19,13 @@ class LaporanController extends Controller
         // Ranking RT - combine direct transaksi refs + iuran data per RT
         $rankingRT = collect();
         try {
-            $allMasuk = DB::table('transaksis')
-                ->where('jenis', 'masuk')
+            // Lewat Eloquent, bukan DB::table: query builder polos tidak
+            // tersaring global scope organisasi, jadi transaksi tenant lain
+            // ikut terhitung di ranking RT.
+            $allMasuk = Transaksi::where('jenis', 'masuk')
                 ->where('voided', false)
                 ->whereYear('tanggal', $tahun)
-                ->get();
+                ->get(['refKeluargaId', 'jumlah']);
             $allKK = Keluarga::where('status', 'aktif')->get()->keyBy('keluarga_id');
             $rtTotals = [];
             foreach ($allMasuk as $trx) {
