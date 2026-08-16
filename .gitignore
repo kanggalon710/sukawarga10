@@ -11,6 +11,7 @@
 /database/seed-data/
 *.xlsx
 *.csv
+.~lock.*
 !/database/seed-data/.gitkeep
 
 # database lokal

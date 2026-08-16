@@ -131,6 +131,9 @@ class ImportTenantTest extends TestCase
         // ...tapi melengkapi data KK-nya, seperti importer CLI.
         $this->assertSame('L', $kk->jenisKelaminKK);
         $this->assertSame('1983-12-05', $kk->tanggalLahirKK?->format('Y-m-d'));
+        // Pekerjaan kepala ikut tersimpan di KK - dulu dibuang sehingga
+        // mayoritas KK hasil impor tampak tanpa pekerjaan di Laporan.
+        $this->assertSame('Wiraswasta', $kk->pekerjaan);
 
         $istri = \App\Models\Anggota::withoutGlobalScope('organisasi')
             ->where('keluarga_id', $kk->keluarga_id)->first();

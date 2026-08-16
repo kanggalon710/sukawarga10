@@ -476,6 +476,12 @@ class ExportImportController extends Controller
                 if (stripos($statusKeluarga, 'kepala') === 0) {
                     $upd = ['jenisKelaminKK' => $lp === 'P' ? 'P' : 'L'];
                     if ($tglLahir) $upd['tanggalLahirKK'] = $tglLahir;
+                    // Pekerjaan kepala tersimpan di KK (lebih presisi dari
+                    // fallback Sumber Pendapatan) - dulu dibuang sehingga
+                    // mayoritas KK hasil impor tampak tanpa pekerjaan.
+                    if (isset($map['Pekerjaan']) && trim($row[$map['Pekerjaan']] ?? '') !== '') {
+                        $upd['pekerjaan'] = trim($row[$map['Pekerjaan']]);
+                    }
                     $keluarga->update($upd);
                     $updated++;
                     continue;

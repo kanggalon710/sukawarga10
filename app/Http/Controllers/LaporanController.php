@@ -70,6 +70,11 @@ class LaporanController extends Controller
                 }
                 $populasiRT[$rt]['kk']++;
                 $populasiRT[$rt]['jiwa'] += 1 + ($kk->anggota_count ?? 0);
+                // Kepala keluarga ikut dihitung L/P - dulu hanya anggota,
+                // sehingga total gender tidak pernah mencapai total jiwa.
+                // Null mengikuti konvensi importer (default L), sama dengan
+                // blok piramida di bawah.
+                $populasiRT[$rt][strtolower(substr($kk->jenisKelaminKK ?? 'L', 0, 1)) === 'p' ? 'perempuan' : 'laki']++;
             }
             // Count L/P per RT from anggotas
             foreach ($anggotas as $a) {

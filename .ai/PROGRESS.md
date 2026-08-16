@@ -2,6 +2,32 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Kepala keluarga ikut dihitung L/P Laporan + pekerjaan kepala tersimpan saat impor
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik lapor angka Laporan tak masuk akal pasca-impor RW 07
+(171 jiwa, L+P cuma 100, pekerjaan tampak kosong padahal sheet terisi).
+Investigasi: (1) tile L/P hanya menghitung anggota - kepala keluarga
+(jenisKelaminKK) tidak pernah ikut, padahal totalJiwa = KK + anggota;
+(2) importer anggota web membuang pekerjaan baris kepala (hanya ambil
+gender + tgl lahir) sehingga 56 dari 72 KK tanpa pekerjaan; (3) sisi data:
+3 nilai "Nama KK (Referensi)" di sheet updated rusak (huruf b/salah digit)
+sehingga 10 baris dilewati importer - CSV perbaikan dikirim ke pemilik
+lewat ~/Downloads (PII, tidak di-commit; .gitignore sudah memblokir
+*.xlsx/*.csv, ditambah .~lock.*).
+**Perubahan:** LaporanController: loop populasiRT menghitung gender kepala
+(null = L, konvensi importer, konsisten blok piramida yang sudah benar).
+ExportImportController: baris kepala juga mengisi keluarga->pekerjaan bila
+kolom terisi. Replay penuh lewat importer asli: 72 KK + 113 anggota =
+185 jiwa, L 98 / P 87 - persis sama dengan sheet.
+**File:** app/Http/Controllers/LaporanController.php,
+app/Http/Controllers/ExportImportController.php,
+tests/Feature/LaporanDemografiTest.php, tests/Feature/ImportTenantTest.php,
+.gitignore
+**Catatan:** 229 tes (748 assertion) hijau di SQLite dan MariaDB. Sisa
+anomali data untuk dirapikan pemilik di sumber (detail disampaikan langsung,
+tanpa nama di repo): 2 KK dengan baris kepala ganda, 1 KK tanpa baris
+kepala, 2 baris pekerjaan kosong.
+
 ## 2026-08-16 - Instruksi portal login warga di /akun + batas login 3 percobaan
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Admin yang melihat akun warga di desa.jabnet.id/akun tidak tahu
