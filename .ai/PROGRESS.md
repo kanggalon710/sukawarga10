@@ -2,6 +2,34 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-16 - Impor data RW 07 Kp. Parung + tiga perbaikan importer anggota web
+**Agen:** claude | **Status:** selesai (kode); impor produksi menunggu pemilik
+**Kenapa:** Pemilik membawa spreadsheet PENDATAAN RW 07 Kp. Parung (Desa
+Bagendit, Banyuresmi) - dibaca langsung via konektor Google Drive. Saat
+menyiapkan jalurnya, tes menemukan TIGA cacat importer anggota web:
+(1) rute `/warga/import/anggota` TERTELAN rute `/warga/{id}/anggota`
+(id='import') sehingga fitur itu selalu 404 sejak dibuat; (2) baris
+"Kepala Keluarga" digandakan jadi anggota (jiwa dobel; CLI sudah benar);
+(3) lookup `orWhere` tanpa kurung menembus scope tenant (referensi bisa
+nyangkut ke KK tenant lain).
+**Perubahan:**
+- Rute warga ber-{id} diberi `whereNumber` (import/export tidak tertelan).
+- importAnggota web: baris kepala melengkapi `jenisKelaminKK`/
+  `tanggalLahirKK` KK tanpa membuat anggota; lookup dibungkus closure;
+  `parseTanggal()` multi-format (d-m-Y dst) - sel tanggal rusak dilewati,
+  bukan menggagalkan transaksi; `statusPekerjaan` ikut terisi (paritas CLI).
+- Data Parung ditransformasi dari Google Sheet: 72 KK + 185 baris anggota
+  (72 kepala), tanggal dinormalisasi, 3 referensi diperbaiki via nama
+  kepala, 8 KK direkonstruksi dari sheet anggota (bertanda di Catatan),
+  1 baris sampah markdown dibuang. CSV diunggah ke Drive pemilik
+  (import_keluarga_rw07_parung.csv, import_anggota_rw07_parung.csv) dan
+  DIUJI PRA-TERBANG lewat importer web sungguhan di server lokal:
+  73 KK + 112 anggota, 71 KK ber-tanggal-lahir, nol kepala dobel.
+**File:** routes/web.php, app/Http/Controllers/ExportImportController.php,
+tests/Feature/ImportTenantTest.php (3 tes baru)
+**Catatan:** 218 tes (686 assertion) hijau di SQLite dan MariaDB. NIK/No.KK
+ber-digit ganjil (7 baris) diimpor apa adanya dan dilaporkan ke pemilik.
+
 ## 2026-08-16 - Manajemen akun bertingkat + Akun Saya (self-service kredensial)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Permintaan pemilik: owner kelola username/PIN/permission SEMUA

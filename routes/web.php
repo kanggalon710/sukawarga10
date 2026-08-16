@@ -57,13 +57,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/warga', [KeluargaController::class, 'indexWeb'])->name('warga.index');
         Route::get('/warga/create', [KeluargaController::class, 'create'])->name('warga.create');
         Route::post('/warga', [KeluargaController::class, 'storeWeb'])->name('warga.store');
-        Route::get('/warga/{id}/edit', [KeluargaController::class, 'edit'])->name('warga.edit');
-        Route::put('/warga/{id}', [KeluargaController::class, 'update'])->name('warga.update');
-        Route::delete('/warga/{id}', [KeluargaController::class, 'destroy'])->name('warga.destroy');
+        Route::get('/warga/{id}/edit', [KeluargaController::class, 'edit'])->whereNumber('id')->name('warga.edit');
+        Route::put('/warga/{id}', [KeluargaController::class, 'update'])->whereNumber('id')->name('warga.update');
+        Route::delete('/warga/{id}', [KeluargaController::class, 'destroy'])->whereNumber('id')->name('warga.destroy');
         // Anggota Keluarga (nested)
-        Route::post('/warga/{id}/anggota', [KeluargaController::class, 'storeAnggota'])->name('warga.anggota.store');
-        Route::put('/warga/{id}/anggota/{anggotaId}', [KeluargaController::class, 'updateAnggota'])->name('warga.anggota.update');
-        Route::delete('/warga/{id}/anggota/{anggotaId}', [KeluargaController::class, 'destroyAnggota'])->name('warga.anggota.destroy');
+        // whereNumber: tanpa ini POST /warga/import/anggota tertelan rute {id}
+        // (id='import') dan fitur import anggota web selalu 404.
+        Route::post('/warga/{id}/anggota', [KeluargaController::class, 'storeAnggota'])->whereNumber('id')->name('warga.anggota.store');
+        Route::put('/warga/{id}/anggota/{anggotaId}', [KeluargaController::class, 'updateAnggota'])->whereNumber('id')->name('warga.anggota.update');
+        Route::delete('/warga/{id}/anggota/{anggotaId}', [KeluargaController::class, 'destroyAnggota'])->whereNumber('id')->name('warga.anggota.destroy');
 
         // Export & Import Warga
         Route::get('/warga/export/keluarga', [App\Http\Controllers\ExportImportController::class, 'exportKeluarga'])->name('warga.export.keluarga');

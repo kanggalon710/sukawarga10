@@ -13,6 +13,28 @@ class ExportImportController extends Controller
     /**
      * Normalize RT format: '01', '1', 'RT01', 'RT 01' → 'RT 01'
      */
+    /**
+     * Urai tanggal gaya spreadsheet (Y-m-d, d-m-Y, d/m/Y). Tanggal rusak
+     * mengembalikan null - satu sel salah ketik tidak boleh menggagalkan
+     * seluruh transaksi impor.
+     */
+    private function parseTanggal(string $tgl): ?\Carbon\Carbon
+    {
+        if ($tgl === '') return null;
+        foreach (['Y-m-d', 'd-m-Y', 'd/m/Y', 'Y/m/d', 'd-m-y', 'd/m/y'] as $format) {
+            try {
+                $hasil = \Carbon\Carbon::createFromFormat($format, $tgl);
+                if ($hasil !== false) return $hasil;
+            } catch (\Exception $e) {
+            }
+        }
+        try {
+            return \Carbon\Carbon::parse($tgl);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     private function normalizeRT(string $raw): string
     {
         $raw = trim($raw);
@@ -428,15 +450,35 @@ class ExportImportController extends Controller
                 
                 if (empty($refKK) || empty($namaAnggota)) continue;
 
-                // Find KK ID by NIK, NoKK, or exact Nama Match
-                $keluarga = Keluarga::where('nik', $refKK)
-                            ->orWhere('noKK', $refKK)
-                            ->orWhere('nama', $refKK)
-                            ->first();
+                // Find KK ID by NIK, NoKK, or exact Nama Match.
+                // orWhere DIBUNGKUS closure: tanpa itu presedensi SQL membuat
+                // OR menembus global scope tenant (scope AND nik OR noKK...)
+                // sehingga referensi bisa nyangkut ke KK tenant lain.
+                $keluarga = Keluarga::where(function ($q) use ($refKK) {
+                    $q->where('nik', $refKK)
+                        ->orWhere('noKK', $refKK)
+                        ->orWhere('nama', $refKK);
+                })->first();
 
                 if (!$keluarga) {
                     $unmatched++;
                     continue; // Skip if family not found
+                }
+
+                $lp = isset($map['L/P']) ? strtoupper(substr(trim($row[$map['L/P']]), 0, 1)) : '';
+                $tglLahir = isset($map['Tgl Lahir']) ? $this->parseTanggal(trim($row[$map['Tgl Lahir']])) : null;
+                $statusKeluarga = isset($map['Status Keluarga']) ? trim($row[$map['Status Keluarga']]) : '';
+
+                // Baris "Kepala Keluarga" = KK itu sendiri: lengkapi tgl lahir
+                // + jenis kelamin KK, JANGAN buat anggota - kepala yang ikut
+                // tercatat sebagai anggota membuat jumlah jiwa dobel
+                // (perilaku yang sama dengan importer CLI import:anggota).
+                if (stripos($statusKeluarga, 'kepala') === 0) {
+                    $upd = ['jenisKelaminKK' => $lp === 'P' ? 'P' : 'L'];
+                    if ($tglLahir) $upd['tanggalLahirKK'] = $tglLahir;
+                    $keluarga->update($upd);
+                    $updated++;
+                    continue;
                 }
 
                 // Check if member already exists in this family
@@ -454,21 +496,18 @@ class ExportImportController extends Controller
                     $updated++;
                 }
 
-                if (isset($map['L/P'])) {
-                    $lp = strtoupper(trim($row[$map['L/P']]));
-                    $anggota->jenisKelamin = ($lp === 'L' || $lp === 'LAKI-LAKI') ? 'Laki-laki' : 'Perempuan';
+                if ($lp !== '') {
+                    $anggota->jenisKelamin = $lp === 'P' ? 'Perempuan' : 'Laki-laki';
+                }
+                if ($tglLahir) {
+                    $anggota->tanggalLahir = $tglLahir;
                 }
 
-                if (isset($map['Tgl Lahir'])) {
-                    $tgl = trim($row[$map['Tgl Lahir']]);
-                    if (!empty($tgl)) {
-                        // Attempt to parse simple YYYY-MM-DD
-                        $anggota->tanggalLahir = \Carbon\Carbon::parse($tgl);
-                    }
+                if ($statusKeluarga !== '') $anggota->statusKeluarga = $statusKeluarga;
+                if (isset($map['Pekerjaan'])) {
+                    $anggota->pekerjaan = trim($row[$map['Pekerjaan']]);
+                    $anggota->statusPekerjaan = statusKerjaDariPekerjaan($anggota->pekerjaan);
                 }
-
-                if (isset($map['Status Keluarga'])) $anggota->statusKeluarga = trim($row[$map['Status Keluarga']]);
-                if (isset($map['Pekerjaan'])) $anggota->pekerjaan = trim($row[$map['Pekerjaan']]);
                 
                 // Assuming statusBPJS handles 'Ya', text, etc.
                 if (isset($map['BPJS'])) {

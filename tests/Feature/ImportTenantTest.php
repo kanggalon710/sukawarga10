@@ -103,6 +103,93 @@ class ImportTenantTest extends TestCase
         $this->assertStringContainsString('RT 01', (string) $kk->alamat);
     }
 
+    public function test_baris_kepala_keluarga_melengkapi_kk_bukan_jadi_anggota(): void
+    {
+        // KK dulu.
+        $csvKk = "Nama KK,No. KK,RT,Alamat\nAyat Hidayat,3205062031200031,01,Kp. Parung\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/keluarga', [
+                'file_keluarga' => UploadedFile::fake()->createWithContent('kk.csv', $csvKk),
+            ])->assertRedirect();
+
+        // Anggota: baris kepala + satu istri; referensi via No. KK; tanggal
+        // gaya spreadsheet dd-mm-yyyy.
+        $csvAg = "No,Nama KK (Referensi),RT,Nama Anggota,L/P,Tgl Lahir,Status Keluarga,Pekerjaan,BPJS,Keterangan\n".
+                 ",3205062031200031,RT 01,AYAT HIDAYAT,L,05-12-1983,Kepala Keluarga,Wiraswasta,,\n".
+                 ",3205062031200031,RT 01,RATNA SARI,P,25-11-1985,Istri,Mengurus Rumah Tangga,,\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/anggota', [
+                'file_anggota' => UploadedFile::fake()->createWithContent('ag.csv', $csvAg),
+            ])->assertRedirect();
+
+        $kk = Keluarga::withoutGlobalScope('organisasi')->where('noKK', '3205062031200031')->firstOrFail();
+        // Kepala TIDAK digandakan jadi anggota (hindari jiwa dobel)...
+        $this->assertSame(
+            1, \App\Models\Anggota::withoutGlobalScope('organisasi')
+                ->where('keluarga_id', $kk->keluarga_id)->count()
+        );
+        // ...tapi melengkapi data KK-nya, seperti importer CLI.
+        $this->assertSame('L', $kk->jenisKelaminKK);
+        $this->assertSame('1983-12-05', $kk->tanggalLahirKK?->format('Y-m-d'));
+
+        $istri = \App\Models\Anggota::withoutGlobalScope('organisasi')
+            ->where('keluarga_id', $kk->keluarga_id)->first();
+        $this->assertSame('RATNA SARI', $istri->nama);
+        $this->assertSame('1985-11-25', $istri->tanggalLahir?->format('Y-m-d'));
+        $this->assertNotNull($istri->statusPekerjaan);
+    }
+
+    public function test_tanggal_tidak_terurai_dilewati_bukan_menggagalkan_impor(): void
+    {
+        $csvKk = "Nama KK,No. KK,RT,Alamat\nUji Tanggal,3205060000000001,01,Kp. Parung\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/keluarga', [
+                'file_keluarga' => UploadedFile::fake()->createWithContent('kk.csv', $csvKk),
+            ])->assertRedirect();
+
+        $csvAg = "Nama KK (Referensi),Nama Anggota,L/P,Tgl Lahir,Status Keluarga\n".
+                 "3205060000000001,ANAK SATU,L,bukan-tanggal,Anak\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/anggota', [
+                'file_anggota' => UploadedFile::fake()->createWithContent('ag.csv', $csvAg),
+            ])->assertRedirect()->assertSessionMissing('error');
+
+        $anak = \App\Models\Anggota::withoutGlobalScope('organisasi')->where('nama', 'ANAK SATU')->first();
+        $this->assertNotNull($anak, 'Baris tetap terimpor meski tanggalnya rusak.');
+        $this->assertNull($anak->tanggalLahir);
+    }
+
+    public function test_referensi_no_kk_tidak_nyangkut_ke_keluarga_tenant_lain(): void
+    {
+        // KK ber-noKK sama milik RW 10 (tenant lain), dibuat konsol dengan
+        // organisasi eksplisit sebelum request.
+        $kkAsing = new Keluarga([
+            'keluarga_id' => 'kk_asing_ref', 'nama' => 'KK Asing',
+            'alamat' => 'Jl. Asing', 'rt' => '01', 'noKK' => '3205069999999999',
+        ]);
+        $kkAsing->organization_id = Organization::where('slug', 'rw-10-sukakarya')->value('id');
+        $kkAsing->saveQuietly();
+
+        // KK cibunar ber-noKK sama diimpor lewat request tenant cibunar.
+        $csvKk = "Nama KK,No. KK,RT,Alamat\nKK Cibunar,3205069999999999,01,Kp. Parung\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/keluarga', [
+                'file_keluarga' => UploadedFile::fake()->createWithContent('kk.csv', $csvKk),
+            ])->assertRedirect();
+
+        $csvAg = "Nama KK (Referensi),Nama Anggota,L/P,Status Keluarga\n".
+                 "3205069999999999,ANAK CIBUNAR,L,Anak\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/anggota', [
+                'file_anggota' => UploadedFile::fake()->createWithContent('ag.csv', $csvAg),
+            ])->assertRedirect();
+
+        // Anggota menempel ke KK CIBUNAR, bukan KK tenant lain - dulu
+        // orWhere tanpa kurung membuat OR menembus scope tenant.
+        $anak = \App\Models\Anggota::withoutGlobalScope('organisasi')->where('nama', 'ANAK CIBUNAR')->firstOrFail();
+        $this->assertNotSame('kk_asing_ref', $anak->keluarga_id);
+    }
+
     public function test_setting_kelurahan_tenant_menimpa_turunan_nama_desa(): void
     {
         \App\Models\AppSetting::create([
