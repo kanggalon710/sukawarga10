@@ -25,7 +25,7 @@ class PengaturanController extends Controller
      */
     private const KEY_DIIZINKAN = [
         'nama_aplikasi', 'tagline_aplikasi', 'lokasi_singkat', 'alamat_portal',
-        'nama_rw', 'ketua_rw', 'kelurahan', 'kecamatan', 'kabupaten',
+        'nama_rw', 'ketua_rw', 'kelurahan', 'kecamatan', 'kabupaten', 'alamat_rw',
         'nama_operator', 'tahun_aktif',
         'tarif_sampah', 'tarif_padaringan', 'garis_kemiskinan',
         'mpwa_api_key', 'mpwa_sender', 'mpwa_api_url',
@@ -47,6 +47,7 @@ class PengaturanController extends Controller
             'kelurahan'        => 'nullable|string|max:100',
             'kecamatan'        => 'nullable|string|max:100',
             'kabupaten'        => 'nullable|string|max:100',
+            'alamat_rw'        => 'nullable|string|max:200',
             'nama_operator'    => 'nullable|string|max:100',
             'tahun_aktif'      => 'nullable|integer|min:2000|max:2100',
             'tarif_sampah'     => 'nullable|integer|min:0',
@@ -55,7 +56,29 @@ class PengaturanController extends Controller
             'mpwa_api_key'     => 'nullable|string|max:255',
             'mpwa_sender'      => 'nullable|string|max:50',
             'mpwa_api_url'     => 'nullable|url|max:255',
+            // Logo kop: tanpa SVG (bisa memuat skrip = stored XSS, dilayani
+            // same-origin dari /storage), maksimal 1 MB.
+            'kop_logo_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp|max:1024',
+            'kop_logo_aksi'    => 'nullable|in:hapus,reset',
         ]);
+
+        // Logo kop di luar loop whitelist: nilai kop_logo HANYA hasil store()
+        // atau konstanta - klien tidak pernah mengirim path (anti path injection).
+        // Tiga status: '' = logo bawaan, 'kop/...' = upload, 'tanpa-logo' = tanpa logo.
+        $aksiLogo = null;
+        if ($request->hasFile('kop_logo_file')) {
+            $this->hapusFileLogoMilikTenant();
+            AppSetting::simpan('kop_logo', $request->file('kop_logo_file')->store('kop', 'public'));
+            $aksiLogo = 'kop_logo (upload)';
+        } elseif (($validated['kop_logo_aksi'] ?? null) === 'hapus') {
+            $this->hapusFileLogoMilikTenant();
+            AppSetting::simpan('kop_logo', 'tanpa-logo');
+            $aksiLogo = 'kop_logo (hapus)';
+        } elseif (($validated['kop_logo_aksi'] ?? null) === 'reset') {
+            $this->hapusFileLogoMilikTenant();
+            AppSetting::simpan('kop_logo', '');
+            $aksiLogo = 'kop_logo (reset)';
+        }
 
         foreach (self::KEY_DIIZINKAN as $key) {
             if (!array_key_exists($key, $validated)) continue;
@@ -64,11 +87,36 @@ class PengaturanController extends Controller
 
         \App\Services\AuditLogService::log(
             'update', 'pengaturan',
-            'Ubah pengaturan: ' . implode(', ', array_keys(array_intersect_key($validated, array_flip(self::KEY_DIIZINKAN))))
+            'Ubah pengaturan: ' . implode(', ', array_filter(array_merge(
+                array_keys(array_intersect_key($validated, array_flip(self::KEY_DIIZINKAN))),
+                [$aksiLogo]
+            )))
         );
 
         return redirect()->route('pengaturan.index', ['tab' => $tab])
                          ->with('success', 'Pengaturan berhasil disimpan.');
+    }
+
+    /**
+     * Hapus file logo kop MILIK organisasi host request (sebelum diganti).
+     *
+     * Sengaja query langsung by-key, pengecualian sadar atas aturan model
+     * AppSetting: yang dibutuhkan baris milik org host, BUKAN nilai efektif -
+     * nilai efektif bisa warisan desa/platform dan file-nya masih dipakai
+     * tenant saudara, jadi tidak boleh ikut terhapus.
+     */
+    private function hapusFileLogoMilikTenant(): void
+    {
+        // Resolusi org host sama persis dengan AppSetting::simpan().
+        $context = app(\App\Services\TenantContext::class);
+        $orgId = $context->sudahDitetapkan() ? $context->organisasi()?->id : null;
+
+        $lama = AppSetting::where('key', 'kop_logo')
+            ->where('organization_id', $orgId)->value('value');
+
+        if ($lama && str_starts_with($lama, 'kop/') && \Storage::disk('public')->exists($lama)) {
+            \Storage::disk('public')->delete($lama);
+        }
     }
 
     /**

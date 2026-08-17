@@ -17,7 +17,7 @@
     font-size: 14px; line-height: 1.8; color: #222;
 }
 .kop-rw { display: flex; align-items: center; gap: 16px; text-align: center; border-bottom: 3px double #333; padding-bottom: 12px; margin-bottom: 24px; }
-.kop-logo { width: 68px; height: 68px; flex-shrink: 0; }
+.kop-logo { width: 68px; height: 68px; flex-shrink: 0; object-fit: contain; }
 .kop-teks { flex: 1; }
 /* Cetak: pastikan logo ikut tercetak (bukan dianggap latar) */
 @media print { .kop-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -126,7 +126,15 @@
 <div class="surat-wrapper">
     {{-- KOP SURAT --}}
     <div class="kop-rw">
-        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
+        {{-- Logo kop per tenant (setting kop_logo): '' = bawaan, 'kop/...' = upload, 'tanpa-logo' = tanpa logo --}}
+        @php $kopLogo = trim($settings['kop_logo'] ?? ''); @endphp
+        @if($kopLogo === 'tanpa-logo')
+            {{-- Kop tanpa logo (pilihan tenant di Pengaturan) --}}
+        @elseif($kopLogo !== '')
+            <img src="{{ asset('storage/'.$kopLogo) }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
+        @else
+            <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
+        @endif
         <div class="kop-teks">
             <h2>RUKUN WARGA {{ $rw }}</h2>
             <h3>{{ $kel }}</h3>

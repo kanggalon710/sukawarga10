@@ -9,6 +9,7 @@ use App\Models\AppSetting;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SuratController extends Controller
 {
@@ -39,6 +40,8 @@ class SuratController extends Controller
 
     public function store(Request $request)
     {
+        $request->validate(['kodeSurat' => ['required', Rule::in(Surat::KODE_VALID)]]);
+
         $user = auth()->user();
         $level = $user->levelEfektif();
         $isWarga = ($level === 'warga');
@@ -51,6 +54,12 @@ class SuratController extends Controller
         $nomorUrut = Surat::where('tahun', $tahun)->max('nomorUrut') + 1;
         // Nomor RW dari tenant request (dulu hardcode "RW10" untuk semua tenant).
         $nomorSurat = sprintf('%03d/%s/RW%s/%s', $nomorUrut, $request->kodeSurat, wilayahTenant()['rw'], $tahun);
+        // Nomor hasil edit manual bisa sudah memakai nomor yang akan dihasilkan
+        // sekuens otomatis; geser urut sampai bebas bentrok (per tenant, via scope).
+        while (Surat::where('nomorSurat', $nomorSurat)->exists()) {
+            $nomorUrut++;
+            $nomorSurat = sprintf('%03d/%s/RW%s/%s', $nomorUrut, $request->kodeSurat, wilayahTenant()['rw'], $tahun);
+        }
 
         // Determine RT for the warga
         $rt = null;
@@ -208,9 +217,24 @@ class SuratController extends Controller
     public function update(Request $request, $id)
     {
         $surat = Surat::findOrFail($id);
-        $request->validate(['pemohon' => 'required']);
+        $validated = $request->validate([
+            'pemohon' => 'required|string|max:150',
+            'keperluan' => 'nullable|string|max:255',
+            'kodeSurat' => ['required', Rule::in(Surat::KODE_VALID)],
+            'nomorSurat' => ['required', 'string', 'max:100',
+                // Closure ber-scope tenant, BUKAN Rule::unique: Rule::unique
+                // melewati global scope ScopedKeOrganisasi sehingga nomor milik
+                // tenant lain ikut menolak.
+                function ($attribute, $value, $fail) use ($surat) {
+                    if (Surat::where('nomorSurat', $value)->whereKeyNot($surat->id)->exists()) {
+                        $fail('Nomor surat sudah dipakai surat lain.');
+                    }
+                }],
+        ]);
 
-        $surat->update($request->only(['pemohon', 'keperluan', 'kodeSurat']));
+        // nomorUrut/tahun sengaja tidak disentuh: nomor bebas belum tentu bisa
+        // diurai, dan sekuens otomatis max(nomorUrut)+1 harus tetap monoton.
+        $surat->update($validated);
         AuditLogService::log('update', 'surat', 'Edit surat: ' . $surat->nomorSurat);
         return back()->with('success', 'Surat ' . $surat->nomorSurat . ' berhasil diperbarui.');
     }

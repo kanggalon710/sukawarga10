@@ -2,6 +2,33 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-17 - Surat: logo kop per tenant + nomor editable + alamat RW
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Lanjutan permintaan user setelah fitur edit isi: logo kop bisa
+diganti/dihilangkan per tenant, nomor surat bisa dikoreksi manual, dan kop
+dilengkapi alamat RW (`alamat_rw` selama ini dibaca halaman cetak tapi tak
+punya field form, jadi selalu kosong). Template surat kustom DITUNDA (TODO).
+**Perubahan:** Setting `kop_logo` satu key tiga status ('' = bawaan,
+`kop/...` = upload, sentinel `tanpa-logo`); klien tak pernah mengirim path -
+form hanya mengirim `kop_logo_file` (png/jpg/webp maks 1 MB, SVG ditolak
+karena bisa memuat skrip) dan `kop_logo_aksi` (hapus/reset). Hapus/ganti
+hanya menghapus file milik baris org host, bukan nilai efektif warisan.
+`nomorSurat` bisa diedit di modal Edit /surat; duplikat ditolak lewat closure
+ber-scope tenant (Rule::unique melewati global scope), `nomorUrut`/`tahun`
+tak disentuh supaya sekuens otomatis monoton, dan store() menggeser urut bila
+nomor otomatis menabrak nomor hasil edit. `Surat::KODE_VALID` jadi sumber
+tunggal daftar kode + Rule::in di store/update.
+**File:** app/Http/Controllers/PengaturanController.php,
+app/Http/Controllers/SuratController.php, app/Models/Surat.php,
+resources/views/admin/pengaturan.blade.php,
+resources/views/layanan/cetak_surat.blade.php,
+resources/views/layanan/surat.blade.php,
+tests/Feature/PengaturanKopTest.php, tests/Feature/SuratNomorEditTest.php
+**Catatan:** Tampilnya logo upload bergantung symlink `public/storage`
+(sudah ada di produksi per DEPLOY.md). Cek duplikat nomor belum ditegakkan
+index unik DB (race kecil masih mungkin) - tercatat di TODO. Identitas tenant
+Bagendit dikonfirmasi user memang RW 07 Banyuresmi, TODO koreksi dibatalkan.
+
 ## 2026-08-17 - Surat: kop/nomor ikut tenant + edit isi surat ala Word
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Tenant RW 07 mencetak surat bertuliskan "RW 10": nomor surat

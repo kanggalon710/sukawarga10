@@ -9,11 +9,10 @@ Riwayat lengkap ada di `.ai/PROGRESS.md`.
 
 Bukan pekerjaan kode, tapi jangan dilewat.
 
-- [ ] **Koreksi identitas tenant Bagendit di produksi (2026-08-17).** Lewat
-      `desa.jabnet.id/tenant`: edit desa (kecamatan Warudoyong, kabupaten
-      Kota Sukabumi) lalu ganti nomor RW 07 -> 10. Setelahnya buat subdomain
-      `bagendit-rw10.desa.jabnet.id` di cPanel (docroot `public`) + AutoSSL.
-      Alamat lama JANGAN dihapus dari cPanel - masih hidup sebagai alias.
+- [x] ~~Koreksi identitas tenant Bagendit di produksi.~~ Batal 2026-08-17:
+      user mengonfirmasi identitasnya memang RW 07, Banyuresmi - tidak ada
+      yang perlu dikoreksi. Cetak surat sudah diuji dan mengikuti identitas
+      tenant dengan benar.
 - [ ] **Backup database produksi** sebelum `php artisan migrate --force`.
       Selain migrasi lama (`users.keluarga_id`, `transaksis.periode`, index),
       kini ada LIMA migrasi multi-tenant `2026_08_15_000004`-`000008`
@@ -166,10 +165,20 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
 
 ## Belum dikerjakan
 
-- [ ] **Logo kop surat masih satu untuk semua tenant (2026-08-17).** Halaman
-      cetak surat memakai `logo-sukawarga-icon.svg` hardcode; belum ada setting
-      logo per tenant. Perlu fitur upload/pilih logo di Pengaturan bila tenant
-      lain ingin kop berlogo sendiri.
+- [x] ~~Logo kop surat masih satu untuk semua tenant.~~ Selesai 2026-08-17:
+      setting `kop_logo` per tenant (upload/hapus/reset di Pengaturan tab
+      Info RW), kop cetak mengikuti. Favicon/sidebar/beranda tetap logo bawaan.
+- [ ] **Template surat kustom per tenant (fase berikutnya, 2026-08-17).**
+      Permintaan user: isi bawaan tiap jenis surat bisa diedit per tenant
+      (placeholder {pemohon}, {keperluan}, dst.), bahkan jenis surat baru.
+      Ditunda dari rilis logo/nomor/alamat_rw supaya rilis tetap kecil.
+      Pola yang disepakati untuk ditiru: template WA broadcast
+      (`mpwa_templates` JSON di AppSetting, MpwaController).
+- [ ] **Index unik nomorSurat per tenant (2026-08-17).** Cek duplikat nomor
+      saat ini hanya di aplikasi (closure validasi + guard di store());
+      race dua request bersamaan masih bisa lolos. Index unik butuh bersih-
+      bersih duplikat lama dulu (nomorSurat nullable, data lama mungkin
+      kembar) supaya migrasi tidak gagal di produksi.
 - [x] ~~Dokumentasi masih menyebut SukaWarga10.~~ Selesai 2026-08-15: `README.md`,
       `AGENTS.md`, `DEPLOY.md`, `.ai/HANDOFF.md`, dan `.env.example` sudah ikut.
 - [ ] **Nama berkas aset dan nama repo masih "sukawarga".**

@@ -127,7 +127,7 @@
 
             @if(!$isWarga)
             <button class="btn btn-outline btn-sm" style="font-size:11px;"
-                onclick="openEdit({{ $s->id }}, '{{ addslashes($s->pemohon) }}', '{{ addslashes($s->keperluan) }}', '{{ $s->kodeSurat }}')">
+                onclick="openEdit({{ $s->id }}, '{{ addslashes($s->pemohon) }}', '{{ addslashes($s->keperluan) }}', '{{ $s->kodeSurat }}', '{{ addslashes($s->nomorSurat) }}')">
                 <i class="fas fa-edit"></i> Edit
             </button>
             @endif
@@ -270,6 +270,12 @@
         <form method="POST" id="editForm" style="margin-top:16px;">
             @csrf @method('PUT')
             <div style="margin-bottom:14px;">
+                <label for="editNomor" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nomor Surat *</label>
+                <input type="text" name="nomorSurat" id="editNomor" required maxlength="100"
+                    style="width:100%; padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; box-sizing:border-box;">
+                <div style="font-size:11px; color:var(--text3); margin-top:4px;">Mengubah nomor tidak mengubah urutan otomatis surat berikutnya.</div>
+            </div>
+            <div style="margin-bottom:14px;">
                 <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Jenis Surat</label>
                 <select name="kodeSurat" id="editKode"
                     style="width:100%; padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:white;">
@@ -394,11 +400,12 @@ if (addForm) {
 
 function openAdd()  { document.getElementById('addModal').style.display = 'flex'; }
 function closeAdd() { document.getElementById('addModal').style.display = 'none'; }
-function openEdit(id, pemohon, keperluan, kode) {
+function openEdit(id, pemohon, keperluan, kode, nomor) {
     document.getElementById('editForm').action = '/surat/' + id;
     document.getElementById('editPemohon').value = pemohon;
     document.getElementById('editKeperluan').value = keperluan;
     document.getElementById('editKode').value = kode;
+    document.getElementById('editNomor').value = nomor;
     document.getElementById('editModal').style.display = 'flex';
 }
 function closeEdit() { document.getElementById('editModal').style.display = 'none'; }

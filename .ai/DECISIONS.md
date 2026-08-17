@@ -3,6 +3,24 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-17 - Logo kop: satu key tiga status, path tak pernah dari klien
+**Konteks:** Logo kop surat per tenant (upload/hapus/reset) di halaman
+Pengaturan; nilainya dibaca kop cetak lewat AppSetting yang punya pewarisan
+platform -> desa -> RW.
+**Opsi:** (a) dua key (path + boolean tampil); (b) satu key `kop_logo`
+bernilai '' (bawaan) / `kop/...` (upload) / sentinel `tanpa-logo`;
+(c) kolom baru di organizations.
+**Pilihan:** (b). Dua key bisa terwarisi terpisah (tenant mewarisi boolean
+tanpa path-nya) sehingga statusnya tidak atomik; kolom organizations
+melewatkan pewarisan yang justru diinginkan (logo desa berlaku ke semua RW).
+Sentinel aman karena server selalu menyimpan upload di bawah `kop/`.
+Konsekuensi keamanan: `kop_logo` sengaja TIDAK masuk whitelist form
+(`KEY_DIIZINKAN`) - klien hanya mengirim file + aksi, path selalu hasil
+store() atau konstanta. SVG ditolak (bisa memuat skrip, dilayani same-origin
+dari /storage). Hapus file lama hanya menyentuh baris MILIK org host
+(query by-key langsung, pengecualian sadar atas aturan model AppSetting)
+karena nilai efektif bisa warisan yang file-nya dipakai tenant saudara.
+
 ## 2026-08-17 - Isi surat editable: HTML tersimpan + HTMLPurifier + Quill CDN
 **Konteks:** User minta isi surat bisa disunting ala Word sebelum cetak.
 Menyimpan HTML yang dirender mentah ({!! !!}) adalah permukaan XSS.

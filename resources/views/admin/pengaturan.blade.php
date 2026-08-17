@@ -13,7 +13,8 @@
     </div>
 </div>
 
-<form method="POST" action="{{ route('pengaturan.update') }}">
+{{-- enctype untuk upload logo kop --}}
+<form method="POST" action="{{ route('pengaturan.update') }}" enctype="multipart/form-data">
 @csrf
 <input type="hidden" name="_active_tab" id="activeTabInput" value="tarif">
 
@@ -52,6 +53,32 @@
         <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kecamatan</label><input type="text" name="kecamatan" value="{{ $settings['kecamatan'] ?? '' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
         <div><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Kabupaten</label><input type="text" name="kabupaten" value="{{ $settings['kabupaten'] ?? 'Garut' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;"></div>
         <div style="grid-column:span 2;"><label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Ketua RW</label><input type="text" name="ketua_rw" value="{{ $settings['ketua_rw'] ?? '' }}" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;" placeholder="Nama ketua RW (untuk header surat)"></div>
+        <div style="grid-column:span 2;"><label for="alamat_rw" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Alamat RW</label><input type="text" id="alamat_rw" name="alamat_rw" value="{{ $settings['alamat_rw'] ?? '' }}" maxlength="200" style="width:100%; padding:10px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;" placeholder="Alamat sekretariat RW (baris kedua kop surat)"></div>
+        <div style="grid-column:span 2;">
+            @php $kopLogo = trim($settings['kop_logo'] ?? ''); @endphp
+            <label for="kop_logo_file" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Logo Kop Surat</label>
+            <div style="display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+                <div style="width:68px; height:68px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+                    @if($kopLogo === 'tanpa-logo')
+                        <span style="font-size:10px; color:var(--text3); text-align:center;">Tanpa logo</span>
+                    @elseif($kopLogo !== '')
+                        <img src="{{ asset('storage/'.$kopLogo) }}" alt="Logo kop surat saat ini" style="max-width:100%; max-height:100%; object-fit:contain;">
+                    @else
+                        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo kop surat bawaan" style="max-width:100%; max-height:100%; object-fit:contain;">
+                    @endif
+                </div>
+                <div style="flex:1; min-width:220px;">
+                    <input type="file" id="kop_logo_file" name="kop_logo_file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:16px; padding:8px 0;">
+                    <div style="font-size:11px; color:var(--text3); margin-top:4px;">PNG/JPG/WebP maks 1 MB. Disarankan persegi minimal 200x200 px. Tampil di kiri atas kop surat.</div>
+                    @error('kop_logo_file')<div role="alert" style="font-size:12px; color:var(--merah); margin-top:4px;">{{ $message }}</div>@enderror
+                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:2px;">
+                        <label style="display:flex; align-items:center; gap:8px; min-height:44px; font-size:13px; cursor:pointer;"><input type="radio" name="kop_logo_aksi" value="" checked> Biarkan seperti sekarang</label>
+                        <label style="display:flex; align-items:center; gap:8px; min-height:44px; font-size:13px; cursor:pointer;"><input type="radio" name="kop_logo_aksi" value="hapus"> Hapus logo (kop tampil tanpa logo)</label>
+                        <label style="display:flex; align-items:center; gap:8px; min-height:44px; font-size:13px; cursor:pointer;"><input type="radio" name="kop_logo_aksi" value="reset"> Kembalikan logo bawaan</label>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

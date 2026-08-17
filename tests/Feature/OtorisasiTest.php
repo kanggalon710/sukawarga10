@@ -141,8 +141,15 @@ class OtorisasiTest extends TestCase
     {
         $surat = $this->surat();
 
+        // Payload lengkap sesuai modal edit: update() kini memvalidasi
+        // nomorSurat + kodeSurat juga (fitur edit nomor surat manual).
         $this->actingAs($this->user('ketua_rw'))
-            ->put('/surat/'.$surat->id, ['pemohon' => 'Nama Baru'])
+            ->put('/surat/'.$surat->id, [
+                'pemohon' => 'Nama Baru',
+                'keperluan' => $surat->keperluan,
+                'kodeSurat' => $surat->kodeSurat,
+                'nomorSurat' => $surat->nomorSurat,
+            ])
             ->assertRedirect();
 
         $this->assertSame('Nama Baru', $surat->fresh()->pemohon);

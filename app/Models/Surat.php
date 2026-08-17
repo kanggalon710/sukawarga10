@@ -12,7 +12,14 @@ class Surat extends Model
     // dijaga tests/Feature/IsolasiTenantTest.php.
     use MilikOrganisasi, ScopedKeOrganisasi;
 
-    protected $guarded = [];
+    /**
+     * Sumber tunggal daftar kode surat. Daftar yang sama dipakai select form
+     * (layanan/surat.blade.php) dan $judulMap halaman cetak.
+     */
+    public const KODE_VALID = [
+        'SKD', 'SKTM', 'SKP', 'SKU', 'SKCK', 'SKK', 'SKL',
+        'SKN', 'SKBB', 'SKI', 'SKKB', 'SPB', 'LAIN',
+    ];
 
-    //
+    protected $guarded = [];
 }
