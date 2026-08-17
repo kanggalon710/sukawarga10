@@ -53,13 +53,18 @@ class PembaruanController extends Controller
         }
 
         try {
-            $log = $pembaru->jalankan();
+            $hasil = $pembaru->jalankan();
+            if ($hasil['mutakhir']) {
+                return redirect()->route('pembaruan.index')
+                    ->with('success', 'Aplikasi sudah mutakhir. Tidak ada yang perlu diperbarui.');
+            }
+
             AuditLogService::log('pembaruan', 'sistem',
                 'Pembaruan aplikasi dijalankan oleh '.auth()->user()->username);
 
             return redirect()->route('pembaruan.index')
                 ->with('success', 'Pembaruan selesai. Aplikasi kini di versi terbaru.')
-                ->with('logPembaruan', $log);
+                ->with('logPembaruan', $hasil['log']);
         } catch (\RuntimeException $e) {
             AuditLogService::log('pembaruan_gagal', 'sistem', $e->getMessage());
             $log = json_decode($e->getPrevious()?->getMessage() ?? '[]', true) ?: [];

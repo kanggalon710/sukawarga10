@@ -150,6 +150,13 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       dengan notifikasi versi baru + update satu klik (pull ff-only +
       composer kondisional + migrate + cache), khusus admin platform.
       9 tes di `PembaruanTest`. Rilis = ff-merge dev → production.
+- [ ] **Cek pembaruan terjadwal + `.cpanel.yml` (opsional, 2026-08-17).**
+      Ditawarkan saat membuat update satu klik tapi belum dipilih user:
+      (a) command `pembaruan:cek` terjadwal harian supaya badge muncul
+      sendiri (butuh cron `schedule:run` di cPanel); (b) `.cpanel.yml`
+      supaya "Deploy HEAD Commit" cPanel ikut migrate + rebuild cache.
+      Selama belum ada, jalur cPanel "Update from Remote" JANGAN dipakai
+      untuk update (tanpa migrate/cache) - pakai tombol di website.
 - [ ] **G lanjutan:** integrasi API cPanel (buat subdomain + AutoSSL otomatis
       dari halaman Manajemen Desa) - HANYA perlu bila wildcard
       `*.desa.jabnet.id` ber-AutoSSL ternyata tidak didukung hosting; tunggu

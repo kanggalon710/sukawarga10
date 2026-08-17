@@ -64,23 +64,24 @@
     @endif
 
     <div class="pembaruan-aksi">
+        <form method="POST" action="{{ route('pembaruan.jalankan') }}"
+              onsubmit="return confirm('Jalankan pembaruan sekarang? Aplikasi memeriksa versi terbaru dulu; bila ada, kode ditarik, migrasi database dijalankan, dan cache dibangun ulang. Pastikan backup database masih segar.')">
+            @csrf
+            <button type="submit" class="btn btn-primary"><i class="fas fa-download" aria-hidden="true"></i> Perbarui Sekarang</button>
+        </form>
         <form method="POST" action="{{ route('pembaruan.cek') }}">
             @csrf
             <button type="submit" class="btn btn-outline"><i class="fas fa-rotate" aria-hidden="true"></i> Periksa Pembaruan</button>
         </form>
-        @if($status['tersedia'])
-        <form method="POST" action="{{ route('pembaruan.jalankan') }}"
-              onsubmit="return confirm('Jalankan pembaruan sekarang? Aplikasi menarik kode terbaru, menjalankan migrasi database, dan membangun ulang cache. Pastikan backup database masih segar.')">
-            @csrf
-            <button type="submit" class="btn btn-primary"><i class="fas fa-download" aria-hidden="true"></i> Perbarui Sekarang</button>
-        </form>
-        @endif
     </div>
     <p style="margin:12px 0 0; font-size:12.5px; color:var(--text3);">
-        Update menarik branch <code>production</code> (fast-forward saja), menjalankan
-        <code>composer install</code> bila dependensi berubah, <code>migrate --force</code>,
-        lalu membangun ulang cache. Kalau gagal, tidak ada langkah lanjutan yang
-        dijalankan - selesaikan lewat terminal sesuai <code>DEPLOY.md</code>.
+        Satu klik cukup: "Perbarui Sekarang" memeriksa versi terbaru dulu (bila sudah
+        mutakhir, berhenti di situ), lalu menarik branch <code>production</code>
+        (fast-forward saja), menjalankan <code>composer install</code> bila dependensi
+        berubah, <code>migrate --force</code>, dan membangun ulang cache. "Periksa
+        Pembaruan" hanya melihat daftar perubahan tanpa mengeksekusi. Kalau update
+        gagal, tidak ada langkah lanjutan yang dijalankan - selesaikan lewat terminal
+        sesuai <code>DEPLOY.md</code>.
     </p>
 </div>
 

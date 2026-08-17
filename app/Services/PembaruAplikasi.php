@@ -74,14 +74,22 @@ class PembaruAplikasi
     }
 
     /**
-     * Jalankan update. Mengembalikan log per langkah; melempar RuntimeException
-     * dengan log yang sudah terkumpul bila ada langkah yang gagal.
+     * Jalankan update. Mengembalikan ['mutakhir' => bool, 'log' => langkah[]];
+     * melempar RuntimeException dengan log yang sudah terkumpul bila ada
+     * langkah yang gagal.
      *
+     * Cek dilakukan DI SINI lebih dulu supaya tombol Perbarui cukup satu
+     * klik tanpa Periksa: bila sudah mutakhir, berhenti tanpa membayar
+     * pull/migrate/cache (badge sidebar ikut tersegarkan oleh cek()).
      * Composer hanya dijalankan bila composer.lock ikut berubah - langkah
      * termahal dan paling rawan timeout, jangan dibayar kalau tidak perlu.
      */
     public function jalankan(): array
     {
+        if (! $this->cek()['tersedia']) {
+            return ['mutakhir' => true, 'log' => []];
+        }
+
         $remote = self::REMOTE;
         $branch = self::BRANCH;
         $log = [];
@@ -119,6 +127,6 @@ class PembaruAplikasi
             'dicek_pada' => now()->toDateTimeString(),
         ], now()->addDays(7));
 
-        return $log;
+        return ['mutakhir' => false, 'log' => $log];
     }
 }

@@ -2,6 +2,21 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-17 - Pembaruan Sistem jadi satu klik
+**Agen:** claude | **Status:** selesai
+**Kenapa:** User ingin update produksi tanpa aksi manual: sebelumnya harus
+klik "Periksa Pembaruan" dulu baru tombol "Perbarui Sekarang" muncul (2 klik),
+dan mengira rebuild cache masih manual. Faktanya /pembaruan sudah lengkap
+(pull + composer bila perlu + migrate + cache); yang diperbaiki cuma alurnya.
+**Perubahan:** PembaruAplikasi::jalankan() memanggil cek() dulu - bila
+mutakhir berhenti tanpa langkah (return ['mutakhir','log']); tombol Perbarui
+selalu tampil; pesan sukses dibedakan; DEPLOY.md disesuaikan.
+**File:** app/Services/PembaruAplikasi.php, app/Http/Controllers/PembaruanController.php,
+resources/views/admin/pembaruan.blade.php, tests/Feature/PembaruanTest.php, DEPLOY.md
+**Catatan:** Cek otomatis terjadwal dan .cpanel.yml ditawarkan tapi tidak
+dipilih user. Jalur cPanel "Update from Remote" tetap TANPA migrate/cache -
+jangan dipakai untuk update; pakai tombol di website.
+
 ## 2026-08-17 - Edit identitas tenant: ganti nomor RW + hostname, kabupaten desa
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Tenant produksi "RW 07 Bagendit" ternyata salah identitas -

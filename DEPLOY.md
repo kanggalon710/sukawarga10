@@ -16,8 +16,9 @@ Cara merilis: kerjakan & uji di `dev`, lalu
 Dua cara, hasil sama:
 
 1. **Dari website (disarankan):** login sebagai admin platform → menu
-   **Pembaruan Sistem** → "Periksa Pembaruan" → "Perbarui Sekarang".
-   Tombolnya menjalankan `git pull --ff-only origin production`,
+   **Pembaruan Sistem** → klik "Perbarui Sekarang" (satu klik; sistem
+   memeriksa versi terbaru dulu, dan bila sudah mutakhir berhenti tanpa
+   mengubah apa pun). Tombolnya menjalankan `git pull --ff-only origin production`,
    `composer install` (hanya bila dependensi berubah), `migrate --force`,
    dan membangun ulang cache; lognya tampil di halaman. Ada penanda
    notifikasi di menu bila versi baru terdeteksi.

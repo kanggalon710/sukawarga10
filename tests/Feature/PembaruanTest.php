@@ -101,6 +101,31 @@ class PembaruanTest extends TestCase
         $this->actingAs($this->adminPlatform)->get('/pembaruan')->assertSee('mutakhir');
     }
 
+    public function test_tombol_perbarui_tampil_walau_belum_pernah_cek(): void
+    {
+        Process::fake(['git log*' => Process::result("ab12cd3|2026-08-16|Rilis awal\n")]);
+
+        $this->actingAs($this->adminPlatform)->get('/pembaruan')
+            ->assertOk()
+            ->assertSee('Perbarui Sekarang');
+    }
+
+    public function test_jalankan_saat_mutakhir_berhenti_tanpa_langkah_update(): void
+    {
+        Process::fake([
+            'git fetch*' => Process::result(''),
+            'git rev-list*' => Process::result("0\n"),
+            '*' => Process::result(''),
+        ]);
+
+        $this->actingAs($this->adminPlatform)->post('/pembaruan/jalankan')
+            ->assertRedirect(route('pembaruan.index'))
+            ->assertSessionHas('success', fn ($pesan) => str_contains($pesan, 'mutakhir'));
+
+        Process::assertDidntRun(fn ($p) => str_contains($p->command, 'git pull'));
+        Process::assertDidntRun(fn ($p) => str_contains($p->command, 'migrate --force'));
+    }
+
     public function test_jalankan_update_tanpa_composer_bila_lock_tidak_berubah(): void
     {
         Process::fake([
@@ -108,9 +133,10 @@ class PembaruanTest extends TestCase
             'git pull*' => Process::result("Updating ab12cd3..ee55ff6\n"),
             '*artisan migrate*' => Process::result('Nothing to migrate.'),
             '*artisan*' => Process::result('ok'),
+            'git log HEAD..*' => Process::result("ee55 Rilis baru\n"),
             'git log*' => Process::result("ee55ff6|2026-08-16|Rilis baru\n"),
             'git fetch*' => Process::result(''),
-            'git rev-list*' => Process::result("0\n"),
+            'git rev-list*' => Process::result("1\n"),
         ]);
 
         $this->actingAs($this->adminPlatform)->post('/pembaruan/jalankan')
@@ -130,9 +156,10 @@ class PembaruanTest extends TestCase
             'git pull*' => Process::result("Updating\n"),
             'composer install*' => Process::result('Generating autoload files'),
             '*artisan*' => Process::result('ok'),
+            'git log HEAD..*' => Process::result("ee55 Rilis baru\n"),
             'git log*' => Process::result("ee55ff6|2026-08-16|Rilis baru\n"),
             'git fetch*' => Process::result(''),
-            'git rev-list*' => Process::result("0\n"),
+            'git rev-list*' => Process::result("1\n"),
         ]);
 
         $this->actingAs($this->adminPlatform)->post('/pembaruan/jalankan')->assertRedirect();
@@ -145,7 +172,10 @@ class PembaruanTest extends TestCase
         Process::fake([
             'git diff*' => Process::result(''),
             'git pull*' => Process::result(output: '', errorOutput: 'error: local changes', exitCode: 1),
+            'git log HEAD..*' => Process::result("ee55 Rilis baru\n"),
             'git log*' => Process::result("ab12cd3|2026-08-16|Rilis\n"),
+            'git fetch*' => Process::result(''),
+            'git rev-list*' => Process::result("1\n"),
         ]);
 
         $this->actingAs($this->adminPlatform)->post('/pembaruan/jalankan')
