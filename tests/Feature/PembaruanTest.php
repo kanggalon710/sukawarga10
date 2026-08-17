@@ -192,6 +192,65 @@ class PembaruanTest extends TestCase
         $this->actingAs($this->adminTenant)->post('/pembaruan/jalankan')->assertForbidden();
     }
 
+    /**
+     * Regresi produksi 2026-08-17: dijalankan dari web (PHP-FPM), PHP_BINARY
+     * menunjuk daemon /opt/cpanel/.../sbin/php-fpm sehingga langkah
+     * `artisan migrate` cuma mencetak usage php-fpm dan update berhenti.
+     */
+    public function test_binari_php_cli_dipakai_apa_adanya_di_konsol(): void
+    {
+        $this->assertSame('/usr/bin/php', PembaruAplikasi::binariPhpCli('/usr/bin/php', 'cli'));
+    }
+
+    public function test_binari_php_fpm_dipetakan_ke_cli_seversi(): void
+    {
+        $dir = sys_get_temp_dir().'/uji-php-'.uniqid();
+        mkdir($dir.'/sbin', 0755, true);
+        mkdir($dir.'/bin', 0755, true);
+        file_put_contents($dir.'/sbin/php-fpm', '');
+        file_put_contents($dir.'/bin/php', '');
+        chmod($dir.'/bin/php', 0755);
+
+        try {
+            $this->assertSame(
+                $dir.'/bin/php',
+                PembaruAplikasi::binariPhpCli($dir.'/sbin/php-fpm', 'fpm-fcgi')
+            );
+        } finally {
+            @unlink($dir.'/sbin/php-fpm');
+            @unlink($dir.'/bin/php');
+            @rmdir($dir.'/sbin');
+            @rmdir($dir.'/bin');
+            @rmdir($dir);
+        }
+    }
+
+    public function test_binari_php_fpm_tanpa_cli_seversi_tidak_pernah_memakai_php_fpm(): void
+    {
+        $hasil = PembaruAplikasi::binariPhpCli('/tidak-ada/sbin/php-fpm', 'fpm-fcgi');
+
+        $this->assertStringNotContainsString('php-fpm', $hasil);
+        $this->assertNotSame('', $hasil);
+    }
+
+    public function test_jalankan_memakai_binari_hasil_resolusi(): void
+    {
+        Process::fake([
+            'git diff*' => Process::result("app/helpers.php\n"),
+            'git pull*' => Process::result("Updating\n"),
+            '*artisan*' => Process::result('ok'),
+            'git log HEAD..*' => Process::result("ee55 Rilis baru\n"),
+            'git log*' => Process::result("ee55ff6|2026-08-16|Rilis baru\n"),
+            'git fetch*' => Process::result(''),
+            'git rev-list*' => Process::result("1\n"),
+        ]);
+
+        $this->actingAs($this->adminPlatform)->post('/pembaruan/jalankan')->assertRedirect();
+
+        $php = PembaruAplikasi::binariPhpCli();
+        Process::assertRan(fn ($p) => $p->command === "{$php} artisan migrate --force");
+    }
+
     public function test_notifikasi_menu_tampil_bila_ada_pembaruan_tercatat(): void
     {
         Cache::put(PembaruAplikasi::KUNCI_STATUS, [

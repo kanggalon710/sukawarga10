@@ -74,6 +74,35 @@ class PembaruAplikasi
     }
 
     /**
+     * Binari PHP CLI untuk menjalankan artisan dari langkah update.
+     *
+     * BUKAN PHP_BINARY mentah: dari web, PHP berjalan di bawah PHP-FPM dan
+     * PHP_BINARY menunjuk daemonnya (/opt/cpanel/.../sbin/php-fpm) yang tidak
+     * bisa menjalankan skrip - update produksi 2026-08-17 gagal karena ini.
+     * Peta sbin/php-fpm -> bin/php memakai CLI seversi persis (pola
+     * cPanel/EasyApache); bila tidak ada, PhpExecutableFinder mencari lewat
+     * PATH. Parameter injeksi hanya untuk tes (SAPI tes selalu cli).
+     */
+    public static function binariPhpCli(?string $binary = null, ?string $sapi = null): string
+    {
+        $binary ??= PHP_BINARY;
+        $sapi ??= PHP_SAPI;
+
+        if ($sapi === 'cli' && $binary !== '') {
+            return $binary;
+        }
+
+        $kandidat = preg_replace('#/sbin/php-fpm[^/]*$#', '/bin/php', $binary);
+        if ($kandidat !== $binary && is_executable($kandidat)) {
+            return $kandidat;
+        }
+
+        $ditemukan = (new \Symfony\Component\Process\PhpExecutableFinder)->find(false);
+
+        return $ditemukan !== false ? $ditemukan : 'php';
+    }
+
+    /**
      * Jalankan update. Mengembalikan ['mutakhir' => bool, 'log' => langkah[]];
      * melempar RuntimeException dengan log yang sudah terkumpul bila ada
      * langkah yang gagal.
@@ -103,7 +132,7 @@ class PembaruAplikasi
         if ($lockBerubah) {
             $langkah[] = ['composer install --no-dev --optimize-autoloader --no-interaction', 600];
         }
-        $php = PHP_BINARY;
+        $php = self::binariPhpCli();
         $langkah[] = ["{$php} artisan migrate --force", 300];
         foreach (['config:clear', 'config:cache', 'route:cache', 'view:cache'] as $artisan) {
             $langkah[] = ["{$php} artisan {$artisan}", 120];

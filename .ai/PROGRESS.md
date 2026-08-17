@@ -2,6 +2,24 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-17 - Fix Pembaruan Sistem: PHP_BINARY = php-fpm saat dari web
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Update satu klik dari web gagal di produksi: langkah artisan
+memakai PHP_BINARY, yang di bawah PHP-FPM menunjuk daemon
+/opt/cpanel/ea-php83/root/usr/sbin/php-fpm (bukan PHP CLI), sehingga
+`php-fpm artisan migrate` hanya mencetak usage lalu exit gagal. git pull
+tetap sukses sehingga versi tampak mutakhir tapi migrasi/cache tak jalan.
+Tak pernah ketahuan di tes (SAPI tes = cli) maupun deploy manual via SSH.
+**Perubahan:** `PembaruAplikasi::binariPhpCli()`: SAPI cli pakai PHP_BINARY;
+selain itu petakan sbin/php-fpm -> bin/php seversi (pola cPanel, terverifikasi
+ada di server) dengan fallback Symfony PhpExecutableFinder. Empat tes baru
+termasuk regresi pemetaan.
+**File:** app/Services/PembaruAplikasi.php, tests/Feature/PembaruanTest.php
+**Catatan:** Sisa langkah update yang gagal (cache + migrate) sudah
+dijalankan manual di server; symlink `public/storage` ternyata BELUM ada di
+produksi dan baru dibuat sekarang (`php artisan storage:link`) - tanpa ini
+logo kop upload tidak akan tampil.
+
 ## 2026-08-17 - Surat: logo kop per tenant + nomor editable + alamat RW
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Lanjutan permintaan user setelah fitur edit isi: logo kop bisa
