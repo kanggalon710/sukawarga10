@@ -3,6 +3,20 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-17 - Isi surat editable: HTML tersimpan + HTMLPurifier + Quill CDN
+**Konteks:** User minta isi surat bisa disunting ala Word sebelum cetak.
+Menyimpan HTML yang dirender mentah ({!! !!}) adalah permukaan XSS.
+**Opsi:** (a) contenteditable tanpa simpan; (b) simpan HTML + sanitasi
+allowlist DOMDocument tulisan tangan; (c) simpan HTML + ezyang/htmlpurifier.
+**Pilihan:** (c). Dependensi baru dibenarkan (keputusan keamanan): purifier
+memperbaiki HTML rusak dan menangkal obfuscation atribut event/skema
+javascript yang mudah lolos dari allowlist buatan sendiri; tanpa dependensi
+transitif. Sanitasi saat SIMPAN (bukan render) + penulis dibatasi
+role:ketua_rw. Editor Quill 2 dari jsDelivr (cdnjs tidak punya berkas
+Quill 2.x), dimuat hanya untuk pengurus. Kop, nomor surat, dan blok TTD
+sengaja di luar area edit supaya identitas tenant dan TTD berjenjang tidak
+bisa dipalsukan lewat editor.
+
 ## 2026-08-17 - Nomor RW & hostname bisa diganti; slug tetap beku
 **Konteks:** Tenant Bagendit salah nomor RW + wilayah; keputusan
 2026-08-16 menyatakan label/slug tak bisa diubah karena hostname terikat.

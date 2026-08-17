@@ -166,6 +166,10 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
 
 ## Belum dikerjakan
 
+- [ ] **Logo kop surat masih satu untuk semua tenant (2026-08-17).** Halaman
+      cetak surat memakai `logo-sukawarga-icon.svg` hardcode; belum ada setting
+      logo per tenant. Perlu fitur upload/pilih logo di Pengaturan bila tenant
+      lain ingin kop berlogo sendiri.
 - [x] ~~Dokumentasi masih menyebut SukaWarga10.~~ Selesai 2026-08-15: `README.md`,
       `AGENTS.md`, `DEPLOY.md`, `.ai/HANDOFF.md`, dan `.env.example` sudah ikut.
 - [ ] **Nama berkas aset dan nama repo masih "sukawarga".**

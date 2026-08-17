@@ -344,5 +344,6 @@
             document.addEventListener('click', (e) => { if (!avatarDD.contains(e.target)) avatarDD.style.display = 'none'; });
         }
     </script>
+    @stack('scripts')
 </body>
 </html>

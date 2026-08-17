@@ -2,6 +2,28 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-17 - Surat: kop/nomor ikut tenant + edit isi surat ala Word
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Tenant RW 07 mencetak surat bertuliskan "RW 10": nomor surat
+hardcode `RW10` (SuratController) dan kop cetak fallback hardcode
+10/Warudoyong/Kota Sukabumi. Sekalian permintaan user: isi surat bisa
+disunting seperti Word sebelum dicetak.
+**Perubahan:** Nomor surat & kop memakai wilayahTenant(); frasa wilayah
+dirakit tanpa koma menggantung saat kabupaten kosong. Fitur baru: kolom
+`surats.isi_kustom` (HTML tersanitasi lewat PembersihHtmlSurat/HTMLPurifier,
+disimpan via PUT /surat/{id}/isi khusus role:ketua_rw), editor Quill 2 via
+jsDelivr hanya dimuat untuk pengurus, tombol Kembalikan ke Template, kop/
+nomor/blok TTD tetap otomatis. Layout dapat @stack('scripts').
+**File:** app/Http/Controllers/SuratController.php, app/Services/PembersihHtmlSurat.php,
+resources/views/layanan/cetak_surat.blade.php, resources/views/layouts/app.blade.php,
+routes/web.php, database/migrations/2026_08_17_000001_add_isi_kustom_to_surats_table.php,
+tests/Feature/SuratTenantTest.php, tests/Feature/SuratIsiKustomTest.php
+**Catatan:** Nomor surat lama yang terlanjur `RW10` tidak ditulis ulang.
+Logo kop masih satu untuk semua tenant (belum ada setting logo, ada di TODO).
+cdnjs tidak menyediakan Quill 2.x, dipakai jsDelivr (jalur resmi dokumentasi).
+Dependensi baru ezyang/htmlpurifier - deploy berikutnya menjalankan composer
+install otomatis karena composer.lock berubah.
+
 ## 2026-08-17 - Pembaruan Sistem jadi satu klik
 **Agen:** claude | **Status:** selesai
 **Kenapa:** User ingin update produksi tanpa aksi manual: sebelumnya harus

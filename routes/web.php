@@ -119,6 +119,7 @@ Route::middleware('auth')->group(function () {
 
         // Ubah/hapus surat: ketua RW ke atas
         Route::middleware('role:ketua_rw')->group(function () {
+            Route::put('/surat/{id}/isi', [SuratController::class, 'updateIsi'])->name('surat.isi');
             Route::put('/surat/{id}', [SuratController::class, 'update'])->name('surat.update');
             Route::patch('/surat/{id}/status', [SuratController::class, 'updateStatus'])->name('surat.updateStatus');
             Route::delete('/surat/{id}', [SuratController::class, 'destroy'])->name('surat.destroy');

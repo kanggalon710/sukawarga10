@@ -49,7 +49,8 @@ class SuratController extends Controller
 
         $tahun = date('Y');
         $nomorUrut = Surat::where('tahun', $tahun)->max('nomorUrut') + 1;
-        $nomorSurat = sprintf('%03d/%s/RW10/%s', $nomorUrut, $request->kodeSurat, $tahun);
+        // Nomor RW dari tenant request (dulu hardcode "RW10" untuk semua tenant).
+        $nomorSurat = sprintf('%03d/%s/RW%s/%s', $nomorUrut, $request->kodeSurat, wilayahTenant()['rw'], $tahun);
 
         // Determine RT for the warga
         $rt = null;
@@ -214,6 +215,32 @@ class SuratController extends Controller
         return back()->with('success', 'Surat ' . $surat->nomorSurat . ' berhasil diperbarui.');
     }
 
+    /**
+     * Simpan isi surat hasil editor (atau kembalikan ke template dengan
+     * reset=1). HTML disanitasi DI SINI karena halaman cetak merendernya
+     * mentah; penulisnya pun sudah dibatasi rute role:ketua_rw.
+     */
+    public function updateIsi(Request $request, $id)
+    {
+        $surat = Surat::findOrFail($id);
+
+        if ($request->boolean('reset')) {
+            $surat->update(['isi_kustom' => null]);
+            AuditLogService::log('update', 'surat', 'Isi surat '.$surat->nomorSurat.' dikembalikan ke template');
+
+            return redirect()->route('surat.cetak', $surat->id)
+                ->with('success', 'Isi surat dikembalikan ke template otomatis.');
+        }
+
+        $data = $request->validate(['isi' => 'required|string|max:60000']);
+
+        $surat->update(['isi_kustom' => \App\Services\PembersihHtmlSurat::bersihkan($data['isi'])]);
+        AuditLogService::log('update', 'surat', 'Edit isi surat: '.$surat->nomorSurat);
+
+        return redirect()->route('surat.cetak', $surat->id)
+            ->with('success', 'Isi surat berhasil disimpan.');
+    }
+
     public function updateStatus(Request $request, $id)
     {
         $surat = Surat::findOrFail($id);
@@ -228,7 +255,13 @@ class SuratController extends Controller
         $surat = Surat::findOrFail($id);
         $this->pastikanBolehLihat($surat);
         $settings = AppSetting::semuaEfektif();
-        return view('layanan.cetak_surat', compact('surat', 'settings'));
+
+        // Sinkron dengan rute simpan isi (role:ketua_rw): tombol edit hanya
+        // untuk yang memang bisa menyimpan.
+        $level = auth()->user()->levelEfektif();
+        $bolehEdit = (User::LEVEL_POWER[$level] ?? 0) >= User::LEVEL_POWER['ketua_rw'];
+
+        return view('layanan.cetak_surat', compact('surat', 'settings', 'bolehEdit'));
     }
 
     public function destroy($id)
