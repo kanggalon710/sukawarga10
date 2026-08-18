@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Global middleware — applied to all requests
+        // Global middleware — applied to all requests.
+        // PaksaHttps dipasang PALING DEPAN: ia harus memutuskan sebelum sesi
+        // dan CSRF tersentuh, karena justru cookie sesilah yang tidak bisa
+        // hidup di koneksi HTTP polos.
+        $middleware->prepend(\App\Http\Middleware\PaksaHttps::class);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
         // Resolver tenant hanya di grup web: health check `/up` dan rute api

@@ -72,6 +72,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Paksa HTTPS
+    |--------------------------------------------------------------------------
+    |
+    | Portal memakai cookie sesi ber-flag `secure`, jadi melayani halaman lewat
+    | HTTP polos berarti sesi tidak pernah tersimpan dan setiap form berakhir
+    | 419. Bawaannya aktif HANYA di produksi supaya `php artisan serve` dan
+    | suite tes tetap jalan di http://localhost. `PAKSA_HTTPS=false` adalah
+    | katup darurat bila deteksi skema meleset di suatu lingkungan.
+    |
+    */
+
+    'paksa_https' => (bool) env('PAKSA_HTTPS', env('APP_ENV') === 'production'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

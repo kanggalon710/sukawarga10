@@ -22,6 +22,19 @@ Bukan pekerjaan kode, tapi jangan dilewat.
       kehilangan Impor/Ekspor CSV warga, Reset Data naik ke superadmin, dan
       menu Surat Menyurat kini tampil untuk warga (rutenya memang sudah
       terbuka sejak dulu, hanya menunya yang disembunyikan).
+- [ ] **Tiap tenant baru masih perlu satu langkah manual di cPanel:** tambahkan
+      subdomain `<label>.desa.jabnet.id` (halaman desa) DAN
+      `<label>-rw<nn>.desa.jabnet.id` (portal RW) dengan document root
+      `repositories/desa-manage/public`, lalu tunggu AutoSSL. Kalau dilewat,
+      host-nya gagal TLS. Setelah AutoSSL selesai, PERIKSA sertifikatnya
+      benar-benar memuat nama telanjang (pernah terbit hanya varian `www.`
+      karena validasi berjalan saat vhost baru dibuat) - jalankan ulang
+      AutoSSL bila perlu. Hilang sepenuhnya begitu sertifikat wildcard
+      `*.desa.jabnet.id` terpasang.
+- [ ] **JANGAN deploy lewat cPanel Git Version Control.** Ia hanya menarik
+      berkas: migrasi tidak jalan dan cache rute tidak dibangun ulang, dan
+      situs 500. Pakai tombol Perbarui Sekarang (terverifikasi bekerja
+      2026-08-18) atau SSH.
 - [ ] **Backup database produksi** sebelum `php artisan migrate --force`.
       Selain migrasi lama (`users.keluarga_id`, `transaksis.periode`, index),
       kini ada LIMA migrasi multi-tenant `2026_08_15_000004`-`000008`

@@ -2,6 +2,31 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-18 - Portal dipaksa HTTPS (akar 419 PAGE EXPIRED di tenant baru)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Tenant baru (ygao) yang sertifikatnya belum terbit tetap melayani
+halaman login lewat HTTP polos. Karena `SESSION_SECURE_COOKIE=true`, browser
+tidak pernah menyimpan cookie sesinya, jadi setiap pengiriman form menabrak
+"419 PAGE EXPIRED" tanpa petunjuk apa pun. Lebih serius dari sekadar UX: PIN
+warga sempat melintas tanpa enkripsi sebelum akhirnya ditolak.
+**Perubahan:** middleware global `PaksaHttps` (301 ke https), dipasang PALING
+DEPAN supaya memutuskan sebelum sesi dan CSRF tersentuh. Aktif hanya di
+produksi (`config('app.paksa_https')`, bawaan `APP_ENV === 'production'`)
+supaya `artisan serve` dan suite tes tetap jalan di http://localhost, dengan
+katup darurat `PAKSA_HTTPS=false`. Jalur `.well-known/` dikecualikan karena
+penerbitan sertifikat tenant BARU justru terjadi saat HTTPS-nya belum ada.
+**File:** app/Http/Middleware/PaksaHttps.php, bootstrap/app.php, config/app.php,
+tests/Feature/PaksaHttpsTest.php
+**Catatan:** Sebelum merilis, deteksi skema di produksi diverifikasi lewat
+Location header (https -> https://, http -> http://), jadi tidak ada risiko
+redirect loop; tidak ada proxy di depan Apache. Sisi infrastruktur diperbaiki
+terpisah: AutoSSL sempat menerbitkan sertifikat yang hanya mencakup varian
+`www.` untuk host baru (validasi berjalan saat vhost baru dibuat); dijalankan
+ulang setelah jalur ACME terbukti terjangkau, dan subdomain halaman desa
+`ygao.desa.jabnet.id` yang belum dibuat ikut ditambahkan. Deploy commit
+d13ce3c lewat tombol Perbarui Sekarang terverifikasi BERHASIL penuh (migrasi
+jalan, cache dibangun ulang 07:09).
+
 ## 2026-08-18 - Pensiunkan hierarki izin lama (CheckRole, LEVEL_POWER, helper is*/can*)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Setelah matriks kapabilitas hidup, sistem izin lama tinggal nol
