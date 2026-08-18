@@ -10,11 +10,11 @@ use Illuminate\Http\Request;
  * Penjaga rute berbasis matriks kapabilitas: `izin:surat.ubah`.
  *
  * Beberapa argumen berarti OR MURNI - punya salah satu sudah cukup. Ini
- * bedanya dengan `role:a,b` lama (CheckRole) yang sesungguhnya berarti
+ * bedanya dengan `role:a,b` lama (CheckRole, dihapus 2026-08-18) yang berarti
  * "power >= max(power a, power b)", sehingga `role:superadmin,ketua_rw` hanya
  * meloloskan ketua_rw lewat kebetulan pencocokan nama persis.
  *
- * Bentuk respons sengaja dipertahankan sama dengan CheckRole (403, atau JSON
+ * Bentuk respons sengaja dipertahankan sama dengan penjaga lama (403, atau JSON
  * untuk request yang meminta JSON) supaya penukaran penjaga tidak mengubah
  * kontrak yang dilihat klien.
  *

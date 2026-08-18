@@ -155,7 +155,7 @@
     <div id="areaIsi">
     @if($surat->isi_kustom)
         {{-- Aman dirender mentah: HTML sudah disanitasi PembersihHtmlSurat
-             saat disimpan, dan penulisnya dibatasi rute role:ketua_rw. --}}
+             saat disimpan, dan penulisnya dibatasi rute izin:surat.ubahIsi. --}}
         {!! $surat->isi_kustom !!}
     @else
     <div class="isi-surat">

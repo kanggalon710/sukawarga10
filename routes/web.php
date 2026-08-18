@@ -259,7 +259,7 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    // Platform — Manajemen Desa (buka tenant baru). Dijaga role:superadmin
+    // Platform — Manajemen Desa (buka tenant baru). Dijaga izin:platform.tenant
     // lalu dipersempit ke super_admin PLATFORM di controller. Sengaja TANPA
     // middleware fitur:<modul>: ini fitur platform lintas tenant, bukan modul
     // tenant yang boleh dimatikan lewat feature flag (aturan AGENTS.md #11

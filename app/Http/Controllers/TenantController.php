@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Manajemen Desa (Phase G tahap 1): membuka desa + RW + domain + admin dari
- * browser. HANYA untuk super_admin PLATFORM - rute dijaga role:superadmin,
+ * browser. HANYA untuk super_admin PLATFORM - rute dijaga izin:platform.tenant,
  * lalu dipersempit di sini karena superadmin ber-scope tenant lolos
  * middleware tapi tidak boleh membuka desa baru.
  */

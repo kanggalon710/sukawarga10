@@ -255,7 +255,7 @@ class SuratController extends Controller
     /**
      * Simpan isi surat hasil editor (atau kembalikan ke template dengan
      * reset=1). HTML disanitasi DI SINI karena halaman cetak merendernya
-     * mentah; penulisnya pun sudah dibatasi rute role:ketua_rw.
+     * mentah; penulisnya pun sudah dibatasi rute izin:surat.ubahIsi.
      */
     public function updateIsi(Request $request, $id)
     {

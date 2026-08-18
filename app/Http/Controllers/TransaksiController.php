@@ -168,10 +168,12 @@ class TransaksiController extends Controller
         return back()->with('success', 'Pembayaran berhasil dicatat. No. Bukti: ' . $noBukti . ' — Rp ' . number_format($totalBayar,0,',','.') . (($noWa) ? ' ✅ Bukti dikirim ke WA warga.' : ''));
     }
 
-    // --- VOID / ROLLBACK TRANSAKSI (SUPER ADMIN) ---
+    // --- VOID / ROLLBACK TRANSAKSI (pemegang transaksi.void) ---
     public function voidTransaksi(Request $request, $id) {
         $user = auth()->user();
-        if (!$user->canVoid()) {
+        // Lapis kedua di belakang middleware `izin:transaksi.void`; membatalkan
+        // catatan uang cukup berat untuk dijaga dua kali.
+        if (!bolehkah('transaksi.void')) {
             return back()->with('error', 'Anda tidak memiliki akses untuk membatalkan transaksi.');
         }
 

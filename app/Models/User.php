@@ -33,25 +33,17 @@ class User extends Authenticatable
     public function getAuthPassword() { return $this->pin; }
 
     /**
-     * Level setara superadmin. Akun default aplikasi memakai level 'admin',
-     * dan middleware CheckRole sudah menyetarakannya (power 5). Semua
-     * pengecekan izin di bawah WAJIB memakai daftar ini supaya konsisten,
-     * jangan pernah membandingkan ke 'superadmin' saja.
+     * Peran setara operator portal (tak terbatas). Akun bawaan aplikasi
+     * memakai level 'admin', bukan 'superadmin', jadi daftar inilah yang
+     * dipakai peranEfektifUntuk() dan MatriksKapabilitas untuk menyetarakan
+     * ketiganya - jangan pernah membandingkan ke 'superadmin' saja.
      */
     public const LEVEL_ADMIN = ['superadmin', 'super_admin', 'admin'];
 
-    /**
-     * Kekuatan hierarki level. Satu-satunya sumber kebenaran: dipakai
-     * CheckRole dan pemilihan assignment terkuat di levelEfektifUntuk().
-     */
-    public const LEVEL_POWER = [
-        'superadmin' => 5,
-        'admin' => 5,
-        'ketua_rw' => 4,
-        'bendahara' => 3,
-        'petugas_rt' => 2,
-        'warga' => 1,
-    ];
+    // LEVEL_POWER (hierarki linier) dihapus 2026-08-18 bersama CheckRole:
+    // peran tidak lagi berjenjang. Urutan untuk memilih LABEL saat seseorang
+    // merangkap beberapa peran ada di MatriksKapabilitas::URUTAN_TAMPIL, dan
+    // itu sengaja BUKAN urutan hak.
 
     public function roleAssignments()
     {
@@ -268,14 +260,10 @@ class User extends Authenticatable
         });
     }
 
-    public function isSuperAdmin(): bool { return in_array($this->levelEfektif(), self::LEVEL_ADMIN, true); }
-    public function isKetuaRW(): bool { return $this->levelEfektif() === 'ketua_rw'; }
-    public function isBendahara(): bool { return $this->levelEfektif() === 'bendahara'; }
-    public function isPetugasRT(): bool { return $this->levelEfektif() === 'petugas_rt'; }
-
-    public function canVoid(): bool { return $this->isSuperAdmin() || $this->levelEfektif() === 'ketua_rw'; }
-    public function canManageUsers(): bool { return $this->isSuperAdmin(); }
-    public function canManageFinance(): bool { return $this->isSuperAdmin() || in_array($this->levelEfektif(), ['ketua_rw', 'bendahara'], true); }
+    // Helper izin berbasis NAMA LEVEL (isSuperAdmin/isKetuaRW/canVoid dst)
+    // sudah dihapus 2026-08-18. Penggantinya bolehkah('modul.aksi'), supaya
+    // izin punya satu sumber: MatriksKapabilitas. Dikunci
+    // tests/Feature/PensiunHierarkiLamaTest.php.
 
     public function isActive(): bool { return $this->status === 'aktif'; }
 

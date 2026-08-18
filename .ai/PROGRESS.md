@@ -2,6 +2,30 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-18 - Pensiunkan hierarki izin lama (CheckRole, LEVEL_POWER, helper is*/can*)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Setelah matriks kapabilitas hidup, sistem izin lama tinggal nol
+pemakai tapi kelasnya masih ada di kode dan barisnya masih ada di database.
+Selama dua cara mengecek izin berdampingan, penulis berikutnya bisa memilih
+yang salah tanpa ada yang menghentikannya - dan yang salah itu justru yang
+lebih mudah ditemukan lewat autocomplete (`$user->isSuperAdmin()`).
+**Perubahan:** hapus `CheckRole` + alias `role:`, `User::LEVEL_POWER`, dan
+tujuh helper izin berbasis nama level; `canVoid()` di `TransaksiController`
+dan `kas/bukukas.blade.php` diganti `bolehkah('transaksi.void')`; migrasi
+`2026_08_18_000002` membuang baris `app_settings` ber-key `role_permissions`
+(pengecualian sadar terhadap larangan `where('key')` polos - justru ingin
+menghapus lintas organisasi, alasannya ditulis di migrasinya).
+**File:** app/Http/Middleware/CheckRole.php (dihapus), app/Models/User.php,
+bootstrap/app.php, app/Http/Controllers/TransaksiController.php,
+resources/views/kas/bukukas.blade.php,
+database/migrations/2026_08_18_000002_hapus_setting_role_permissions.php,
+tests/Feature/PensiunHierarkiLamaTest.php, AGENTS.md
+**Catatan:** Tes penjaganya menegaskan kelas/konstanta/method itu TIDAK ADA,
+jadi menghidupkannya lagi menjatuhkan suite. Komentar kode yang masih menyebut
+`role:...` sebagai penjaga aktif ikut diperbarui supaya tidak menyesatkan.
+Butuh `composer dump-autoload` sesudah menghapus kelas (classmap lama masih
+memuat CheckRole). 352 tes hijau.
+
 ## 2026-08-18 - Matriks kapabilitas peran + peran Sekretaris + tutup celah keuangan
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Pemilik minta pembagian tugas pengurus (Ketua/Sekretaris/Bendahara)

@@ -109,8 +109,10 @@ Pengurus RW melihatnya read-only di Manajemen Akun. Menambah kapabilitas baru =
 tambah entri `KATALOG` + berikan ke peran di `BAWAAN` (atau daftarkan di
 `KHUSUS_SUPERADMIN`) + pasang `izin:` di rutenya.
 
-`CheckRole`/`role:` masih ada tapi sudah TIDAK dipakai rute mana pun; ia dan
-`User::LEVEL_POWER` menunggu dihapus (lihat `.ai/TODO.md`).
+Hierarki lama sudah DIHAPUS (2026-08-18): tidak ada lagi `CheckRole`, alias
+`role:`, `User::LEVEL_POWER`, maupun helper izin berbasis nama level
+(`isSuperAdmin`, `canVoid`, dst). Kalau Anda tergoda menambahkannya kembali,
+jangan - dikunci `tests/Feature/PensiunHierarkiLamaTest.php`.
 
 ## Aturan yang mudah dilanggar
 

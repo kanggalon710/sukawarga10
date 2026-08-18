@@ -236,15 +236,13 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       sudah ada (`partials/pagination`), tinggal dipasang.
 - [x] **Level `sekretaris` adalah hantu.** Selesai 2026-08-18: jadi peran
       sungguhan (`rw_secretary`) dan pemegang tahap cap surat.
-- [ ] **Pembersihan sisa hierarki lama.** `CheckRole` + alias `role:` sudah
-      nol pemakai di `routes/web.php` tapi kelasnya masih ada; begitu juga
-      `User::LEVEL_POWER` (kini hanya dipakai CheckRole itu sendiri) dan
-      `User::canVoid/canManageUsers/canManageFinance` + `isKetuaRW/isBendahara/
-      isPetugasRT` yang tak dipanggil lagi. Hapus setelah rilis matriks stabil
-      di produksi, dan aktifkan asersi "nol `role:` di routes" di
-      `KapabilitasRuteTest`. Sekalian hapus baris `app_settings` ber-key
-      `role_permissions` lewat migrasi (pengecualian sah dari larangan
-      `where('key')` polos karena memang lintas tenant - beri komentar alasan).
+- [x] **Pembersihan sisa hierarki lama selesai 2026-08-18:** `CheckRole` +
+      alias `role:`, `User::LEVEL_POWER`, dan seluruh helper izin berbasis nama
+      level (`isSuperAdmin`, `isKetuaRW`, `isBendahara`, `isPetugasRT`,
+      `canVoid`, `canManageUsers`, `canManageFinance`) dihapus; `canVoid()` di
+      Buku Kas dan TransaksiController diganti `bolehkah('transaksi.void')`.
+      Baris `app_settings` ber-key `role_permissions` dibuang migrasi
+      `2026_08_18_000002`. Dikunci `tests/Feature/PensiunHierarkiLamaTest.php`.
 - [ ] **Kapabilitas per-USER (override individual)** belum ada; matriks masih
       per peran. Baru relevan kalau ada RW yang butuh pengecualian satu orang.
 - [ ] **Scoping data per-RT** ("petugas RT hanya melihat warga RT-nya") masih

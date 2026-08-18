@@ -100,7 +100,7 @@ class PeranScopeTest extends TestCase
         $user = $this->buatUser('warga', 'pengurusrt');
         $this->pasang($user, 'rt_admin', $rt);
 
-        // /search dijaga role:petugas_rt; rt_admin di RT bawahan RW 10 lolos.
+        // /search dijaga izin:warga.cari; rt_admin di RT bawahan RW 10 lolos.
         $this->actingAs($user)->get('/search?q=uji')->assertOk();
         // Tapi tidak ikut naik jadi pengurus RW.
         $this->actingAs($user)->get('/pengaturan')->assertForbidden();

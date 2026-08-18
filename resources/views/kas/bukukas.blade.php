@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Buku besar keuangan')
 
 @section('content')
-@php $saldo = $totalMasuk - $totalKeluar; $canVoid = auth()->user()->canVoid(); @endphp
+@php $saldo = $totalMasuk - $totalKeluar; $canVoid = bolehkah('transaksi.void'); @endphp
 
 <!-- Summary Stats -->
 <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">

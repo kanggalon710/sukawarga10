@@ -31,9 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
-            // Penjaga rute berbasis matriks kapabilitas; menggantikan `role:`
-            // secara bertahap. Selalu dipasang SESUDAH `fitur:`.
+            // Penjaga rute izin, SATU-SATUNYA (alias `role:`/CheckRole sudah
+            // dipensiunkan 2026-08-18). Selalu dipasang SESUDAH `fitur:`.
             'izin' => \App\Http\Middleware\PastikanBerizin::class,
             'fitur' => \App\Http\Middleware\PastikanFiturAktif::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,

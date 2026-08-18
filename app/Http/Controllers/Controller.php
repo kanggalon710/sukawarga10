@@ -6,7 +6,7 @@ abstract class Controller
 {
     /**
      * Gerbang fitur platform lintas tenant (Manajemen Desa, Pembaruan
-     * Sistem): rute dijaga role:superadmin dulu, lalu dipersempit di sini
+     * Sistem): rute dijaga izin:platform.* dulu, lalu dipersempit di sini
      * karena superadmin ber-scope tenant lolos middleware tapi bukan
      * pemegang kuasa platform.
      */
