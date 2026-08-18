@@ -50,6 +50,7 @@ class PeranScopeTest extends TestCase
         $this->assertSame('superadmin', $peta['super_admin']);
         $this->assertSame('ketua_rw', $peta['rw_admin']);
         $this->assertSame('bendahara', $peta['rw_finance']);
+        $this->assertSame('sekretaris', $peta['rw_secretary']);
         $this->assertSame('petugas_rt', $peta['rt_admin']);
         $this->assertSame('warga', $peta['warga']);
         // Tidak boleh ada peran bernama desa/RW tertentu (§8 anti-pattern).

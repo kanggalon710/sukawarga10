@@ -55,8 +55,8 @@ class AkunController extends Controller
         // CASE portabel (MySQL + SQLite). FIELD() hanya tersedia di MySQL.
         $q = User::orderByRaw("CASE level
                 WHEN 'superadmin' THEN 1 WHEN 'super_admin' THEN 1 WHEN 'admin' THEN 1
-                WHEN 'ketua_rw' THEN 2 WHEN 'bendahara' THEN 3
-                WHEN 'petugas_rt' THEN 4 WHEN 'warga' THEN 5 ELSE 6 END")
+                WHEN 'ketua_rw' THEN 2 WHEN 'sekretaris' THEN 3 WHEN 'bendahara' THEN 4
+                WHEN 'petugas_rt' THEN 5 WHEN 'warga' THEN 6 ELSE 7 END")
             ->orderBy('username');
 
         if ($cakupan !== null) {
@@ -102,7 +102,7 @@ class AkunController extends Controller
             'namaLengkap' => 'required',
             'username' => 'required|unique:users',
             'pin' => 'required|digits:6',
-            'level' => 'required|in:superadmin,ketua_rw,bendahara,petugas_rt,warga',
+            'level' => 'required|in:superadmin,ketua_rw,sekretaris,bendahara,petugas_rt,warga',
             // Petugas RT tanpa RT tidak punya organisasi assignment: tolak di
             // batas masuk, jangan lahirkan akun tanpa hak yang membingungkan.
             'rt' => 'nullable|required_if:level,petugas_rt',
@@ -138,7 +138,7 @@ class AkunController extends Controller
             'namaLengkap' => 'required',
             'username' => ['sometimes', 'required', 'string', 'max:60', 'unique:users,username,' . $user->id],
             // `sometimes`: form di host non-RW tidak mengirim level/rt.
-            'level' => 'sometimes|required|in:superadmin,ketua_rw,bendahara,petugas_rt,warga',
+            'level' => 'sometimes|required|in:superadmin,ketua_rw,sekretaris,bendahara,petugas_rt,warga',
             'rt' => 'nullable|required_if:level,petugas_rt',
         ]);
 
@@ -319,22 +319,10 @@ class AkunController extends Controller
         return back()->with('success', 'Akun ' . $user->username . ' berhasil dihapus.');
     }
 
-    public function savePermissions(Request $request)
-    {
-        // Matriks tersimpan di organisasi HOST (lihat AppSetting::simpan):
-        // platform = bawaan semua tenant, desa = bawaan RW-RW-nya, RW = lokal.
-        $this->cakupanKelola();
-        $perms = $request->input('permissions');
-        if (!is_array($perms)) {
-            return response()->json(['success' => false, 'message' => 'Invalid data'], 400);
-        }
-
-        // Ensure superadmin always has full access
-        $allMenus = array_map(fn($m) => $m['key'], getAllMenuItems());
-        $perms['superadmin'] = $allMenus;
-
-        \App\Models\AppSetting::simpan('role_permissions', json_encode($perms));
-
-        return response()->json(['success' => true]);
-    }
+    // savePermissions() DIHAPUS bersama rute POST /akun/permissions: matriks
+    // hak akses kini ditetapkan admin platform lewat Manajemen Desa dan hanya
+    // BISA DILIHAT pengurus tenant. Sebelumnya superadmin tenant bisa
+    // mengubahnya sendiri - dan karena ketua RW di banyak tenant adalah orang
+    // yang sama dengan operatornya, itu berarti batas peran bisa dilonggarkan
+    // oleh yang dibatasinya.
 }

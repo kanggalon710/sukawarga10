@@ -252,17 +252,19 @@ class KelolaAkunHirarkiTest extends TestCase
         $this->assertSame('warga', $this->wargaRw01->fresh()->level);
     }
 
-    public function test_matriks_permission_dari_host_platform_menjadi_bawaan_platform(): void
+    public function test_matriks_hak_akses_hanya_bisa_dilihat_pengurus_tenant(): void
     {
-        $perms = getDefaultPermissions();
-        $this->actingAs($this->adminPlatform)
-            ->postJson('https://desa.jabnet.id/akun/permissions', ['permissions' => $perms])
-            ->assertOk();
+        // Endpoint lama POST /akun/permissions dihapus: matriks hak akses kini
+        // ditetapkan admin platform, pengurus RW hanya melihatnya.
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('akun.savePermissions'));
 
-        $this->assertDatabaseHas('app_settings', [
-            'key' => 'role_permissions',
-            'organization_id' => Organization::where('slug', 'platform')->value('id'),
-        ]);
+        // 405, bukan 404: URI-nya masih cocok dengan pola /akun/{id} untuk
+        // method lain. Yang penting POST-nya tidak lagi dilayani.
+        $this->actingAs($this->adminPlatform)
+            ->postJson('https://desa.jabnet.id/akun/permissions', ['permissions' => []])
+            ->assertStatus(405);
+
+        $this->assertDatabaseMissing('app_settings', ['key' => 'role_permissions']);
     }
 
     public function test_tombol_buat_admin_desa_di_manajemen_desa(): void

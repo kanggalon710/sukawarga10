@@ -17,25 +17,18 @@ class SuratController extends Controller
     {
         $user = auth()->user();
         $level = $user->levelEfektif();
-        $isWarga = $level === 'warga';
-        $isRT = $level === 'petugas_rt';
-        $isRW = in_array($level, ['ketua_rw']);
-        $isAdmin = in_array($level, ['superadmin', 'sekretaris']);
 
-        if ($isWarga) {
-            // Warga sees only their own surat
-            $surats = Surat::where('user_id', $user->id)->orderByDesc('created_at')->get();
-        } elseif ($isRT) {
-            // RT sees surat pending their approval + all from their RT
-            $surats = Surat::orderByDesc('created_at')->get();
-        } else {
-            // RW, Admin, Sekretaris see all
-            $surats = Surat::orderByDesc('created_at')->get();
-        }
+        // Penyaringan di sini adalah aturan KEPEMILIKAN, bukan izin: siapa pun
+        // yang tidak melihat surat orang lain hanya melihat miliknya. Tombol
+        // aksi di blade memakai bolehkah(), bukan nama level.
+        $isWarga = $level === 'warga';
+        $surats = $isWarga
+            ? Surat::where('user_id', $user->id)->orderByDesc('created_at')->get()
+            : Surat::orderByDesc('created_at')->get();
 
         $wargaList = Keluarga::where('status', 'aktif')->orderBy('nama')->get();
 
-        return view('layanan.surat', compact('surats', 'wargaList', 'user', 'level', 'isWarga', 'isRT', 'isRW', 'isAdmin'));
+        return view('layanan.surat', compact('surats', 'wargaList', 'user', 'level', 'isWarga'));
     }
 
     public function store(Request $request)
@@ -43,8 +36,9 @@ class SuratController extends Controller
         $request->validate(['kodeSurat' => ['required', Rule::in(Surat::KODE_VALID)]]);
 
         $user = auth()->user();
-        $level = $user->levelEfektif();
-        $isWarga = ($level === 'warga');
+        // Sekretaris memegang `surat.buat` (terbit langsung); warga hanya
+        // `surat.ajukan` (masuk antrean tanda tangan RT -> RW -> sekretaris).
+        $isWarga = ! bolehkah('surat.buat');
 
         $pemohon = $request->pemohon === '__luar__'
             ? $request->pemohon_manual
@@ -109,11 +103,17 @@ class SuratController extends Controller
     {
         $surat = Surat::findOrFail($id);
         $user = auth()->user();
-        $level = $user->levelEfektif();
         $step = $surat->approval_step;
 
-        // Determine what this user can approve
-        if ($step === 'diajukan' && in_array($level, ['petugas_rt', 'superadmin', 'ketua_rw'])) {
+        // Tahap berjalan menentukan kapabilitas yang dibutuhkan (peta tunggal
+        // di Surat::KAPABILITAS_TAHAP, dipakai blade juga). Dulu di sini
+        // dicocokkan NAMA level, sehingga akun bawaan berlevel 'admin' lolos
+        // middleware tapi ditolak di baris ini.
+        if (! bolehkah(Surat::KAPABILITAS_TAHAP[$step] ?? '')) {
+            return back()->with('error', 'Anda tidak memiliki akses untuk approve surat ini pada tahap ini.');
+        }
+
+        if ($step === 'diajukan') {
             $surat->update([
                 'approval_step' => 'ttd_rt',
                 'rt_signed_by'  => $user->namaLengkap ?? $user->username,
@@ -124,12 +124,12 @@ class SuratController extends Controller
             // Notify RW
             if (NotificationService::isEnabled('notif_surat_ttd_rw')) {
                 $msg = "✍️ *SURAT PERLU TTD RW*\n\nSurat {$surat->nomorSurat} ({$surat->kodeSurat})\nPemohon: {$surat->pemohon}\nSudah ditandatangani RT. Giliran RW untuk tanda tangan.\n\nLogin untuk review.";
-                NotificationService::notifyByLevel('ketua_rw', $msg);
+                NotificationService::notifyByKapabilitas('surat.ttdRw', $msg);
             }
 
             return back()->with('success', "Surat {$surat->nomorSurat} berhasil ditandatangani RT.");
 
-        } elseif ($step === 'ttd_rt' && in_array($level, ['ketua_rw', 'superadmin'])) {
+        } elseif ($step === 'ttd_rt') {
             $surat->update([
                 'approval_step' => 'ttd_rw',
                 'rw_signed_by'  => $user->namaLengkap ?? $user->username,
@@ -140,12 +140,12 @@ class SuratController extends Controller
             // Notify Sekretaris/Admin
             if (NotificationService::isEnabled('notif_surat_cap')) {
                 $msg = "🔏 *SURAT PERLU CAP SEKRETARIS*\n\nSurat {$surat->nomorSurat} ({$surat->kodeSurat})\nPemohon: {$surat->pemohon}\nSudah TTD RT & RW. Tinggal cap sekretaris.\n\nLogin untuk finalize.";
-                NotificationService::notifyByLevel('superadmin', $msg);
+                NotificationService::notifyByKapabilitas('surat.finalisasi', $msg);
             }
 
             return back()->with('success', "Surat {$surat->nomorSurat} berhasil ditandatangani RW.");
 
-        } elseif ($step === 'ttd_rw' && in_array($level, ['superadmin'])) {
+        } elseif ($step === 'ttd_rw') {
             $surat->update([
                 'approval_step' => 'selesai',
                 'status'        => 'selesai',
@@ -173,6 +173,19 @@ class SuratController extends Controller
     {
         $surat = Surat::findOrFail($id);
         $user = auth()->user();
+        $step = $surat->approval_step;
+
+        // Dulu method ini tidak memeriksa APA PUN: petugas RT bisa menolak
+        // surat yang sudah ditandatangani RW bahkan yang sudah dicap selesai.
+        if (in_array($step, Surat::TAHAP_AKHIR, true)) {
+            return back()->with('error', 'Surat ini sudah selesai atau sudah ditolak, tidak bisa ditolak lagi.');
+        }
+
+        // Boleh menolak bila memegang tahap yang sedang berjalan, atau punya
+        // kewenangan tolak menyeluruh (ketua RW dan petugas RT).
+        if (! bolehkah(Surat::KAPABILITAS_TAHAP[$step] ?? '', 'surat.tolak')) {
+            return back()->with('error', 'Anda tidak memiliki akses untuk menolak surat ini pada tahap ini.');
+        }
 
         $surat->update([
             'approval_step'   => 'ditolak',
@@ -280,10 +293,9 @@ class SuratController extends Controller
         $this->pastikanBolehLihat($surat);
         $settings = AppSetting::semuaEfektif();
 
-        // Sinkron dengan rute simpan isi (role:ketua_rw): tombol edit hanya
-        // untuk yang memang bisa menyimpan.
-        $level = auth()->user()->levelEfektif();
-        $bolehEdit = (User::LEVEL_POWER[$level] ?? 0) >= User::LEVEL_POWER['ketua_rw'];
+        // Sinkron dengan rute simpan isi (izin:surat.ubahIsi): tombol edit
+        // hanya untuk yang memang bisa menyimpan.
+        $bolehEdit = bolehkah('surat.ubahIsi');
 
         return view('layanan.cetak_surat', compact('surat', 'settings', 'bolehEdit'));
     }

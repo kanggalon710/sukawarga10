@@ -143,7 +143,8 @@ class OtorisasiTest extends TestCase
 
         // Payload lengkap sesuai modal edit: update() kini memvalidasi
         // nomorSurat + kodeSurat juga (fitur edit nomor surat manual).
-        $this->actingAs($this->user('ketua_rw'))
+        // Sekretaris, bukan ketua: menyunting surat adalah `surat.ubah`.
+        $this->actingAs($this->user('sekretaris'))
             ->put('/surat/'.$surat->id, [
                 'pemohon' => 'Nama Baru',
                 'keperluan' => $surat->keperluan,

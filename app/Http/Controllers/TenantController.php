@@ -8,6 +8,7 @@ use App\Models\Keluarga;
 use App\Models\Organization;
 use App\Models\UserRoleAssignment;
 use App\Services\AuditLogService;
+use App\Services\MatriksKapabilitas;
 use App\Services\PembukaTenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,11 +32,14 @@ class TenantController extends Controller
             ])
             ->orderBy('name')->get();
 
-        // Admin per RW dalam SATU query (bukan per baris tabel).
+        // Admin per RW dalam SATU query (bukan per baris tabel). Dua slug:
+        // akun bawaan RW kini operator portal (`super_admin` di org RW),
+        // sementara tenant yang dibuka sebelum perubahan itu masih memakai
+        // `rw_admin`.
         $adminPerOrg = UserRoleAssignment::query()
             ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
             ->join('users', 'users.id', '=', 'user_role_assignments.user_id')
-            ->where('roles.slug', 'rw_admin')
+            ->whereIn('roles.slug', ['super_admin', 'rw_admin'])
             ->whereIn('user_role_assignments.organization_id', $desas->flatMap->children->pluck('id'))
             ->get(['user_role_assignments.organization_id', 'users.username'])
             ->groupBy('organization_id');
@@ -334,5 +338,93 @@ class TenantController extends Controller
         AuditLogService::log('hapus_tenant', 'tenant', "Hapus desa {$desa->slug} (tanpa RW)");
 
         return redirect()->route('tenant.index')->with('success', "{$desa->name} dihapus.");
+    }
+
+    /** Halaman matriks kapabilitas satu RW (khusus admin platform). */
+    public function matriks(int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $rw = Organization::where('type', Organization::TYPE_RW)->findOrFail($id);
+
+        return view('admin.matriks', [
+            'rw' => $rw,
+            'matriks' => $this->matriksEfektif($rw),
+        ]);
+    }
+
+    /**
+     * Simpan matriks sebagai DELTA terhadap bawaan kode, bukan salinan penuh.
+     *
+     * Snapshot penuh (pola `role_permissions` lama) punya cacat bawaan: begitu
+     * tersimpan sekali, kapabilitas yang ditambahkan rilis berikutnya hilang
+     * selamanya untuk tenant itu. Dengan delta, yang tidak disebut selalu
+     * mengikuti kode.
+     */
+    public function simpanMatriks(Request $request, int $id)
+    {
+        $this->pastikanAdminPlatform();
+        $rw = Organization::where('type', Organization::TYPE_RW)->findOrFail($id);
+
+        $dikirim = $request->input('kapabilitas', []);
+        if (! is_array($dikirim)) {
+            return back()->withErrors(['kapabilitas' => 'Bentuk data matriks tidak dikenali.']);
+        }
+
+        $delta = [];
+        foreach (MatriksKapabilitas::BAWAAN as $peran => $bawaan) {
+            $centang = array_keys(array_filter($dikirim[$peran] ?? [], fn ($v) => (bool) $v));
+
+            foreach ($centang as $kapabilitas) {
+                if (! isset(MatriksKapabilitas::KATALOG[$kapabilitas])) {
+                    return back()->withErrors(['kapabilitas' => "Kapabilitas tidak dikenal: {$kapabilitas}."]);
+                }
+                if (in_array($kapabilitas, MatriksKapabilitas::TERLARANG_OVERRIDE, true)) {
+                    return back()->withErrors(['kapabilitas' => "Kapabilitas {$kapabilitas} hanya untuk admin platform dan tidak bisa diberikan ke peran tenant."]);
+                }
+                if (! in_array($kapabilitas, $bawaan, true)) {
+                    $delta[$peran][$kapabilitas] = true;
+                }
+            }
+
+            foreach (array_diff($bawaan, $centang) as $dicabut) {
+                $delta[$peran][$dicabut] = false;
+            }
+        }
+
+        AppSetting::simpanUntuk($rw->id, MatriksKapabilitas::KEY_OVERRIDE, json_encode($delta));
+        // Perubahan otorisasi wajib berjejak.
+        AuditLogService::log('ubah_matriks', 'peran',
+            'Ubah matriks kapabilitas '.$rw->name.' ('.count($delta, COUNT_RECURSIVE).' selisih) oleh '.auth()->user()->username);
+
+        return redirect()->route('tenant.rw.matriks', $rw->id)
+            ->with('success', "Matriks kapabilitas {$rw->name} disimpan.");
+    }
+
+    /**
+     * Kapabilitas efektif tiap peran DI RW ITU (bawaan + delta tersimpan).
+     * Dihitung langsung dari baris app_settings milik RW, bukan lewat
+     * MatriksKapabilitas::untukPeran() yang membaca tenant HOST request -
+     * halaman ini dibuka dari host platform.
+     */
+    private function matriksEfektif(Organization $rw): array
+    {
+        $mentah = json_decode((string) AppSetting::where('key', MatriksKapabilitas::KEY_OVERRIDE)
+            ->where('organization_id', $rw->id)->value('value'), true);
+        $delta = MatriksKapabilitas::bersihkanDelta(is_array($mentah) ? $mentah : []);
+
+        $hasil = [];
+        foreach (MatriksKapabilitas::BAWAAN as $peran => $bawaan) {
+            $efektif = array_flip($bawaan);
+            foreach ($delta[$peran] ?? [] as $kapabilitas => $aktif) {
+                if ($aktif) {
+                    $efektif[$kapabilitas] = true;
+                } else {
+                    unset($efektif[$kapabilitas]);
+                }
+            }
+            $hasil[$peran] = array_keys($efektif);
+        }
+
+        return $hasil;
     }
 }

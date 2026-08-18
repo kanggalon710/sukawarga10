@@ -35,13 +35,15 @@ class ImportTenantTest extends TestCase
             '--kecamatan' => 'Tarogong Kidul', '--rw' => ['01'],
         ])->assertSuccessful();
 
+        // Sekretaris: impor/ekspor CSV warga memuat PII seluruh tenant, jadi
+        // sejak matriks kapabilitas ia bukan lagi wewenang ketua maupun RT.
         $this->adminCibunar = User::create([
             'user_id' => 'u_imp', 'username' => 'impadmin', 'namaLengkap' => 'Imp Admin',
-            'pin' => Hash::make('123456'), 'level' => 'ketua_rw', 'status' => 'aktif',
+            'pin' => Hash::make('123456'), 'level' => 'sekretaris', 'status' => 'aktif',
         ]);
         UserRoleAssignment::create([
             'user_id' => $this->adminCibunar->id,
-            'role_id' => Role::where('slug', 'rw_admin')->value('id'),
+            'role_id' => Role::where('slug', 'rw_secretary')->value('id'),
             'organization_id' => Organization::where('slug', 'rw-01-cibunar')->value('id'),
         ]);
     }
@@ -90,7 +92,11 @@ class ImportTenantTest extends TestCase
         $daftar = Pendaftaran::withoutGlobalScope('organisasi')
             ->where('nik', '3205111122223333')->firstOrFail();
 
-        $this->actingAs($this->adminCibunar)
+        // Menyetujui pendaftaran adalah `pendaftaran.putuskan` milik ketua RW,
+        // bukan sekretaris; pakai akun operator bawaan RW hasil `tenant:buat`.
+        $ketua = User::where('username', 'cibunar-rw01')->firstOrFail();
+
+        $this->actingAs($ketua)
             ->post("https://cibunar-rw01.desa.jabnet.id/pendaftaran/{$daftar->id}/approve")
             ->assertRedirect();
 

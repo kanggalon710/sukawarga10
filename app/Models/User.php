@@ -59,21 +59,28 @@ class User extends Authenticatable
     }
 
     /**
-     * Level efektif user untuk sebuah organisasi tenant (Phase E1).
+     * SELURUH peran efektif user untuk sebuah organisasi tenant (Phase E1,
+     * diperluas saat otorisasi pindah ke matriks kapabilitas).
      *
      * Assignment dianggap relevan bila organisasinya berada di rantai leluhur
      * organisasi tenant (super_admin di platform berlaku di semua tenant di
      * bawahnya) ATAU di subtree-nya (rt_admin RT 01 berlaku di tenant RW
-     * induknya). Dari yang relevan diambil legacy_level terkuat.
+     * induknya).
      *
-     * Return null bila tidak ada assignment relevan; pemanggil memakai lantai
+     * Mengembalikan SEMUA peran relevan, bukan yang "terkuat": kapabilitasnya
+     * digabung, sehingga pengurus yang merangkap sekretaris dan bendahara
+     * memegang keduanya. Itulah bedanya matriks dengan hierarki. Urutannya
+     * mengikuti MatriksKapabilitas::URUTAN_TAMPIL (menurun) supaya elemen
+     * pertama bisa dipakai langsung sebagai label.
+     *
+     * Array kosong bila tidak ada assignment relevan; pemanggil memakai lantai
      * 'warga'. Jembatan fallback ke users.level sudah dicabut (2026-08-16):
      * kolom level kini hanya catatan tampilan & sasaran notifikasi.
      */
-    public function levelEfektifUntuk(?Organization $org): ?string
+    public function peranEfektifUntuk(?Organization $org): array
     {
         if ($org === null) {
-            return null;
+            return [];
         }
 
         // Maksimal DUA query, konstan terhadap jumlah organisasi maupun
@@ -86,7 +93,7 @@ class User extends Authenticatable
             ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
             ->get(['user_role_assignments.organization_id', 'roles.legacy_level']);
         if ($milik->isEmpty()) {
-            return null;
+            return [];
         }
 
         // Query 2: peta induk seluruh organisasi (tabel kecil), rantai
@@ -108,18 +115,32 @@ class User extends Authenticatable
             Organization::idSubtree($org->id, $petaInduk)
         ));
 
-        $terkuat = null;
+        $peran = [];
         foreach ($milik as $assignment) {
             if (! isset($relevan[$assignment->organization_id])) {
                 continue;
             }
+            // Normalisasi setara-superadmin: kalau ini terlewat, akun bawaan
+            // aplikasi jatuh ke lantai warga dan mengunci semua orang.
             $level = $assignment->legacy_level;
-            if ((self::LEVEL_POWER[$level] ?? 0) > (self::LEVEL_POWER[$terkuat] ?? 0)) {
-                $terkuat = $level;
-            }
+            $peran[in_array($level, self::LEVEL_ADMIN, true) ? 'superadmin' : $level] = true;
         }
 
-        return $terkuat;
+        $peran = array_keys($peran);
+        $urutan = \App\Services\MatriksKapabilitas::URUTAN_TAMPIL;
+        usort($peran, fn ($a, $b) => ($urutan[$b] ?? 0) <=> ($urutan[$a] ?? 0));
+
+        return $peran;
+    }
+
+    /**
+     * Peran efektif TERKUAT untuk sebuah organisasi, atau null bila tidak ada.
+     * Dipertahankan untuk label dan penyaringan data; otorisasi memakai
+     * peranEfektif() + bolehkah(), bukan ini.
+     */
+    public function levelEfektifUntuk(?Organization $org): ?string
+    {
+        return $this->peranEfektifUntuk($org)[0] ?? null;
     }
 
     /**
@@ -136,11 +157,22 @@ class User extends Authenticatable
      */
     public function levelEfektif(): string
     {
+        return $this->peranEfektif()[0];
+    }
+
+    /**
+     * Seluruh peran efektif user di tenant request ini, lantai ['warga'].
+     * Inilah dasar otorisasi sekarang (lihat MatriksKapabilitas::untukUser).
+     * Elemen pertama adalah peran dengan URUTAN_TAMPIL tertinggi, dipakai
+     * levelEfektif() sebagai label.
+     */
+    public function peranEfektif(): array
+    {
         $context = app(\App\Services\TenantContext::class);
 
-        return $context->ingatLevelEfektif(
+        return $context->ingatPeranEfektif(
             $this->id ?? spl_object_id($this),
-            fn () => $this->levelEfektifUntuk($context->organisasi()) ?? 'warga'
+            fn () => $this->peranEfektifUntuk($context->organisasi()) ?: ['warga']
         );
     }
 
@@ -176,7 +208,14 @@ class User extends Authenticatable
      * - desa: pemegang peran ber-power >= ketua_rw yang assignment-nya di
      *   RANTAI LELUHUR desa itu (desa_admin di desa tsb / super_admin
      *   platform) - subtree TIDAK dihitung: admin RW bukan pengelola desa;
-     * - rw: superadmin efektif tenant (aturan lama Manajemen Akun).
+     * - rw: pemegang kapabilitas `akun.kelola` di tenant itu (bawaannya ketua
+     *   RW dan operator portal). Dulu `isSuperAdmin()`, sehingga ketua RW lolos
+     *   middleware tapi ditolak di sini - menu Manajemen Akun tampil untuk
+     *   halaman yang pasti 403.
+     *
+     * Ini menjawab "boleh menyentuh akun?" pada TINGKAT host; `izin:akun.kelola`
+     * di rute menjawab pertanyaan yang sama untuk aksinya, dan
+     * `AkunController::cakupanKelola()` menjawab "akun yang MANA".
      */
     public function bolehKelolaAkunDi(?Organization $org): bool
     {
@@ -187,7 +226,7 @@ class User extends Authenticatable
             return $this->adalahAdminPlatform();
         }
         if ($org->leluhur(Organization::TYPE_RW) !== null) {
-            return $this->isSuperAdmin();
+            return \App\Services\MatriksKapabilitas::userPunya($this, 'akun.kelola');
         }
 
         $context = app(\App\Services\TenantContext::class);
@@ -244,6 +283,7 @@ class User extends Authenticatable
         return match($level) {
             'superadmin' => 'Super Admin',
             'ketua_rw' => 'Ketua RW',
+            'sekretaris' => 'Sekretaris RW',
             'bendahara' => 'Bendahara',
             'petugas_rt' => 'Petugas RT',
             'warga' => 'Warga',

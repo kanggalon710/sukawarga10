@@ -162,30 +162,34 @@ if (!function_exists('wilayahTenant')) {
     }
 }
 
-if (!function_exists('getDefaultPermissions')) {
-    function getDefaultPermissions(): array
-    {
-        return [
-            'superadmin' => ['dashboard','warga','sampah','padaringan','surat','pendaftaran','umkm','bukukas','pengeluaran','sumbangan','setor','aduan','mpwa','kegiatan','laporan','akun','log','pengaturan'],
-            'ketua_rw'   => ['dashboard','warga','sampah','padaringan','surat','pendaftaran','umkm','bukukas','pengeluaran','sumbangan','setor','aduan','mpwa','kegiatan','laporan','log','pengaturan'],
-            'bendahara'  => ['dashboard','warga','sampah','padaringan','bukukas','pengeluaran','sumbangan','setor','aduan','laporan'],
-            'petugas_rt' => ['dashboard','warga','sampah','padaringan','setor','aduan','kegiatan','umkm'],
-            'warga'      => ['dashboard','aduan'],
-        ];
-    }
-}
-
 if (!function_exists('getMenuPermissions')) {
+    /**
+     * Matriks menu per peran, DITURUNKAN dari matriks kapabilitas: sebuah
+     * peran "punya" menu bila memegang minimal satu kapabilitas di modul itu.
+     *
+     * Dipakai tampilan read-only tab Hak Akses. Setting lama `role_permissions`
+     * (snapshot penuh yang bisa diedit admin tenant) TIDAK dibaca lagi -
+     * pengaturan hak akses kini hanya lewat admin platform.
+     */
     function getMenuPermissions(): array
     {
-        try {
-            $stored = \App\Models\AppSetting::nilai('role_permissions');
-            if ($stored) {
-                $decoded = json_decode($stored, true);
-                if (is_array($decoded)) return $decoded;
-            }
-        } catch (\Exception $e) {}
-        return getDefaultPermissions();
+        $matriks = \App\Services\MatriksKapabilitas::class;
+        $peran = array_merge(['superadmin'], array_keys($matriks::BAWAAN));
+        $menu = array_map(fn ($m) => $m['key'], getAllMenuItems());
+
+        $hasil = [];
+        foreach ($peran as $satu) {
+            $dimiliki = $matriks::untukPeran($satu);
+            $hasil[$satu] = array_values(array_filter(
+                $menu,
+                fn ($key) => (bool) array_filter(
+                    $dimiliki,
+                    fn ($kapabilitas) => str_starts_with($kapabilitas, $key.'.')
+                )
+            ));
+        }
+
+        return $hasil;
     }
 }
 
@@ -206,35 +210,42 @@ if (!function_exists('fiturAktif')) {
     }
 }
 
+if (!function_exists('bolehkah')) {
+    /**
+     * Apakah user yang login memegang SALAH SATU kapabilitas ini (OR)?
+     *
+     * Ini penjaga izin yang sesungguhnya, dipakai middleware `izin:`,
+     * controller, dan blade. Berbeda dengan userCan() yang hanya soal
+     * tampil/sembunyi menu, dan berbeda dengan hierarki linier lama: peran
+     * rangkap MENGGABUNGKAN kapabilitas, bukan memilih yang tertinggi.
+     */
+    function bolehkah(string ...$kapabilitas): bool
+    {
+        return \App\Services\MatriksKapabilitas::userPunya(auth()->user(), ...$kapabilitas);
+    }
+}
+
 if (!function_exists('userCan')) {
+    /**
+     * Apakah menu modul ini ditampilkan untuk user yang login?
+     *
+     * Dibangun DI ATAS matriks kapabilitas yang sama dengan penjaga rute:
+     * menu tampil bila user memegang minimal satu kapabilitas di modul itu.
+     * Sebelumnya ini sistem terpisah (`role_permissions`) yang bisa berbeda
+     * dari penjaga rute, sehingga menu bisa tampil untuk halaman yang pasti
+     * 403 - atau sebaliknya menyembunyikan halaman yang sebenarnya boleh.
+     */
     function userCan(string $menuKey): bool
     {
         $user = auth()->user();
         if (!$user) return false;
 
-        // Modul yang dimatikan untuk tenant ini hilang untuk SEMUA level,
-        // termasuk admin: ini ketersediaan modul, bukan izin. Rutenya ikut
-        // tertutup oleh middleware `fitur:` (PastikanFiturAktif).
+        // Modul yang dimatikan untuk tenant ini hilang untuk SEMUA peran,
+        // termasuk superadmin: ini ketersediaan modul, bukan izin. Rutenya
+        // ikut tertutup oleh middleware `fitur:` (PastikanFiturAktif).
         if (!fiturAktif($menuKey)) return false;
 
-        // Phase E1: menu mengikuti level efektif (hanya dari assignment
-        // ber-scope), sama dengan CheckRole - kalau tidak, hak dari
-        // assignment lolos middleware tapi menunya tidak pernah tampil.
-        $level = $user->levelEfektif();
-
-        // Admin-like levels always get full access.
-        // Daftarnya diambil dari User::LEVEL_ADMIN, bukan ditulis ulang di sini,
-        // supaya hanya ada satu sumber kebenaran untuk "setara superadmin".
-        if (in_array(strtolower($level), \App\Models\User::LEVEL_ADMIN, true)) return true;
-
-        $perms = getMenuPermissions();
-
-        // Level yang tidak dikenal DITOLAK. Sebelumnya di sini `return true`
-        // (fail-open), sehingga level salah ketik atau level baru yang belum
-        // didaftarkan otomatis mendapat akses penuh ke seluruh menu.
-        if (!isset($perms[$level])) return false;
-
-        return in_array($menuKey, $perms[$level], true);
+        return \App\Services\MatriksKapabilitas::userPunyaModul($user, $menuKey);
     }
 }
 

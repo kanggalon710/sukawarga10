@@ -22,8 +22,8 @@ class TenantContext
 
     private ?Organization $organization = null;
 
-    /** @var array<int|string, string> memo level efektif per user, umur satu request */
-    private array $levelEfektif = [];
+    /** @var array<int|string, array<int, string>> memo peran efektif per user, umur satu request */
+    private array $peranEfektif = [];
 
     /** @var array<string, mixed> memo umum ber-umur satu request (settings efektif, dll) */
     private array $memo = [];
@@ -63,13 +63,15 @@ class TenantContext
     }
 
     /**
-     * Memo level efektif per user (Phase E1). Ditaruh di sini, bukan di model,
-     * karena instance ini scoped per request sehingga memo tidak pernah bocor
-     * antar request.
+     * Memo peran efektif per user (Phase E1, diperluas jadi daftar peran saat
+     * otorisasi pindah ke matriks kapabilitas). Ditaruh di sini, bukan di
+     * model, karena instance ini scoped per request sehingga memo tidak pernah
+     * bocor antar request - instance model bisa hidup melintasi beberapa
+     * request dalam satu proses tes.
      */
-    public function ingatLevelEfektif(int|string $userKey, \Closure $hitung): string
+    public function ingatPeranEfektif(int|string $userKey, \Closure $hitung): array
     {
-        return $this->levelEfektif[$userKey] ??= $hitung();
+        return $this->peranEfektif[$userKey] ??= $hitung();
     }
 
     public function tetapkan(Domain $domain): void
@@ -79,7 +81,7 @@ class TenantContext
         // Di produksi instance ini baru tiap request; di proses tes container
         // dipakai ulang antar request, jadi memo direset di sini (tetapkan
         // dipanggil resolver tepat sekali di awal tiap request).
-        $this->levelEfektif = [];
+        $this->peranEfektif = [];
         $this->memo = [];
     }
 

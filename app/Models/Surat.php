@@ -21,5 +21,26 @@ class Surat extends Model
         'SKN', 'SKBB', 'SKI', 'SKKB', 'SPB', 'LAIN',
     ];
 
+    /**
+     * Tahap approval -> kapabilitas yang boleh MEMAJUKANNYA.
+     *
+     * Sumber tunggal untuk controller DAN blade: sebelumnya daftar level ini
+     * ditulis dua kali (SuratController::approve dan $needsMyAction di
+     * layanan/surat.blade.php) sehingga bisa lepas sinkron. Nama tahapnya
+     * sengaja tidak berubah supaya tidak perlu migrasi data.
+     *
+     * Tahap `cap_sekretaris` yang sempat dirujuk blade TIDAK pernah ada di
+     * database: `ttd_rw -> selesai` memang tahap cap sekretaris (kolom
+     * sek_signed_by/at diisi di situ).
+     */
+    public const KAPABILITAS_TAHAP = [
+        'diajukan' => 'surat.ttdRt',
+        'ttd_rt' => 'surat.ttdRw',
+        'ttd_rw' => 'surat.finalisasi',
+    ];
+
+    /** Tahap yang sudah tidak bisa dimajukan maupun ditolak lagi. */
+    public const TAHAP_AKHIR = ['selesai', 'ditolak'];
+
     protected $guarded = [];
 }

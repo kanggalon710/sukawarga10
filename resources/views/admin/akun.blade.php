@@ -5,9 +5,9 @@
 
 @section('content')
 @php
-    $levelColors = ['superadmin'=>'merah','ketua_rw'=>'hijau','bendahara'=>'biru','petugas_rt'=>'emas','warga'=>'abu3'];
-    $levelIcons = ['superadmin'=>'fa-shield-alt','ketua_rw'=>'fa-user-tie','bendahara'=>'fa-calculator','petugas_rt'=>'fa-id-badge','warga'=>'fa-user'];
-    $pengurus = $users->whereIn('level', ['superadmin','ketua_rw','bendahara','petugas_rt']);
+    $levelColors = ['superadmin'=>'merah','ketua_rw'=>'hijau','sekretaris'=>'ungu','bendahara'=>'biru','petugas_rt'=>'emas','warga'=>'abu3'];
+    $levelIcons = ['superadmin'=>'fa-shield-alt','ketua_rw'=>'fa-user-tie','sekretaris'=>'fa-file-signature','bendahara'=>'fa-calculator','petugas_rt'=>'fa-id-badge','warga'=>'fa-user'];
+    $pengurus = $users->whereIn('level', ['superadmin','ketua_rw','sekretaris','bendahara','petugas_rt']);
     $wargaUsers = $users->where('level', 'warga');
 @endphp
 
@@ -270,14 +270,17 @@
 <div class="card">
     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
         <div class="card-title"><i class="fas fa-shield-alt" style="color:var(--biru);"></i> Matriks Hak Akses</div>
-        <button class="btn btn-primary btn-sm" id="savePermBtn" onclick="savePermissions()"><i class="fas fa-save"></i> Simpan Hak Akses</button>
     </div>
-    <div class="card-sub">Kustomisasi menu yang dapat diakses setiap level pengguna. Super Admin selalu punya akses penuh.</div>
+    <div class="card-sub">
+        Pembagian tugas pengurus ditetapkan admin platform dan berlaku sebagai bawaan.
+        Ketua, sekretaris, dan bendahara tidak dapat mengubahnya sendiri. Halaman ini
+        menampilkan pembagian yang sedang berlaku. Super Admin selalu punya akses penuh.
+    </div>
 
     @php
         $menuItems = getAllMenuItems();
-        $levels = ['superadmin','ketua_rw','bendahara','petugas_rt','warga'];
-        $levelLabels = ['superadmin'=>'Super Admin','ketua_rw'=>'Ketua RW','bendahara'=>'Bendahara','petugas_rt'=>'Petugas RT','warga'=>'Warga'];
+        $levels = ['superadmin','ketua_rw','sekretaris','bendahara','petugas_rt','warga'];
+        $levelLabels = ['superadmin'=>'Super Admin','ketua_rw'=>'Ketua RW','sekretaris'=>'Sekretaris','bendahara'=>'Bendahara','petugas_rt'=>'Petugas RT','warga'=>'Warga'];
         $perms = getMenuPermissions();
         $lastSection = '';
     @endphp
@@ -310,16 +313,16 @@
                         </div>
                     </td>
                     @foreach($levels as $lv)
+                    @php $punya = $lv === 'superadmin' || in_array($item['key'], $perms[$lv] ?? []); @endphp
+                    {{-- Tampilan baca-saja: status disampaikan lewat ikon DAN
+                         teks alternatifnya, bukan warna saja. --}}
                     <td style="text-align:center;">
-                        @if($lv === 'superadmin')
-                        <input type="checkbox" checked disabled style="accent-color:var(--hijau); width:16px; height:16px; cursor:not-allowed;">
+                        @if($punya)
+                        <i class="fas fa-check" style="color:var(--hijau);" aria-hidden="true"></i>
+                        <span class="visually-hidden">{{ $levelLabels[$lv] }} bisa membuka {{ $item['label'] }}</span>
                         @else
-                        <input type="checkbox"
-                            class="perm-cb"
-                            data-level="{{ $lv }}"
-                            data-menu="{{ $item['key'] }}"
-                            {{ in_array($item['key'], $perms[$lv] ?? []) ? 'checked' : '' }}
-                            style="accent-color:var(--hijau); width:16px; height:16px; cursor:pointer;">
+                        <i class="fas fa-minus" style="color:var(--text3);" aria-hidden="true"></i>
+                        <span class="visually-hidden">{{ $levelLabels[$lv] }} tidak bisa membuka {{ $item['label'] }}</span>
                         @endif
                     </td>
                     @endforeach
@@ -328,8 +331,6 @@
             </tbody>
         </table>
     </div>
-
-    <div id="permStatus" style="margin-top:12px; display:none; font-size:13px; padding:10px; border-radius:var(--radius-sm);"></div>
 </div>
 </div>
 
@@ -346,7 +347,7 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                 <div><label class="sak-label">Level *</label>
                     <select name="level" required class="sak-input" onchange="this.closest('form').querySelector('[name=rt]').parentElement.style.display = this.value==='petugas_rt'?'block':'none'">
-                        <option value="warga">Warga</option><option value="petugas_rt">Petugas RT</option><option value="bendahara">Bendahara</option><option value="ketua_rw">Ketua RW</option><option value="superadmin">Super Admin</option>
+                        <option value="warga">Warga</option><option value="petugas_rt">Petugas RT</option><option value="bendahara">Bendahara</option><option value="sekretaris">Sekretaris RW</option><option value="ketua_rw">Ketua RW</option><option value="superadmin">Super Admin</option>
                     </select></div>
                 <div style="display:none;"><label class="sak-label">RT</label>
                     <select name="rt" class="sak-input"><option value="">-</option>@for($i=1;$i<=6;$i++)<option value="{{ str_pad($i,2,'0',STR_PAD_LEFT) }}">RT {{ str_pad($i,2,'0',STR_PAD_LEFT) }}</option>@endfor</select></div>
@@ -372,7 +373,7 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                 <div><label class="sak-label">Level *</label>
                     <select name="level" id="editLevel" required class="sak-input">
-                        <option value="warga">Warga</option><option value="petugas_rt">Petugas RT</option><option value="bendahara">Bendahara</option><option value="ketua_rw">Ketua RW</option><option value="superadmin">Super Admin</option>
+                        <option value="warga">Warga</option><option value="petugas_rt">Petugas RT</option><option value="bendahara">Bendahara</option><option value="sekretaris">Sekretaris RW</option><option value="ketua_rw">Ketua RW</option><option value="superadmin">Super Admin</option>
                     </select></div>
                 <div><label class="sak-label">RT</label>
                     <select name="rt" id="editRT" class="sak-input"><option value="">-</option>@for($i=1;$i<=6;$i++)<option value="{{ str_pad($i,2,'0',STR_PAD_LEFT) }}">RT {{ str_pad($i,2,'0',STR_PAD_LEFT) }}</option>@endfor</select></div>
@@ -447,49 +448,5 @@ function openPin(id, username) {
     document.getElementById('pinModal').style.display = 'flex';
 }
 
-function savePermissions() {
-    const btn = document.getElementById('savePermBtn');
-    const status = document.getElementById('permStatus');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-
-    const perms = { superadmin: {!! json_encode(getAllMenuItems()) !!}.map(m => m.key) };
-    const levels = ['ketua_rw','bendahara','petugas_rt','warga'];
-    levels.forEach(lv => { perms[lv] = []; });
-
-    document.querySelectorAll('.perm-cb').forEach(cb => {
-        if (cb.checked) perms[cb.dataset.level].push(cb.dataset.menu);
-    });
-
-    fetch('/akun/permissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        body: JSON.stringify({ permissions: perms })
-    })
-    .then(r => r.json())
-    .then(data => {
-        status.style.display = 'block';
-        if (data.success) {
-            status.style.background = 'var(--hijau-pale)';
-            status.style.color = 'var(--hijau)';
-            status.innerHTML = '<i class="fas fa-check-circle"></i> Hak akses berhasil disimpan.';
-        } else {
-            status.style.background = 'var(--merah-pale)';
-            status.style.color = 'var(--merah)';
-            status.innerHTML = '<i class="fas fa-times-circle"></i> Gagal menyimpan: ' + (data.message || 'Unknown error');
-        }
-        setTimeout(() => { status.style.display = 'none'; }, 5000);
-    })
-    .catch(err => {
-        status.style.display = 'block';
-        status.style.background = 'var(--merah-pale)';
-        status.style.color = 'var(--merah)';
-        status.innerHTML = '<i class="fas fa-times-circle"></i> Error: ' + err.message;
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save"></i> Simpan Hak Akses';
-    });
-}
 </script>
 @endsection

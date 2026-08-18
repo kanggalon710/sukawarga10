@@ -1,7 +1,15 @@
+@php
+    // Bentuk form mengikuti KAPABILITAS, bukan level: sekretaris menerbitkan
+    // surat untuk warga lain, sedangkan pemohon hanya mengajukan untuk dirinya.
+    // Dideklarasikan sebelum @section supaya sudah ada saat page-subtitle
+    // dievaluasi (nilai section inline dihitung di tempat, bukan saat render).
+    $bolehTerbitkan = bolehkah('surat.buat');
+    $bolehMinta = bolehkah('surat.buat', 'surat.ajukan');
+@endphp
 @extends('layouts.app')
 @section('title', 'Surat Menyurat')
 @section('page-title', 'Surat Menyurat')
-@section('page-subtitle', $isWarga ? 'Ajukan surat administrasi warga' : 'Administrasi surat keluar')
+@section('page-subtitle', !$bolehTerbitkan ? 'Ajukan surat administrasi warga' : 'Administrasi surat keluar')
 
 @section('content')
 
@@ -25,9 +33,11 @@
         </span>
     </div>
     <div class="toolbar-right">
+        @if($bolehMinta)
         <button class="btn btn-primary btn-sm" onclick="openAdd()">
-            <i class="fas fa-plus"></i> {{ $isWarga ? 'Ajukan Surat Baru' : 'Buat Surat Baru' }}
+            <i class="fas fa-plus"></i> {{ !$bolehTerbitkan ? 'Ajukan Surat Baru' : 'Buat Surat Baru' }}
         </button>
+        @endif
     </div>
 </div>
 
@@ -41,15 +51,13 @@
             'diajukan'       => ['color'=>'var(--biru)',  'bg'=>'var(--biru-pale)',  'icon'=>'fa-paper-plane', 'label'=>'Diajukan'],
             'ttd_rt'         => ['color'=>'var(--emas)',  'bg'=>'var(--emas-muda)', 'icon'=>'fa-pen-nib',     'label'=>'TTD RT ✅'],
             'ttd_rw'         => ['color'=>'var(--biru)',  'bg'=>'var(--biru-pale)',  'icon'=>'fa-pen-fancy',   'label'=>'TTD RW ✅'],
-            'cap_sekretaris' => ['color'=>'var(--emas)',  'bg'=>'var(--emas-muda)', 'icon'=>'fa-stamp',       'label'=>'Cap Sek'],
             'selesai'        => ['color'=>'var(--hijau)', 'bg'=>'var(--hijau-pale)', 'icon'=>'fa-check-circle','label'=>'Selesai'],
             'ditolak'        => ['color'=>'var(--merah)', 'bg'=>'var(--merah-pale)', 'icon'=>'fa-times-circle','label'=>'Ditolak'],
             default          => ['color'=>'var(--abu3)',  'bg'=>'var(--abu)',        'icon'=>'fa-question',    'label'=>$step],
         };
-        $needsMyAction = false;
-        if ($step === 'diajukan' && in_array($level, ['petugas_rt','superadmin','ketua_rw'])) $needsMyAction = true;
-        if ($step === 'ttd_rt' && in_array($level, ['ketua_rw','superadmin'])) $needsMyAction = true;
-        if ($step === 'ttd_rw' && in_array($level, ['superadmin'])) $needsMyAction = true;
+        // Satu sumber dengan SuratController::approve(): dulu daftar level di
+        // sini disalin dari controller dan bisa lepas sinkron.
+        $needsMyAction = bolehkah(\App\Models\Surat::KAPABILITAS_TAHAP[$step] ?? '');
     @endphp
     <div class="card" style="margin-bottom:10px; padding:0; overflow:hidden; {{ $needsMyAction ? 'border-left:4px solid var(--emas);' : '' }}">
         {{-- Header --}}
@@ -118,27 +126,31 @@
                     <i class="fas fa-check"></i> Tanda Tangan
                 </button>
             </form>
-            {{-- Reject --}}
+            @endif
+
+            {{-- Tolak: pemegang tahap berjalan, atau pemegang kewenangan tolak
+                 menyeluruh. Surat yang sudah selesai/ditolak tidak bisa lagi. --}}
+            @if(!in_array($step, \App\Models\Surat::TAHAP_AKHIR) && ($needsMyAction || bolehkah('surat.tolak')))
             <button class="btn btn-outline btn-sm" style="font-size:11px; color:var(--merah); border-color:var(--merah);"
                 onclick="openReject({{ $s->id }}, '{{ addslashes($s->nomorSurat) }}')">
                 <i class="fas fa-times"></i> Tolak
             </button>
             @endif
 
-            @if(!$isWarga)
+            @if(bolehkah('surat.ubah'))
             <button class="btn btn-outline btn-sm" style="font-size:11px;"
                 onclick="openEdit({{ $s->id }}, '{{ addslashes($s->pemohon) }}', '{{ addslashes($s->keperluan) }}', '{{ $s->kodeSurat }}', '{{ addslashes($s->nomorSurat) }}')">
                 <i class="fas fa-edit"></i> Edit
             </button>
             @endif
 
-            @if($step === 'selesai')
+            @if($step === 'selesai' && bolehkah('surat.cetak'))
             <a href="{{ route('surat.cetak', $s->id) }}" class="btn btn-outline btn-sm" style="font-size:11px;" target="_blank">
                 <i class="fas fa-print"></i> Cetak
             </a>
             @endif
 
-            @if(!$isWarga)
+            @if(bolehkah('surat.hapus'))
             <form method="POST" action="{{ route('surat.destroy', $s->id) }}" style="margin:0;"
                   onsubmit="return confirm('Hapus surat {{ $s->nomorSurat }}?');">
                 @csrf @method('DELETE')
@@ -154,11 +166,13 @@
 @else
 <div class="card" style="text-align:center; padding:40px 20px;">
     <img src="{{ asset('empty-state.png') }}" alt="" aria-hidden="true" class="blank-state__art" width="176" height="176">
-    <h3 style="color:var(--text2); margin-bottom:8px;">{{ $isWarga ? 'Belum Ada Pengajuan Surat' : 'Belum Ada Surat' }}</h3>
+    <h3 style="color:var(--text2); margin-bottom:8px;">{{ !$bolehTerbitkan ? 'Belum Ada Pengajuan Surat' : 'Belum Ada Surat' }}</h3>
     <p style="color:var(--text3); font-size:13px; max-width:400px; margin:0 auto 20px;">
-        {{ $isWarga ? 'Ajukan surat administrasi seperti SKD, SKTM, SKP, dan lainnya. Surat akan diproses oleh RT → RW → Sekretaris.' : 'Buat surat administrasi warga.' }}
+        {{ !$bolehTerbitkan ? 'Ajukan surat administrasi seperti SKD, SKTM, SKP, dan lainnya. Surat akan diproses oleh RT → RW → Sekretaris.' : 'Buat surat administrasi warga.' }}
     </p>
-    <button class="btn btn-primary btn-sm" onclick="openAdd()"><i class="fas fa-plus"></i> {{ $isWarga ? 'Ajukan Surat Pertama' : 'Buat Surat' }}</button>
+    @if($bolehMinta)
+    <button class="btn btn-primary btn-sm" onclick="openAdd()"><i class="fas fa-plus"></i> {{ !$bolehTerbitkan ? 'Ajukan Surat Pertama' : 'Buat Surat' }}</button>
+    @endif
 </div>
 @endif
 
@@ -168,11 +182,11 @@
 <div id="addModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; padding:16px;">
     <div class="card" style="width:100%; max-width:520px; margin:0; max-height:90vh; overflow-y:auto;">
         <div class="card-header">
-            <div class="card-title"><i class="fas fa-file-alt" style="color:var(--biru);"></i> {{ $isWarga ? 'Ajukan Surat' : 'Buat Surat Baru' }}</div>
+            <div class="card-title"><i class="fas fa-file-alt" style="color:var(--biru);"></i> {{ !$bolehTerbitkan ? 'Ajukan Surat' : 'Buat Surat Baru' }}</div>
             <button type="button" onclick="closeAdd()" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text3);">✕</button>
         </div>
 
-        @if($isWarga)
+        @if(!$bolehTerbitkan)
         <div style="margin-top:12px; background:var(--biru-pale); border-left:4px solid var(--biru); padding:10px 14px; border-radius:6px; font-size:12px; color:var(--biru); line-height:1.6;">
             ℹ️ Surat akan diproses bertahap: <strong>Anda ajukan</strong> → <strong>RT tanda tangan</strong> → <strong>RW tanda tangan</strong> → <strong>Sekretaris cap</strong> → Selesai
         </div>
@@ -215,7 +229,7 @@
             {{-- Pemohon --}}
             <div style="margin-bottom:14px;">
                 <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama Pemohon *</label>
-                @if($isWarga)
+                @if(!$bolehTerbitkan)
                 <input type="hidden" name="pemohon" value="{{ $user->namaLengkap ?? $user->username }}">
                 <div style="padding:10px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; background:var(--abu); color:var(--text2);">
                     {{ $user->namaLengkap ?? $user->username }}
@@ -234,7 +248,7 @@
                 @endif
             </div>
 
-            @if(!$isWarga)
+            @if($bolehTerbitkan)
             {{-- Nama manual untuk warga luar --}}
             <div id="namaLuarBox" style="display:none; margin-bottom:14px;">
                 <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">Nama Pemohon (Manual) *</label>
@@ -252,7 +266,7 @@
 
             <div style="display:flex; gap:10px; margin-top:4px;">
                 <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeAdd()">Batal</button>
-                <button type="submit" class="btn btn-primary" style="flex:1;"><i class="fas fa-file-alt"></i> {{ $isWarga ? 'Ajukan Surat' : 'Buat & Cetak' }}</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;"><i class="fas fa-file-alt"></i> {{ !$bolehTerbitkan ? 'Ajukan Surat' : 'Buat & Cetak' }}</button>
             </div>
         </form>
     </div>
@@ -372,7 +386,7 @@ function onJenisChange() {
     if (!kep.value && pre[v]) kep.value = pre[v];
 }
 
-@if(!$isWarga)
+@if($bolehTerbitkan)
 // Handle warga luar
 const pemohonSelect = document.querySelector('[name="pemohon"]');
 if (pemohonSelect && pemohonSelect.tagName === 'SELECT') {

@@ -69,7 +69,34 @@ class NotificationService
      */
     public static function notifyPengurus(string $message): void
     {
-        foreach (self::penerimaLevel(['superadmin', 'ketua_rw', 'bendahara', 'petugas_rt']) as $u) {
+        foreach (self::penerimaLevel(['superadmin', 'ketua_rw', 'sekretaris', 'bendahara', 'petugas_rt']) as $u) {
+            self::sendWA($u->wa, $message);
+        }
+    }
+
+    /**
+     * Kirim ke pemegang sebuah KAPABILITAS, bukan ke nama level yang di-hardcode.
+     *
+     * Dengan ini sasaran notifikasi ikut matriks: kalau admin platform
+     * memindahkan `surat.finalisasi` ke peran lain, WA-nya ikut pindah tanpa
+     * mengubah kode. Jaring pengaman: bila belum ada satu pun pemegangnya di
+     * tenant ini (mis. RW yang belum mengangkat sekretaris), notifikasi jatuh
+     * ke superadmin + ketua RW supaya surat tidak mengendap tanpa ada yang tahu.
+     */
+    public static function notifyByKapabilitas(string $kapabilitas, string $message): void
+    {
+        $peran = array_values(array_filter(
+            array_keys(\App\Services\MatriksKapabilitas::BAWAAN),
+            fn ($p) => in_array($kapabilitas, \App\Services\MatriksKapabilitas::untukPeran($p), true)
+        ));
+        $peran[] = 'superadmin';
+
+        $penerima = self::penerimaLevel($peran);
+        if ($penerima->isEmpty()) {
+            $penerima = self::penerimaLevel(['superadmin', 'ketua_rw']);
+        }
+
+        foreach ($penerima as $u) {
             self::sendWA($u->wa, $message);
         }
     }

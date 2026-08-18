@@ -101,7 +101,13 @@ class PembukaTenant
             ['organization_id' => $desa->id, 'is_primary' => true, 'status' => 'aktif']
         );
 
-        $roleRwAdmin = Role::where('slug', 'rw_admin')->value('id');
+        // Akun bawaan tiap RW adalah OPERATOR PORTAL-nya, bukan ketua RW.
+        // Sejak otorisasi memakai matriks kapabilitas, ketua_rw sengaja tidak
+        // bisa mendata warga atau membuat surat; kalau akun bawaan dipasangi
+        // peran itu, RW yang baru dibuka tidak bisa dipakai sama sekali sampai
+        // pengurusnya lengkap. super_admin di organisasi RW = kuasa penuh DI
+        // TENANT ITU saja (lihat .ai/DECISIONS.md 2026-08-16).
+        $roleOperator = Role::where('slug', 'super_admin')->value('id');
         $baris = [];
 
         foreach ($daftarRw as $rw) {
@@ -133,7 +139,7 @@ class PembukaTenant
                         'username' => $username,
                         'namaLengkap' => "Admin RW {$rw} {$nama}",
                         'pin' => Hash::make($pin),
-                        'level' => 'ketua_rw',
+                        'level' => 'superadmin',
                         'status' => 'aktif',
                         'isDefault' => false,
                     ]);
@@ -141,7 +147,7 @@ class PembukaTenant
 
                 UserRoleAssignment::firstOrCreate([
                     'user_id' => $admin->id,
-                    'role_id' => $roleRwAdmin,
+                    'role_id' => $roleOperator,
                     'organization_id' => $orgRw->id,
                 ]);
             }

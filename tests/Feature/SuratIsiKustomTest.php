@@ -10,16 +10,16 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * Edit isi surat ala Word (kolom surats.isi_kustom): pengurus (ketua RW ke
- * atas) menyunting badan surat + baris tanggal lewat editor, hasilnya
- * disanitasi di server lalu dirender apa adanya di halaman cetak. Kop,
- * nomor surat, dan blok tanda tangan tetap otomatis.
+ * Edit isi surat ala Word (kolom surats.isi_kustom): sekretaris
+ * (izin:surat.ubahIsi) menyunting badan surat + baris tanggal lewat editor,
+ * hasilnya disanitasi di server lalu dirender apa adanya di halaman cetak.
+ * Kop, nomor surat, dan blok tanda tangan tetap otomatis.
  */
 class SuratIsiKustomTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $ketua;
+    private User $sekretaris;
 
     private User $warga;
 
@@ -28,9 +28,9 @@ class SuratIsiKustomTest extends TestCase
         parent::setUp();
         Http::fake();
 
-        $this->ketua = $this->pasangPeranSetaraLevel(User::create([
-            'user_id' => 'u_isik1', 'username' => 'ketuaisi', 'namaLengkap' => 'Ketua Isi',
-            'pin' => Hash::make('123456'), 'level' => 'ketua_rw', 'status' => 'aktif',
+        $this->sekretaris = $this->pasangPeranSetaraLevel(User::create([
+            'user_id' => 'u_isik1', 'username' => 'sekretarisisi', 'namaLengkap' => 'Sekretaris Isi',
+            'pin' => Hash::make('123456'), 'level' => 'sekretaris', 'status' => 'aktif',
         ]));
         $this->warga = User::create([
             'user_id' => 'u_isik2', 'username' => 'wargaisi', 'namaLengkap' => 'Warga Isi',
@@ -58,7 +58,7 @@ class SuratIsiKustomTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}/isi", [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}/isi", [
             'isi' => '<p>Teks kustom hasil suntingan</p>',
         ])->assertRedirect(route('surat.cetak', $surat->id));
 
@@ -72,7 +72,7 @@ class SuratIsiKustomTest extends TestCase
     {
         $surat = $this->surat(['isi_kustom' => '<p>Paragraf hasil edit manual</p>']);
 
-        $this->actingAs($this->ketua)->get("/surat/{$surat->id}/cetak")
+        $this->actingAs($this->sekretaris)->get("/surat/{$surat->id}/cetak")
             ->assertOk()
             ->assertSee('Paragraf hasil edit manual')
             ->assertDontSee('Yang bertanda tangan di bawah ini');
@@ -82,7 +82,7 @@ class SuratIsiKustomTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->get("/surat/{$surat->id}/cetak")
+        $this->actingAs($this->sekretaris)->get("/surat/{$surat->id}/cetak")
             ->assertOk()
             ->assertSee('Edit Isi');
     }
@@ -91,7 +91,7 @@ class SuratIsiKustomTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}/isi", [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}/isi", [
             'isi' => '<p>aman</p><script>alert(1)</script><p onclick="x()">b</p><iframe src="x"></iframe>',
         ])->assertRedirect();
 
@@ -106,7 +106,7 @@ class SuratIsiKustomTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}/isi", [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}/isi", [
             'isi' => '<p class="ql-align-center"><span style="font-size: 18px;">Teks tengah</span></p>'
                 .'<table class="data-diri"><tbody><tr><td>Nama</td><td>: <strong>Asep</strong></td></tr></tbody></table>',
         ])->assertRedirect();
@@ -144,11 +144,11 @@ class SuratIsiKustomTest extends TestCase
     {
         $surat = $this->surat(['isi_kustom' => '<p>Isi lama</p>']);
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}/isi", ['reset' => 1])
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}/isi", ['reset' => 1])
             ->assertRedirect(route('surat.cetak', $surat->id));
 
         $this->assertNull($surat->fresh()->isi_kustom);
-        $this->actingAs($this->ketua)->get("/surat/{$surat->id}/cetak")
+        $this->actingAs($this->sekretaris)->get("/surat/{$surat->id}/cetak")
             ->assertSee('Yang bertanda tangan di bawah ini');
     }
 }

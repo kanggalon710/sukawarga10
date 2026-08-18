@@ -182,6 +182,9 @@
                                     <p id="err-nomor-{{ $rw->id }}" role="alert" style="color:var(--merah); font-size:12px; margin:0; flex-basis:100%;">{{ $errors->first('nomor') }}</p>
                                 @endif
                             </form>
+                            <a href="{{ route('tenant.rw.matriks', $rw->id) }}" class="btn btn-outline btn-sm">
+                                Hak akses
+                            </a>
                             <form method="POST" action="{{ route('tenant.rw.toggle', $rw->id) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-outline btn-sm">

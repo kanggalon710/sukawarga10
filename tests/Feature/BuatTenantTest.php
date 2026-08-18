@@ -51,10 +51,14 @@ class BuatTenantTest extends TestCase
         ]);
         $this->assertDatabaseHas('domains', ['hostname' => 'cibunar-rw02.desa.jabnet.id']);
 
-        // Admin RW: akun + assignment rw_admin di organisasi RW-nya.
+        // Admin RW: akun + assignment super_admin di organisasi RW-nya. Ia
+        // OPERATOR PORTAL RW itu, bukan ketua RW - sejak matriks kapabilitas,
+        // ketua sengaja tidak bisa mendata warga atau membuat surat, sehingga
+        // RW yang baru dibuka tidak akan bisa dipakai kalau akun bawaannya
+        // berperan ketua.
         $admin = User::where('username', 'cibunar-rw01')->first();
         $this->assertNotNull($admin);
-        $this->assertSame('ketua_rw', $admin->levelEfektifUntuk($rw01));
+        $this->assertSame('superadmin', $admin->levelEfektifUntuk($rw01));
     }
 
     public function test_diulang_tidak_menggandakan_dan_tidak_mereset_pin(): void

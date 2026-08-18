@@ -3,6 +3,72 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-18 - Otorisasi jadi matriks kapabilitas, bukan hierarki level
+**Konteks:** Pemilik minta pembagian tugas pengurus RW ditegakkan sistem
+(hanya sekretaris yang membuat surat, bendahara yang memegang uang, ketua yang
+menyetujui) sebagai bawaan yang tidak bisa diubah oleh ketiganya. Hierarki
+linier `LEVEL_POWER` secara struktural tidak bisa menyatakan "hanya X yang
+boleh" - peran di atas selalu bisa semua yang bisa dilakukan peran di bawahnya.
+**Opsi:** (a) tambah level `sekretaris` ke hierarki yang ada; (b) matriks
+kapabilitas `modul.aksi` per peran sebagai sumber tunggal untuk rute DAN menu;
+(c) adopsi Gate/Policy Laravel.
+**Pilihan:** (b), sebagai kelas konstanta `App\Services\MatriksKapabilitas`.
+**Alasan:** (a) tidak menyelesaikan masalahnya - di hierarki mana pun ketua
+tetap otomatis bisa membuat surat. (c) berarti ~20 Policy dan menyimpang dari
+idiom repo (AGENTS.md melarang tanpa entri di sini) padahal `bolehkah()` +
+middleware sudah cukup; `Gate::before` bisa ditambahkan nanti tanpa mengubah
+apa pun. Kelas konstanta dipilih di atas `config/`: repo belum punya config
+kustom, dan matriks tidak pernah berbeda per environment - menambah config
+berarti menambah kewajiban `config:cache` di DEPLOY.md tanpa manfaat.
+**Konsekuensi yang diputuskan sekalian:**
+1. **Prefiks kapabilitas = menu key `getAllMenuItems()`.** Itu yang membuat
+   `userCan()` bisa diturunkan dari matriks yang sama, sehingga dua sistem izin
+   yang tidak saling bicara (CheckRole vs `role_permissions`) menjadi satu.
+2. **Peran rangkap MENGGABUNGKAN kapabilitas** (`peranEfektif()` mengembalikan
+   semua peran relevan), bukan mengambil yang terkuat. Di RW kecil satu orang
+   lumrah merangkap sekretaris + bendahara. `levelEfektif()` dipertahankan
+   sebagai satu string HANYA untuk label dan penyaringan kepemilikan ("warga
+   hanya melihat miliknya"); kalau ia ikut jadi union, visibilitas data warga
+   melebar diam-diam.
+3. **`superadmin` tidak dienumerasi** - `untukPeran()` mengembalikan seluruh
+   katalog dan di-short-circuit SEBELUM overlay override. Jadi keputusan
+   "operator portal tidak dibatasi" tidak lapuk saat kapabilitas baru
+   ditambahkan, dan tidak bisa dicabut lewat baris app_settings.
+4. **Override per tenant berupa DELTA bool, bukan snapshot penuh.** Snapshot
+   (pola `role_permissions` lama) punya cacat bawaan: begitu tenant menyimpannya
+   sekali, kapabilitas yang ditambahkan rilis berikutnya hilang selamanya untuk
+   tenant itu. Key tak dikenal DIBUANG saat baca (baris usang tidak boleh
+   meruntuhkan seluruh matriks) tapi DITOLAK bersuara saat tulis. `platform.*`
+   tidak pernah bisa diberikan lewat override - tanpa pagar itu satu baris
+   setting bisa mencetak admin platform.
+5. **Yang boleh mengubah matriks hanya admin platform.** Tab Hak Akses di
+   Manajemen Akun jadi read-only dan `POST /akun/permissions` dihapus: di banyak
+   tenant ketua RW adalah orang yang sama dengan operator portalnya, jadi
+   membiarkan tenant mengedit matriks sama dengan membiarkan yang dibatasi
+   melonggarkan batasnya sendiri.
+6. **Tahap `cap_sekretaris` dihapus, bukan dijadikan nyata.** Ia hanya ada di
+   satu arm `match` di blade dan tidak pernah ditulis controller; tahap
+   `ttd_rw -> selesai` memang tahap cap sekretaris (kolom `sek_signed_by/at`
+   diisi di situ). Menjadikannya tahap sungguhan berarti migrasi data + satu
+   klik ekstra tanpa manfaat.
+7. **Akun bawaan RW dari `tenant:buat` jadi `super_admin` di org RW**, bukan
+   `rw_admin`. Ia operator portal RW itu, bukan ketua RW; dengan matriks yang
+   tegas, RW yang baru dibuka tidak akan bisa dipakai sama sekali kalau akun
+   satu-satunya berperan ketua.
+8. **`bolehKelolaAkunDi()` di host RW memakai `akun.kelola`**, bukan
+   `isSuperAdmin()` seperti sebelumnya. Ini PELEBARAN sadar (ketua RW kini bisa
+   mengelola akun di tenantnya, sesuai keputusan pemilik) sekaligus perbaikan:
+   dengan aturan lama menu Manajemen Akun tampil untuk ketua padahal halamannya
+   selalu 403.
+**Penyimpangan dari rencana yang disetujui:** rencana memisah "rilis fondasi"
+dan "rilis penukaran penjaga" agar bisa di-deploy bertahap. Digabung karena
+`sekretaris` tidak ada di `LEVEL_POWER`: selama `role:` masih terpasang,
+seseorang yang diangkat jadi sekretaris justru berkuasa NOL (di bawah warga)
+di setiap rute yang masih dijaga `role:`. Keadaan antara itu lebih berbahaya
+daripada satu rilis yang utuh. Mitigasi lockout tetap dipakai: superadmin tidak
+dibatasi, dan `php artisan izin:periksa` melaporkan kapabilitas tanpa pemegang
+per RW sebelum/ sesudah deploy.
+
 ## 2026-08-17 - Logo kop: satu key tiga status, path tak pernah dari klien
 **Konteks:** Logo kop surat per tenant (upload/hapus/reset) di halaman
 Pengaturan; nilainya dibaca kop cetak lewat AppSetting yang punya pewarisan

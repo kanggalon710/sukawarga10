@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * Nomor surat bisa diedit bebas per surat oleh pengurus (rute role:ketua_rw).
+ * Nomor surat bisa diedit bebas per surat oleh sekretaris (izin:surat.ubah).
  * Nomor yang sudah dipakai surat lain di tenant yang sama ditolak; nomorUrut
  * dan tahun sengaja tidak disentuh supaya sekuens otomatis max()+1 tetap
  * monoton; store() menghindari bentrok dengan nomor hasil edit manual.
@@ -19,7 +19,7 @@ class SuratNomorEditTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $ketua;
+    private User $sekretaris;
 
     private User $warga;
 
@@ -28,9 +28,9 @@ class SuratNomorEditTest extends TestCase
         parent::setUp();
         Http::fake();
 
-        $this->ketua = $this->pasangPeranSetaraLevel(User::create([
-            'user_id' => 'u_nom1', 'username' => 'ketuanomor', 'namaLengkap' => 'Ketua Nomor',
-            'pin' => Hash::make('123456'), 'level' => 'ketua_rw', 'status' => 'aktif',
+        $this->sekretaris = $this->pasangPeranSetaraLevel(User::create([
+            'user_id' => 'u_nom1', 'username' => 'sekretarisnomor', 'namaLengkap' => 'Sekretaris Nomor',
+            'pin' => Hash::make('123456'), 'level' => 'sekretaris', 'status' => 'aktif',
         ]));
         $this->warga = User::create([
             'user_id' => 'u_nom2', 'username' => 'warganomor', 'namaLengkap' => 'Warga Nomor',
@@ -71,7 +71,7 @@ class SuratNomorEditTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}", $this->payload($surat, [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}", $this->payload($surat, [
             'nomorSurat' => '045/SKD/RW10/'.date('Y'),
         ]))->assertRedirect()->assertSessionHasNoErrors();
 
@@ -83,7 +83,7 @@ class SuratNomorEditTest extends TestCase
         $suratA = $this->surat();
         $suratB = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$suratA->id}", $this->payload($suratA, [
+        $this->actingAs($this->sekretaris)->put("/surat/{$suratA->id}", $this->payload($suratA, [
             'nomorSurat' => $suratB->nomorSurat,
         ]))->assertSessionHasErrors('nomorSurat');
 
@@ -94,7 +94,7 @@ class SuratNomorEditTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}", $this->payload($surat))
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}", $this->payload($surat))
             ->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertSame($surat->nomorSurat, $surat->fresh()->nomorSurat);
@@ -113,7 +113,7 @@ class SuratNomorEditTest extends TestCase
         ]);
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}", $this->payload($surat, [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}", $this->payload($surat, [
             'nomorSurat' => $nomorAsing,
         ]))->assertRedirect()->assertSessionHasNoErrors();
 
@@ -124,7 +124,7 @@ class SuratNomorEditTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}", $this->payload($surat, [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}", $this->payload($surat, [
             'nomorSurat' => '100/SKD/RW10/'.date('Y'),
         ]))->assertRedirect();
 
@@ -147,7 +147,7 @@ class SuratNomorEditTest extends TestCase
     {
         $surat = $this->surat();
 
-        $this->actingAs($this->ketua)->put("/surat/{$surat->id}", $this->payload($surat, [
+        $this->actingAs($this->sekretaris)->put("/surat/{$surat->id}", $this->payload($surat, [
             'kodeSurat' => 'HACK',
         ]))->assertSessionHasErrors('kodeSurat');
     }
@@ -156,17 +156,17 @@ class SuratNomorEditTest extends TestCase
     {
         // Surat pertama otomatis 001; nomornya diedit manual menjadi 002 -
         // nomor yang akan dihasilkan surat otomatis berikutnya.
-        $this->actingAs($this->ketua)->post('/surat', [
+        $this->actingAs($this->sekretaris)->post('/surat', [
             'kodeSurat' => 'SKD', 'pemohon' => 'Asep Suhendar', 'keperluan' => 'Uji urut',
         ])->assertRedirect();
         $pertama = Surat::orderByDesc('id')->first();
         $nomorDiedit = sprintf('002/SKD/RW10/%s', date('Y'));
 
-        $this->actingAs($this->ketua)->put("/surat/{$pertama->id}", $this->payload($pertama, [
+        $this->actingAs($this->sekretaris)->put("/surat/{$pertama->id}", $this->payload($pertama, [
             'nomorSurat' => $nomorDiedit,
         ]))->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->actingAs($this->ketua)->post('/surat', [
+        $this->actingAs($this->sekretaris)->post('/surat', [
             'kodeSurat' => 'SKD', 'pemohon' => 'Dede Kurnia', 'keperluan' => 'Uji urut',
         ])->assertRedirect();
 

@@ -2,6 +2,49 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-18 - Matriks kapabilitas peran + peran Sekretaris + tutup celah keuangan
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Pemilik minta pembagian tugas pengurus (Ketua/Sekretaris/Bendahara)
+ditegakkan sistem sebagai bawaan yang tidak bisa dilonggarkan sendiri oleh yang
+dibatasinya. Penelusuran menemukan tiga hal yang mengubah bentuk pekerjaan:
+(1) ada DUA sistem izin yang tidak saling bicara - `role:`/CheckRole (hierarki
+linier, mengikat) dan `role_permissions` (matriks menu, kosmetik belaka yang
+justru bisa diedit admin tenant); (2) celah keamanan nyata: seluruh jalur uang
+(/bukukas, /kas/*, /sampah/bayar, /padaringan/bayar), /laporan, dan /mpwa/*
+termasuk broadcast HANYA dijaga auth + feature flag, jadi akun warga yang login
+bisa mencatat transaksi kas dan mem-broadcast WA lewat URL langsung; (3)
+`sekretaris` cuma "hantu" - disebut satu baris mati di SuratController, tidak
+ada di katalog peran, sehingga tahap cap surat terpaksa dikerjakan superadmin.
+**Perubahan:** `MatriksKapabilitas` (53 kapabilitas `modul.aksi` + matriks
+bawaan per peran) jadi sumber tunggal untuk penjaga rute DAN menu; middleware
+`izin:` menggantikan `role:` di seluruh rute; `bolehkah()` dipakai controller +
+blade; `userCan()` diturunkan dari matriks yang sama; `User::peranEfektif()`
+mengembalikan SEMUA peran relevan (kapabilitas digabung, bukan "yang tertinggi")
+sementara `levelEfektif()` tinggal label + penyaringan kepemilikan; peran
+`rw_secretary` + UI Manajemen Akun; alur surat dipetakan lewat
+`Surat::KAPABILITAS_TAHAP` (dipakai controller dan blade, duplikasi hilang);
+editor matriks per tenant khusus admin platform (`/tenant/rw/{id}/matriks`,
+delta bool di setting `kapabilitas_peran`), tab Hak Akses jadi read-only dan
+`POST /akun/permissions` dihapus; perintah `izin:periksa`.
+**File:** app/Services/MatriksKapabilitas.php, app/Http/Middleware/PastikanBerizin.php,
+app/Console/Commands/PeriksaKapabilitas.php, routes/web.php, app/helpers.php,
+app/Models/User.php, app/Models/Surat.php, app/Http/Controllers/{Surat,Tenant,Akun}Controller.php,
+app/Services/{NotificationService,PembukaTenant,TenantContext}.php,
+resources/views/admin/matriks.blade.php, resources/views/{admin/akun,admin/tenant,layanan/surat}.blade.php,
+database/migrations/2026_08_18_000001_tambah_peran_sekretaris.php, AGENTS.md
+**Catatan:** Tiga bug lama ikut diperbaiki karena satu jalur: `approve()` dulu
+mencocokkan NAMA level sehingga akun bawaan berlevel `admin` ditolak padahal
+lolos middleware; `reject()` tidak memeriksa tahap sama sekali sehingga petugas
+RT bisa menolak surat yang sudah selesai; `bolehKelolaAkunDi()` di host RW
+menuntut superadmin sehingga ketua RW lolos middleware tapi 403 di controller.
+Akun bawaan tiap RW baru (`tenant:buat`) kini operator portal (`super_admin` di
+org RW), bukan `rw_admin` - kalau tidak, RW yang baru dibuka tidak bisa mendata
+warga maupun membuat surat sampai pengurusnya lengkap.
+Rencana semula memisah rilis fondasi dan rilis penukaran penjaga; digabung
+karena `sekretaris` tidak dikenal `LEVEL_POWER`, jadi selama `role:` masih
+terpasang seorang sekretaris justru berhak LEBIH RENDAH dari warga. Dicatat di
+DECISIONS. 347 tes hijau di SQLite dan MariaDB.
+
 ## 2026-08-17 - Fix Pembaruan Sistem: PHP_BINARY = php-fpm saat dari web
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Update satu klik dari web gagal di produksi: langkah artisan

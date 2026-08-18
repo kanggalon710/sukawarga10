@@ -13,6 +13,15 @@ Bukan pekerjaan kode, tapi jangan dilewat.
       user mengonfirmasi identitasnya memang RW 07, Banyuresmi - tidak ada
       yang perlu dikoreksi. Cetak surat sudah diuji dan mengikuti identitas
       tenant dengan benar.
+- [ ] **Sesudah deploy matriks kapabilitas (2026-08-18):** di TIAP portal,
+      angkat satu akun jadi **Sekretaris RW** lewat Manajemen Akun, lalu
+      jalankan `php artisan izin:periksa` sampai bersih. Tanpa sekretaris,
+      surat hanya bisa dibuat akun superadmin. Perubahan perilaku yang perlu
+      diumumkan ke pengurus: ketua tidak lagi membuat/menyunting surat (hanya
+      menandatangani), bendahara kehilangan seluruh menu Surat, petugas RT
+      kehilangan Impor/Ekspor CSV warga, Reset Data naik ke superadmin, dan
+      menu Surat Menyurat kini tampil untuk warga (rutenya memang sudah
+      terbuka sejak dulu, hanya menunya yang disembunyikan).
 - [ ] **Backup database produksi** sebelum `php artisan migrate --force`.
       Selain migrasi lama (`users.keluarga_id`, `transaksis.periode`, index),
       kini ada LIMA migrasi multi-tenant `2026_08_15_000004`-`000008`
@@ -225,10 +234,22 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
 - [ ] **Pagination belum dipasang di semua daftar.** Sudah: Log Sistem, Data Warga.
       Belum: Surat, Aduan, UMKM, Kegiatan, Buku Kas, riwayat billing. Partial-nya
       sudah ada (`partials/pagination`), tinggal dipasang.
-- [ ] **Level `sekretaris` adalah hantu.** Dirujuk di `SuratController::index`
-      (`$isAdmin`) tapi tidak ada di hirarki `CheckRole` maupun
-      `getDefaultPermissions()`. Tahap approval terakhir dikerjakan `superadmin`.
-      Putuskan: hapus rujukannya, atau jadikan level sungguhan.
+- [x] **Level `sekretaris` adalah hantu.** Selesai 2026-08-18: jadi peran
+      sungguhan (`rw_secretary`) dan pemegang tahap cap surat.
+- [ ] **Pembersihan sisa hierarki lama.** `CheckRole` + alias `role:` sudah
+      nol pemakai di `routes/web.php` tapi kelasnya masih ada; begitu juga
+      `User::LEVEL_POWER` (kini hanya dipakai CheckRole itu sendiri) dan
+      `User::canVoid/canManageUsers/canManageFinance` + `isKetuaRW/isBendahara/
+      isPetugasRT` yang tak dipanggil lagi. Hapus setelah rilis matriks stabil
+      di produksi, dan aktifkan asersi "nol `role:` di routes" di
+      `KapabilitasRuteTest`. Sekalian hapus baris `app_settings` ber-key
+      `role_permissions` lewat migrasi (pengecualian sah dari larangan
+      `where('key')` polos karena memang lintas tenant - beri komentar alasan).
+- [ ] **Kapabilitas per-USER (override individual)** belum ada; matriks masih
+      per peran. Baru relevan kalau ada RW yang butuh pengecualian satu orang.
+- [ ] **Scoping data per-RT** ("petugas RT hanya melihat warga RT-nya") masih
+      terbuka: `warga.lihat` memberi akses SELURUH tenant. Itu row-level
+      security (menyentuh global scope), bukan kapabilitas - rilis tersendiri.
 - [ ] **Belum diuji di MySQL.** Seluruh verifikasi memakai SQLite. Yang perlu
       diperhatikan khusus: kolom `transaksis.periode` bertipe `json`, dan
       `whereJsonContains` dipakai di tes.

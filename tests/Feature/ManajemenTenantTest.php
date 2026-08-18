@@ -80,7 +80,8 @@ class ManajemenTenantTest extends TestCase
         $rw01 = Organization::where('slug', 'rw-01-cibunar')->first();
         $admin = User::where('username', 'cibunar-rw01')->first();
         $this->assertNotNull($admin);
-        $this->assertSame('ketua_rw', $admin->levelEfektifUntuk($rw01));
+        // Operator portal RW, bukan ketua - lihat komentar di BuatTenantTest.
+        $this->assertSame('superadmin', $admin->levelEfektifUntuk($rw01));
 
         // PIN tampil di halaman hasil, lalu hilang pada kunjungan berikutnya.
         $pin = collect(session('hasilTenant')['baris'])->firstWhere('rw', '01')['pin'];

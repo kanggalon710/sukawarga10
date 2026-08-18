@@ -80,17 +80,37 @@ Dashboard, Laporan, dan accessor `Keluarga::totalJiwa` - jaga tetap satu definis
 
 ## Peran & akses
 
-Level: `superadmin` > `ketua_rw` > `bendahara` > `petugas_rt` > `warga`
-(`admin` diperlakukan setara superadmin). Dua mekanisme terpisah:
+Peran: `superadmin` (operator portal, tak terbatas), `ketua_rw`, `sekretaris`,
+`bendahara`, `petugas_rt`, `warga`. **BUKAN hierarki** - sejak 2026-08-18 ini
+matriks kapabilitas: ketua tidak bisa membuat surat, bendahara tidak menyentuh
+surat, sekretaris tidak menyentuh kas. Peran rangkap MENGGABUNGKAN kapabilitas,
+bukan mengambil yang tertinggi.
 
-- `userCan($menuKey)` di `app/helpers.php` → **hanya untuk tampil/sembunyi menu.**
-  Ini BUKAN pengamanan. Jangan pernah jadikan satu-satunya penjaga endpoint.
-- Middleware `role:` (`app/Http/Middleware/CheckRole.php`) → penjaga rute sungguhan.
+Satu sumber kebenaran: `App\Services\MatriksKapabilitas` (`KATALOG` + `BAWAAN`).
+Dari situ mengalir keduanya:
 
-**Aturan wajib:** setiap rute yang mengubah data harus punya middleware `role:`
-atau pengecekan kepemilikan eksplisit di controller. Seluruh rute yang ada sudah
-memenuhi ini per 2026-08-15, dan `tests/Feature/OtorisasiTest.php` menjaganya.
-Rute baru wajib ikut ditambahkan ke tes itu.
+- Middleware `izin:<kapabilitas>` (`PastikanBerizin`) → penjaga rute sungguhan.
+  Beberapa argumen berarti OR murni.
+- `bolehkah('modul.aksi')` di `app/helpers.php` → cek yang sama untuk controller
+  dan blade (tombol aksi).
+- `userCan($menuKey)` → tampil/sembunyi menu, DITURUNKAN dari matriks yang sama
+  ("punya minimal satu kapabilitas di modul itu"). Tetap bukan pengamanan.
+
+**Aturan wajib:** setiap rute yang mengubah data harus punya middleware `izin:`,
+atau terdaftar beserta alasannya di `KapabilitasRuteTest::TANPA_IZIN` (untuk yang
+gerbangnya kepemilikan, mis. `/profil`). Dijaga mesin oleh
+`tests/Feature/KapabilitasRuteTest.php` - rute baru yang lupa dijaga langsung
+menjatuhkan tes. Urutan wajib `fitur:` DULU, baru `izin:` (modul mati = 404,
+bukan 403 yang membocorkan keberadaannya).
+
+Matriks bisa disesuaikan per tenant lewat setting `kapabilitas_peran` (delta
+bool), dan **hanya admin platform** yang punya formnya (`/tenant/rw/{id}/matriks`).
+Pengurus RW melihatnya read-only di Manajemen Akun. Menambah kapabilitas baru =
+tambah entri `KATALOG` + berikan ke peran di `BAWAAN` (atau daftarkan di
+`KHUSUS_SUPERADMIN`) + pasang `izin:` di rutenya.
+
+`CheckRole`/`role:` masih ada tapi sudah TIDAK dipakai rute mana pun; ia dan
+`User::LEVEL_POWER` menunggu dihapus (lihat `.ai/TODO.md`).
 
 ## Aturan yang mudah dilanggar
 
@@ -141,15 +161,20 @@ Baca `.ai/TODO.md` sebelum menyentuh area ini.
    rutenya (404) lewat middleware `PastikanFiturAktif` - dua-duanya memakai
    menu key yang sama dari `getAllMenuItems()`. Menambah modul baru tanpa
    membungkus rutenya berarti modul itu tidak bisa dimatikan per tenant.
-   Dijaga `tests/Feature/PengaturanTenantTest.php`.
+   Dijaga `tests/Feature/PengaturanTenantTest.php` dan `KapabilitasRuteTest.php`.
 12. **`users.level` BUKAN sumber otorisasi.** Hak akses hanya dari assignment
-   `(user, peran, organisasi)` yang dibaca `levelEfektif()`; tanpa assignment,
+   `(user, peran, organisasi)` yang dibaca `peranEfektif()`; tanpa assignment,
    lantainya warga. Kolom `level` tinggal catatan tampilan & sasaran
    notifikasi, dan Manajemen Akun-lah yang memelihara assignment-nya
    (`AkunController::selaraskanAssignment`). Cek izin baru wajib lewat
-   `levelEfektif()`/helper `is*()`, jangan membaca kolom `level`. Fixture tes
-   pengurus dipasangkan perannya lewat `TestCase::pasangPeranSetaraLevel()`.
+   `bolehkah('modul.aksi')`, jangan membaca kolom `level` maupun
+   membandingkan nama level. Fixture tes pengurus dipasangkan perannya lewat
+   `TestCase::pasangPeranSetaraLevel()`.
    Dijaga `tests/Feature/ManajemenAkunTest.php` dan `PeranScopeTest.php`.
+13. **`levelEfektif()` hanya untuk LABEL dan penyaringan KEPEMILIKAN**
+   ("warga hanya melihat suratnya sendiri"), bukan untuk izin. Ia mengembalikan
+   satu peran teratas menurut `MatriksKapabilitas::URUTAN_TAMPIL`, yang sengaja
+   BUKAN hierarki hak. Untuk izin selalu `bolehkah()`.
 
 ## Konvensi kode
 
