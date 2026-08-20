@@ -38,7 +38,7 @@ class ImportPendataanKeluarga extends Command
         if ($bom !== "\xEF\xBB\xBF") rewind($handle);
 
         $map = null;
-        $created = 0; $updated = 0; $skipped = 0; $nonRw10 = 0; $tanpaKK = 0;
+        $created = 0; $updated = 0; $skipped = 0; $identitasRusak = 0; $nonRw10 = 0; $tanpaKK = 0;
 
         $bool = fn($v) => in_array(strtolower(trim((string)$v)), ['ya', 'benar', 'true', '1']);
 
@@ -59,8 +59,20 @@ class ImportPendataanKeluarga extends Command
 
             $rw = $get('RW') ?: '10';
             $lokasi = array_map('trim', explode('/', $get('Kelurahan/Kecamatan')));
-            $noKK = $get('No. KK');
-            $nik  = $get('NIK KK');
+            // Identitas dinormalisasi di batas masuk, sama seperti importir web.
+            // Nomor rusak (notasi ilmiah, panjang salah) BUKAN cuma jelek disimpan:
+            // ia dipakai sebagai kunci upsert di bawah, jadi satu keluarga bisa
+            // terpecah jadi dua baris tiap kali importir dijalankan ulang.
+            $noKKMentah = $get('No. KK');
+            $nikMentah  = $get('NIK KK');
+            if (identitasRusak($noKKMentah) || identitasRusak($nikMentah)) {
+                $this->warn("  Dilewati (No.KK/NIK tidak sah): {$nama}");
+                $identitasRusak++;
+                $skipped++;
+                continue;
+            }
+            $noKK = normalisasiIdentitas($noKKMentah) ?? '';
+            $nik  = normalisasiIdentitas($nikMentah) ?? '';
             $bpjs = strtolower($get('BPJS/JKN'));
 
             $data = [
@@ -130,8 +142,8 @@ class ImportPendataanKeluarga extends Command
         $this->newLine();
         $this->info("✅ Import selesai.");
         $this->table(
-            ['Dibuat', 'Diperbarui', 'Baris kosong dilewati', 'Bukan RW 10', 'Tanpa No.KK', 'Total KK di DB'],
-            [[$created, $updated, $skipped, $nonRw10, $tanpaKK, Keluarga::count()]]
+            ['Dibuat', 'Diperbarui', 'Dilewati', 'Identitas tidak sah', 'Bukan RW 10', 'Tanpa No.KK', 'Total KK di DB'],
+            [[$created, $updated, $skipped, $identitasRusak, $nonRw10, $tanpaKK, Keluarga::count()]]
         );
 
         // Ringkas per RT (RW 10 saja)

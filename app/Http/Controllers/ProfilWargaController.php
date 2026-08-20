@@ -58,6 +58,15 @@ class ProfilWargaController extends Controller
 
         $oldCompletion = $this->calcCompletion($kk);
 
+        // Warga mengisi No.KK/NIK-nya sendiri di sini, jadi pintunya sama
+        // pentingnya dengan form pengurus. Nilai yang tidak berubah dilewati.
+        if ($pesan = \App\Services\PemeriksaNikWarga::periksaNoKK($request->input('noKK'), $kk->noKK, $kk->id)) {
+            return back()->withErrors(['noKK' => $pesan])->withInput();
+        }
+        if ($pesan = \App\Services\PemeriksaNikWarga::periksaNik($request->input('nik'), $kk->nik, $kk->id)) {
+            return back()->withErrors(['nik' => $pesan])->withInput();
+        }
+
         $data = $request->only([
             'noKK', 'nik', 'noHP', 'tanggalLahirKK', 'jenisKelaminKK', 'alamat',
             'statusRumah', 'tipeBangunan', 'jenisSertifikat',
@@ -67,6 +76,12 @@ class ProfilWargaController extends Controller
             'kepemilikanJamban', 'pembuanganTinja', 'caraBuangSampah',
             'pekerjaan', 'sumberPendapatan', 'penghasilan',
         ]);
+
+        foreach (['noKK', 'nik'] as $kolom) {
+            if (array_key_exists($kolom, $data) && trim((string) $data[$kolom]) !== trim((string) $kk->$kolom)) {
+                $data[$kolom] = normalisasiIdentitas($data[$kolom]);
+            }
+        }
 
         // Handle file uploads
         foreach (['fotoKK', 'fotoRumah', 'dokumenPBB'] as $field) {
@@ -147,11 +162,20 @@ class ProfilWargaController extends Controller
             'statusKeluarga' => 'required',
         ]);
 
+        // anggota_id NOT NULL + UNIQUE tanpa default: tanpa baris ini MySQL
+        // menolak insert (1364). Generator sama dengan KeluargaController::storeAnggota().
+        if ($pesan = \App\Services\PemeriksaNikWarga::periksaNik($request->input('nik'))) {
+            return back()->withErrors(['nik' => $pesan])->withInput();
+        }
+
         $kk->anggota()->create($request->only([
             'nama', 'nik', 'jenisKelamin', 'statusKeluarga',
             'pekerjaan', 'tempatLahir', 'tanggalLahir',
             'statusBPJS', 'noBPJS',
-        ]));
+        ]) + [
+            'anggota_id' => 'ag_' . uniqid(),
+            'nik' => normalisasiIdentitas($request->input('nik')),
+        ]);
 
         // Update jumlahAnggota
         $kk->update(['jumlahAnggota' => 1 + $kk->anggota()->count()]);

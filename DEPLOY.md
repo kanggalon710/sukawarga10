@@ -183,14 +183,31 @@ Modul tenant hanya hidup di host RW; di host platform/desa rutenya 404.
    sama boleh, asalkan labelnya beda (mis. `cibunar` vs `cibunarkota`).
    Menu Manajemen Desa hanya tampil untuk pemegang super_admin PLATFORM
    (akun `admin`/`jabnet` bawaan) - superadmin buatan Manajemen Akun tidak.
-3. **cPanel per subdomain:** Domains → Create a New Domain → document root =
-   folder `public` aplikasi (sama untuk semua) → Run AutoSSL, untuk TIAP
-   alamat: subdomain RW (`cibunar-rw01.desa.jabnet.id`) DAN subdomain desa
-   (`cibunar.desa.jabnet.id`). (AutoSSL tidak menerbitkan wildcard, jadi
-   tiap subdomain tetap didaftarkan; DNS-nya sudah ditutup wildcard di
-   langkah 1. PASTIKAN document root menunjuk `.../public` - salah menunjuk
-   root repo pernah memaparkan source; kini ada .htaccess pengaman, tapi
-   tetap betulkan.)
+3. **cPanel: TIDAK ADA LANGKAH LAGI.** Sejak 2026-08-20 sertifikat wildcard
+   `*.desa.jabnet.id` terpasang di vhost wildcard, jadi tenant baru langsung
+   melayani HTTPS tanpa membuat subdomain apa pun. Dulu tiap alamat harus
+   didaftarkan satu per satu lalu menunggu AutoSSL; itu sudah tidak berlaku
+   dan JANGAN dikerjakan lagi, karena menambah vhost spesifik justru
+   mengembalikan kerepotan yang dihapus wildcard.
+
+   Yang menopangnya, kalau suatu saat perlu ditelusuri:
+   - Sertifikat diterbitkan acme.sh di home `jabnet` lewat DNS-01 ke API
+     PowerDNS (`http://103.194.46.46:8081`), diperpanjang cron
+     `42 0,6,12,18 * * *`.
+   - Sesudah perpanjangan, `~/bin/pasang-ssl-desa.py` memasang ulang ke vhost
+     `*.desa.jabnet.id` dan `desa.jabnet.id`. Tanpa kaitan itu perpanjangan
+     hanya mengunduh berkas dan situs tetap menyajikan sertifikat lama.
+   - `*.desa.jabnet.id` sengaja dikecualikan dari AutoSSL supaya cPanel tidak
+     menimpanya dengan sertifikat penampung.
+   - Zona `jabnet.id` HARUS bertipe `Master`, bukan `Native`. Zona Native
+     tidak mengirim NOTIFY, sehingga ns2 baru menyusul setelah refresh SOA
+     satu jam dan validasi DNS-01 jadi tidak menentu.
+   - Riwayat pemasangan ada di `~/logs-ssl-desa.log`.
+
+   Kalau tetap perlu membuat vhost spesifik (mis. satu desa memakai domain
+   sendiri di luar `desa.jabnet.id`), PASTIKAN document root menunjuk
+   `.../public` - salah menunjuk root repo pernah memaparkan source; kini ada
+   .htaccess pengaman, tapi tetap betulkan.
 4. **Serahkan akses ke admin RW:** login dengan akun dari langkah 2 →
    menu Pengaturan: identitas (nama tampilan, tagline, lokasi),
    **Alamat Portal = hostname RW-nya**, tarif iuran, WhatsApp API →

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Keluarga;
 use App\Models\Anggota;
 use App\Services\AuditLogService;
+use App\Services\PemeriksaNikWarga;
+use Illuminate\Support\Str;
 
 class KeluargaController extends Controller
 {
@@ -54,6 +56,18 @@ class KeluargaController extends Controller
             // Step 4: misc
             'catatan',
         ]);
+
+        // Identitas diperiksa SEBELUM apa pun disimpan: No.KK/NIK yang rusak
+        // atau kembar tidak boleh masuk, karena membersihkannya belakangan
+        // berarti menebak digit yang sudah hilang.
+        if ($pesan = PemeriksaNikWarga::periksaNoKK($request->input('noKK'))) {
+            return back()->withErrors(['noKK' => $pesan])->withInput();
+        }
+        if ($pesan = PemeriksaNikWarga::periksaNik($request->input('nik'))) {
+            return back()->withErrors(['nik' => $pesan])->withInput();
+        }
+        $data['noKK'] = normalisasiIdentitas($request->input('noKK'));
+        $data['nik'] = normalisasiIdentitas($request->input('nik'));
 
         $data['noHP'] = normalizeWa($request->input('noHP')); // auto → 62xxxx
         $data['keluarga_id'] = uniqid('kk_');
@@ -127,11 +141,22 @@ class KeluargaController extends Controller
             $phasil = $request->input('anggota_penghasilan', []);
             foreach ($anggotaNames as $i => $nama) {
                 if (empty(trim($nama))) continue;
+                // NIK anggota diperiksa juga: duplikat paling sering lahir di sini,
+                // saat satu orang didaftarkan sebagai anggota di dua KK berbeda.
+                if ($pesan = PemeriksaNikWarga::periksaNik($nik[$i] ?? null)) {
+                    return back()->withErrors(['nik' => 'Anggota ' . $nama . ': ' . $pesan])->withInput();
+                }
                 $kk->anggota()->create([
+                    // anggota_id NOT NULL + UNIQUE tanpa default: tanpa baris ini
+                    // MySQL menolak insert (1364). Pakai uuid, bukan uniqid(), karena
+                    // ini di dalam loop - dua panggilan uniqid() berurutan bisa sama
+                    // dan langsung melanggar UNIQUE. Sama dengan ImportAnggota yang
+                    // juga membuat anggota dalam loop.
+                    'anggota_id' => 'ag_' . Str::uuid()->toString(),
                     'nama' => $nama,
                     'jenisKelamin' => $jk[$i] ?? null,
                     'statusKeluarga' => $status[$i] ?? null,
-                    'nik' => $nik[$i] ?? null,
+                    'nik' => normalisasiIdentitas($nik[$i] ?? null),
                     'pekerjaan' => $kerja[$i] ?? null,
                     'statusBPJS' => $bpjs[$i] ?? null,
                     'tanggalLahir' => !empty($tgl[$i]) ? $tgl[$i] : null,
@@ -160,6 +185,22 @@ class KeluargaController extends Controller
     public function update(Request $request, $id) {
         $kk = Keluarga::findOrFail($id);
 
+        // `status` dibatasi daftar tertutup. 'pindah' sengaja TIDAK ada di sini:
+        // ia hanya boleh dipasang lewat alur pemindahan warga yang butuh
+        // persetujuan pengelola desa, bukan lewat form ini.
+        $request->validate([
+            'status' => 'sometimes|in:aktif,nonaktif',
+        ]);
+
+        // Nilai yang tidak berubah tidak diperiksa, supaya KK yang identitasnya
+        // telanjur rusak tetap bisa disunting untuk hal lain (mis. membetulkan RT).
+        if ($pesan = PemeriksaNikWarga::periksaNoKK($request->input('noKK'), $kk->noKK, $kk->id)) {
+            return back()->withErrors(['noKK' => $pesan])->withInput();
+        }
+        if ($pesan = PemeriksaNikWarga::periksaNik($request->input('nik'), $kk->nik, $kk->id)) {
+            return back()->withErrors(['nik' => $pesan])->withInput();
+        }
+
         $data = $request->only([
             'nama', 'rt', 'noKK', 'nik', 'noHP', 'jumlahAnggota', 'alamat', 'status',
             'tanggalLahirKK', 'jenisKelaminKK', 'jenisSertifikat',
@@ -170,6 +211,14 @@ class KeluargaController extends Controller
             'dayaListrik', 'aksesInternet', 'rawanBencana', 'jumlahTanggungan',
             'pekerjaan', 'sumberPendapatan', 'penghasilan', 'aksesKredit', 'catatan',
         ]);
+
+        // Ditulis ulang hanya bila memang diubah; nilai lama yang telanjur rusak
+        // dibiarkan apa adanya supaya baris ini tetap bisa disunting untuk kolom lain.
+        foreach (['noKK', 'nik'] as $kolom) {
+            if (array_key_exists($kolom, $data) && trim((string) $data[$kolom]) !== trim((string) $kk->$kolom)) {
+                $data[$kolom] = normalisasiIdentitas($data[$kolom]);
+            }
+        }
 
         $data['noHP'] = normalizeWa($request->input('noHP')); // auto → 62xxxx
         $data['ikutSampah'] = $request->boolean('ikutSampah');
@@ -218,6 +267,17 @@ class KeluargaController extends Controller
     public function destroy($id) {
         $kk = Keluarga::findOrFail($id);
         $nama = $kk->nama;
+
+        // `iuran_*.keluarga_id` dan `transaksis.refKeluargaId` menyimpan id NUMERIK
+        // baris ini, dan penghapusan di bawah TIDAK menyentuh keduanya. Menghapus
+        // KK yang masih dirujuk uang berarti membuat riwayat kas jadi yatim tanpa
+        // satu pun error muncul, jadi ditolak di sini.
+        if ($pemblokir = $this->dirujukJalurUang($kk)) {
+            return back()->with('error',
+                "Data {$nama} tidak bisa dihapus karena masih dirujuk {$pemblokir}. "
+                .'Ubah statusnya jadi Nonaktif kalau keluarga ini sudah tidak aktif.');
+        }
+
         // Cascade: delete anggota too
         Anggota::where('keluarga_id', $kk->keluarga_id)->delete();
         $kk->delete();
@@ -229,6 +289,18 @@ class KeluargaController extends Controller
     // ANGGOTA KELUARGA CRUD
     // ========================
 
+    /** Nama jalur uang yang masih menunjuk KK ini, atau null bila aman dihapus. */
+    private function dirujukJalurUang(Keluarga $kk): ?string
+    {
+        $jalur = [];
+        if (\App\Models\Transaksi::where('refKeluargaId', $kk->id)->exists()) $jalur[] = 'transaksi kas';
+        if (\App\Models\IuranSampah::where('keluarga_id', $kk->id)->exists()) $jalur[] = 'iuran sampah';
+        if (\App\Models\IuranPadaringan::where('keluarga_id', $kk->id)->exists()) $jalur[] = 'iuran padaringan';
+        if (\App\Models\User::where('keluarga_id', $kk->keluarga_id)->exists()) $jalur[] = 'akun login warga';
+
+        return $jalur ? implode(', ', $jalur) : null;
+    }
+
     public function storeAnggota(Request $request, $id) {
         $kk = Keluarga::findOrFail($id);
         $request->validate([
@@ -238,11 +310,15 @@ class KeluargaController extends Controller
             'statusKeluarga' => 'required|string|max:30',
         ]);
 
+        if ($pesan = PemeriksaNikWarga::periksaNik($request->nik)) {
+            return back()->withErrors(['nik' => $pesan])->withInput();
+        }
+
         Anggota::create([
             'anggota_id' => 'ag_' . uniqid(),
             'keluarga_id' => $kk->keluarga_id,
             'nama' => $request->nama,
-            'nik' => $request->nik,
+            'nik' => normalisasiIdentitas($request->nik),
             'tempatLahir' => $request->tempatLahir,
             'tanggalLahir' => $request->tanggalLahir,
             'jenisKelamin' => $request->jenisKelamin,
@@ -267,13 +343,23 @@ class KeluargaController extends Controller
         $kk = Keluarga::findOrFail($id);
         $anggota = Anggota::where('keluarga_id', $kk->keluarga_id)->findOrFail($anggotaId);
 
-        $anggota->update($request->only([
+        if ($pesan = PemeriksaNikWarga::periksaNik($request->input('nik'), $anggota->nik, null, $anggota->id)) {
+            return back()->withErrors(['nik' => $pesan])->withInput();
+        }
+
+        $isi = $request->only([
             'nama', 'nik', 'tempatLahir', 'tanggalLahir',
             'jenisKelamin', 'statusKeluarga', 'pekerjaan',
             'statusBPJS', 'noBPJS',
             'pendidikan', 'statusPerkawinan', 'agama',
             'statusPekerjaan', 'penghasilan',
-        ]));
+        ]);
+        // Hanya ditulis ulang bila memang diubah; nilai lama yang rusak dibiarkan
+        // apa adanya supaya baris ini tetap bisa disunting untuk kolom lain.
+        if (array_key_exists('nik', $isi) && trim((string) $isi['nik']) !== trim((string) $anggota->nik)) {
+            $isi['nik'] = normalisasiIdentitas($isi['nik']);
+        }
+        $anggota->update($isi);
 
         return back()->with('success', 'Data anggota ' . $anggota->nama . ' berhasil diperbarui.');
     }

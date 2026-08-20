@@ -347,6 +347,51 @@ if (!function_exists('kkKepalaBekerja')) {
     }
 }
 
+if (!function_exists('normalisasiIdentitas')) {
+    /**
+     * Bersihkan No. KK / NIK jadi 16 digit, atau null bila tidak bisa dipercaya.
+     *
+     * Nomor 16 digit yang pernah singgah di Google Sheets sebagai ANGKA rusak
+     * permanen: ia kembali sebagai notasi ilmiah ("3.205063190736E+016") atau
+     * terpotong sepanjang lebar kolom. Digit yang hilang tidak bisa dipulihkan
+     * dengan menebak, jadi nilai seperti itu WAJIB ditolak di batas masuk, bukan
+     * disimpan apa adanya seperti selama ini.
+     *
+     * Mengembalikan null untuk: kosong, memuat huruf/notasi ilmiah, atau
+     * panjangnya bukan 16. Pemanggil yang membedakan "belum diisi" dari "diisi
+     * tapi rusak" memakai identitasRusak() di bawah.
+     */
+    function normalisasiIdentitas($raw): ?string
+    {
+        $t = trim((string) $raw);
+        if ($t === '' || $t === '-') return null;
+
+        // Notasi ilmiah & elipsis: digitnya sudah hilang, jangan dipungut sisanya.
+        if (preg_match('/[eE]\s*\+?\s*\d/', $t) || str_contains($t, '.')) return null;
+
+        // Huruf atau simbol lain = salah ketik, bukan pemisah. Spasi & tanda
+        // hubung memang lazim ditulis manusia, jadi itu saja yang dibuang.
+        if (preg_match('/[^0-9\s-]/', $t)) return null;
+
+        $d = preg_replace('/[\s-]/', '', $t);
+
+        return strlen($d) === 16 ? $d : null;
+    }
+}
+
+if (!function_exists('identitasRusak')) {
+    /**
+     * true bila kolom identitas diisi TAPI tidak bisa dipakai.
+     * Kosong bukan rusak: pendataan memang sering belum lengkap.
+     */
+    function identitasRusak($raw): bool
+    {
+        $t = trim((string) $raw);
+
+        return $t !== '' && $t !== '-' && normalisasiIdentitas($t) === null;
+    }
+}
+
 if (!function_exists('normalizeWa')) {
     /**
      * Normalisasi nomor WhatsApp Indonesia ke format internasional tanpa "+": 62xxxxxxxxxx.

@@ -39,3 +39,9 @@ Thumbs.db
 
 # Konfigurasi lokal editor/tooling
 /.claude/
+
+# Berkas kerja berisi data pribadi warga (lembar koreksi, hasil audit, ekspor
+# sementara). Isinya TIDAK PERNAH ikut ter-commit: repo ini publik. README-nya
+# sengaja dikecualikan supaya keberadaan folder ini tetap terlihat.
+/data-lokal/*
+!/data-lokal/README.md

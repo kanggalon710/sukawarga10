@@ -291,6 +291,8 @@ class ExportImportController extends Controller
         try {
             $count = 0;
             $updated = 0;
+            $ditolakIdentitas = 0;
+            $barisDitolak = [];
 
             while (($row = fgetcsv($handle, 4000, ",")) !== FALSE) {
                 // Ensure row has same columns as header
@@ -299,10 +301,22 @@ class ExportImportController extends Controller
                 $namaKK = trim($row[$map['Nama KK']] ?? '');
                 if (empty($namaKK)) continue;
 
-                $nik = isset($map['NIK KK']) ? trim($row[$map['NIK KK']]) : '';
+                $nikMentah = isset($map['NIK KK']) ? trim($row[$map['NIK KK']]) : '';
+                $noKKMentah = isset($map['No. KK']) ? trim($row[$map['No. KK']]) : '';
                 $rtRaw = isset($map['RT']) ? trim($row[$map['RT']]) : '';
                 $rt = !empty($rtRaw) ? $this->normalizeRT($rtRaw) : '';
-                $noKK = isset($map['No. KK']) ? trim($row[$map['No. KK']]) : '';
+
+                // Identitas rusak (notasi ilmiah dari spreadsheet, panjang salah,
+                // ada huruf) ditolak per baris, tidak menggagalkan seluruh impor.
+                // Menyimpannya apa adanya seperti dulu berarti nomor yang digitnya
+                // sudah hilang ikut masuk dan dipakai sebagai kunci pencocokan.
+                if (identitasRusak($nikMentah) || identitasRusak($noKKMentah)) {
+                    $ditolakIdentitas++;
+                    $barisDitolak[] = $namaKK;
+                    continue;
+                }
+                $nik = normalisasiIdentitas($nikMentah) ?? '';
+                $noKK = normalisasiIdentitas($noKKMentah) ?? '';
 
                 // Try to find existing KK (using normalized RT)
                 $keluarga = null;
@@ -318,6 +332,15 @@ class ExportImportController extends Controller
 
                 $isNew = false;
                 if (!$keluarga) {
+                    // Pemeriksaan duplikat HANYA untuk baris baru. Baris yang
+                    // mencocoki KK yang sudah ada adalah pembaruan data orang
+                    // yang sama, bukan duplikat - kalau diperiksa juga, impor
+                    // ulang berkas yang sama akan menolak seluruh isinya.
+                    if ($alasan = \App\Services\PemeriksaNikWarga::alasanTolakMassal($nik, $noKK)) {
+                        $ditolakIdentitas++;
+                        $barisDitolak[] = $namaKK . ' (' . $alasan . ')';
+                        continue;
+                    }
                     $keluarga = new Keluarga();
                     $keluarga->keluarga_id = 'K-' . Str::uuid()->toString();
                     $isNew = true;
@@ -403,7 +426,16 @@ class ExportImportController extends Controller
             fclose($handle);
             DB::commit();
 
-            return back()->with('success', "Import Data Keluarga selesai. $count Data Baru, $updated Data Diperbarui.");
+            $pesan = "Import Data Keluarga selesai. $count Data Baru, $updated Data Diperbarui.";
+            if ($ditolakIdentitas > 0) {
+                // Sebut namanya (maksimal beberapa) supaya petugas tahu baris mana
+                // yang harus disalin ulang dari kartu aslinya.
+                $contoh = implode(', ', array_slice($barisDitolak, 0, 5));
+                $sisa = count($barisDitolak) > 5 ? ' dan ' . (count($barisDitolak) - 5) . ' lainnya' : '';
+                $pesan .= " $ditolakIdentitas baris DILEWATI: $contoh$sisa.";
+            }
+
+            return back()->with('success', $pesan);
         } catch (\Exception $e) {
             DB::rollback();
             if (isset($handle) && is_resource($handle)) fclose($handle);

@@ -182,7 +182,14 @@ class PengaturanController extends Controller
             $dupIds = [];
             $dupKeluargaIds = [];
             $terlihat = [];
-            foreach (\App\Models\Keluarga::orderBy('id')->get(['id', 'keluarga_id', 'nama', 'rt']) as $kk) {
+            // KK berstatus 'pindah' adalah ARSIP yang sengaja dipertahankan supaya
+            // riwayat iuran & transaksinya (yang menunjuk id numerik baris ini)
+            // tidak jadi yatim. Tanpa pengecualian ini, keluarga yang pindah lalu
+            // kembali akan dianggap duplikat dari arsipnya sendiri, dan yang
+            // dihapus justru baris yang aktif.
+            $daftarKk = \App\Models\Keluarga::where('status', '!=', 'pindah')
+                ->orderBy('id')->get(['id', 'keluarga_id', 'nama', 'rt']);
+            foreach ($daftarKk as $kk) {
                 $kunci = $kk->nama . '|' . $kk->rt;
                 if (isset($terlihat[$kunci])) {
                     $dupIds[] = $kk->id;

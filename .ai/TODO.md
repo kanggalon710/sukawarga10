@@ -22,15 +22,45 @@ Bukan pekerjaan kode, tapi jangan dilewat.
       kehilangan Impor/Ekspor CSV warga, Reset Data naik ke superadmin, dan
       menu Surat Menyurat kini tampil untuk warga (rutenya memang sudah
       terbuka sejak dulu, hanya menunya yang disembunyikan).
-- [ ] **Tiap tenant baru masih perlu satu langkah manual di cPanel:** tambahkan
-      subdomain `<label>.desa.jabnet.id` (halaman desa) DAN
-      `<label>-rw<nn>.desa.jabnet.id` (portal RW) dengan document root
-      `repositories/desa-manage/public`, lalu tunggu AutoSSL. Kalau dilewat,
-      host-nya gagal TLS. Setelah AutoSSL selesai, PERIKSA sertifikatnya
-      benar-benar memuat nama telanjang (pernah terbit hanya varian `www.`
-      karena validasi berjalan saat vhost baru dibuat) - jalankan ulang
-      AutoSSL bila perlu. Hilang sepenuhnya begitu sertifikat wildcard
-      `*.desa.jabnet.id` terpasang.
+- [x] ~~**Tiap tenant baru perlu satu langkah manual di cPanel.**~~ SELESAI
+      2026-08-20: sertifikat wildcard `*.desa.jabnet.id` terpasang, dan vhost
+      wildcard melayani host yang belum pernah dibuat. Membuat desa atau RW
+      baru kini cukup lewat Manajemen Desa, tanpa menyentuh cPanel sama sekali.
+- [x] ~~**Sertifikat wildcard `*.desa.jabnet.id`.**~~ SELESAI 2026-08-20.
+      Terbit lewat DNS-01 ke API PowerDNS, berlaku sampai 18 November 2026,
+      diperpanjang cron acme.sh (`42 0,6,12,18 * * *`) dengan kaitan
+      `~/bin/pasang-ssl-desa.py` yang memasang ulang ke vhost. Perpanjangan
+      sudah diuji paksa dan terbukti mengganti sertifikat yang disajikan.
+- [ ] **Hapus 7 subdomain per-tenant lewat antarmuka cPanel** (Domains ->
+      Manage -> Remove): `sukakarya`, `bagendit`, `bagendit-rw07`, `cibunar`,
+      `cibunar-rw01`, `ygao`, `ygao-rw01`, semuanya berakhiran
+      `.desa.jabnet.id`. JANGAN hapus `desa.jabnet.id` dan `*.desa.jabnet.id`.
+      Tidak bisa lewat skrip: akun ini tidak punya API penghapus subdomain
+      (UAPI hanya `addsubdomain`, `cpapi2` mustahil karena binari
+      `/usr/local/cpanel/cpanel` tidak ada). Aman dilakukan, sudah dibuktikan
+      host tanpa vhost sendiri jatuh ke wildcard dengan TLS sah. Sesudahnya
+      periksa satu portal lama, misalnya `https://cibunar-rw01.desa.jabnet.id`.
+- [x] ~~**Tinjau `webserver-allow-from`.**~~ DIPUTUSKAN 2026-08-20: kedua
+      rentang `160.236.18.0/23` dan `103.194.46.0/23` memang dikehendaki
+      pemilik (keduanya jaringan ISP-nya sendiri). JANGAN dicabut "demi
+      keamanan" di sesi berikutnya; alasannya di `.ai/DECISIONS.md`.
+- [x] ~~**Ganti sandi SSH `arkanova`.**~~ DIPUTUSKAN pemilik 2026-08-20:
+      tidak diganti. `sudo` di server DNS memakai sandi yang sama.
+- [ ] **Pemilik memasang kunci SSH-nya sendiri di server DNS.** Sekarang hanya
+      `arkanova` yang punya kunci, dan kunci itu ada di mesin agen. Selama
+      pemilik belum punya kuncinya sendiri, `PasswordAuthentication` TIDAK
+      BOLEH dimatikan, karena akan mengunci pemilik dari servernya. Urutannya:
+      buat kunci di mesin sendiri (`ssh-keygen -t ed25519`), tambahkan kunci
+      publiknya ke `~arkanova/.ssh/authorized_keys`, BUKTIKAN login berbasis
+      kunci berhasil, baru pertimbangkan `PasswordAuthentication no`.
+      Mendesak karena fail2ban di sana sudah memblokir 645 alamat dan
+      sandinya tidak diganti.
+- [ ] **Healthcheck container `powerdns_admin` salah sasaran.** Ia menembak
+      `http://127.0.0.1/` (port 80) sementara aplikasi mendengarkan di 9191,
+      jadi statusnya selamanya `unhealthy` dan sudah gagal 725 ribu kali.
+      Akibatnya alarm palsu, dan yang lebih berbahaya: kalau nanti aplikasi
+      benar-benar mati, tidak ada yang bisa membedakannya. Perbaiki
+      `healthcheck.test` di compose-nya jadi menembak port 9191.
 - [ ] **JANGAN deploy lewat cPanel Git Version Control.** Ia hanya menarik
       berkas: migrasi tidak jalan dan cache rute tidak dibangun ulang, dan
       situs 500. Pakai tombol Perbarui Sekarang (terverifikasi bekerja
@@ -128,6 +158,80 @@ Visi: `AI_AGENT_MULTI_TENANT_ARCHITECTURE.md`. Peta fase + statusnya:
       ber-scope; `resetData` kini mass delete ber-scope dalam transaksi,
       bukan TRUNCATE lintas tenant. Sisa `$user->level` mentah tinggal
       rujukan hantu `sekretaris` (lihat "Belum dikerjakan").
+- [ ] **PII warga sungguhan ada di riwayat git PUBLIK.** Commit `fceb54c` memasukkan
+      nama, No. KK, dan tanggal lahir warga RW 07 yang asli ke
+      `tests/Feature/ImportTenantTest.php` sebagai contoh impor. Sudah diganti sintetis
+      di working tree 2026-08-20, tapi **penggantian itu tidak menghapus jejaknya dari
+      riwayat** - siapa pun bisa `git log -p` dan membacanya. Pemilik perlu memutuskan:
+      (a) terima sebagai sudah terlanjur, seperti PIN `463696`; atau (b) tulis ulang
+      riwayat (`git filter-repo`) lalu force push, yang memutus semua klon yang ada.
+      Yang tidak boleh: menganggapnya beres hanya karena working tree sudah bersih.
+
+- [ ] **Sisir tes dan seeder untuk contoh data warga lain.** Yang di atas ketemu tidak
+      sengaja saat menulis tes Rilis 2. Belum ada yang memeriksa sisanya secara
+      menyeluruh. Aturan yang berlaku sejak sekarang: contoh identitas di tes memakai
+      kode wilayah `999999`, dan berkas berisi data warga tinggal di `data-lokal/`
+      (lihat `data-lokal/README.md`).
+
+- [ ] **Fitur pindah warga antar-RW/desa + cegah NIK ganda lintas tenant.** Rencana
+      lengkap beserta koreksi hasil uji rancangan ada di
+      `~/.claude/plans/starry-zooming-cloud.md`. Rilis 0 (`anggota_id`) dan Rilis 1
+      (pemeriksa identitas + tiga penjaga) SUDAH selesai 2026-08-20.
+      **Berikutnya Rilis 2: cek NIK LINTAS TENANT.** Yang wajib ada di sana, semuanya
+      sudah dianalisis dan jangan ditemukan ulang: (a) pencarian lintas tenant HARUS
+      mengecualikan `status = 'pindah'`, kalau tidak warga yang baru pindah tidak bisa
+      disunting selamanya karena arsipnya sendiri dianggap duplikat; (b) pesannya hanya
+      menyebut Desa/RW, tidak pernah nama, alamat, atau nomor HP; (c) importir CSV tidak
+      pernah menyebut lokasi per baris - satu unggahan 1.000 NIK akan jadi peta alamat
+      1.000 orang; (d) kuota harian per pengurus, sesudah habis pesannya jadi generik;
+      (e) log pengungkapan menyimpan NIK ter-hash, bukan mentah.
+      Yang sudah selesai di Rilis 1: normalisasi NIK/No.KK (16 digit, tolak
+      notasi ilmiah), index pada `keluargas.nik`/`noKK` dan `anggotas.nik`, cek duplikat
+      dalam tenant, plus tiga penjaga yang harus ada SEBELUM status `pindah` punya makna:
+      validasi `status` di `KeluargaController::update` (hari ini nol validasi, dan
+      dropdown sudah menyediakan "Pindah" sehingga persetujuan ketua desa bisa dilewati),
+      guard `PengaturanController::removeDuplicates` (mengunci pada `nama|rt`, akan
+      menghapus KK aktif yang namanya sama dengan arsip), dan guard
+      `KeluargaController::destroy` (tidak menyentuh iuran/transaksi, jadi menghapus KK
+      berarti membuat riwayat uang yatim tanpa error). Ketiganya SUDAH terpasang.
+
+- [ ] **`AuditLogService::log()` tidak bisa menulis untuk organisasi lain.** `AuditLog`
+      memakai `MilikOrganisasi`, yang mengisi `organization_id` dari `TenantContext::rw()`
+      - dan di host desa/platform nilainya NULL, sehingga barisnya tidak muncul di Log
+      Sistem RW mana pun. Diperparah `/log` sendiri 404 di host desa karena `log` tidak
+      ada di whitelist `ResolveTenant`. Artinya setiap aksi lintas tenant yang dilakukan
+      admin platform hari ini praktis tidak teraudit. Butuh `logUntuk(?int $orgId, ...)`.
+
+- [ ] **`anggotas.keluarga_id` menyimpan string `K-...`, bukan `keluargas.id`.** Nama kolomnya
+      berbohong: ia menunjuk `keluargas.keluarga_id`, bukan primary key. Query yang menyamakannya
+      dengan id numerik mengembalikan nol baris TANPA error, jadi salahnya terlihat seperti "warga
+      ini belum punya anggota keluarga". Sudah sekali menyesatkan analisis data (lihat PROGRESS
+      2026-08-20). Sebelum ada relasi Eloquent yang jelas atau kolom ini dinamai ulang, siapa pun
+      yang menulis query mentah ke `anggotas` akan mengulang jebakan yang sama.
+
+- [ ] **Perbaikan data massal tidak punya jalur beraudit.** Koreksi RW 07 (2026-08-20) terpaksa
+      dijalankan lewat skrip langsung ke database karena aplikasi tidak menyediakan cara
+      menggabungkan dua catatan orang atau memindahkan anggota antar-KK. Akibatnya perubahan itu
+      tidak masuk AuditLog. Butuh minimal: pindah anggota antar-KK lewat UI, dan hapus KK yang
+      menolak jalan bila masih dirujuk iuran/transaksi/akun.
+
+- [ ] **Laporan diam-diam menebak jenis kelamin kepala keluarga.**
+      `LaporanController` memakai `$kk->jenisKelaminKK ?? 'L'`, jadi KK tanpa
+      jenis kelamin dihitung laki-laki tanpa peringatan apa pun. Di RW 07 ada
+      2 KK seperti itu dan setidaknya satu perempuan menurut NIK-nya, jadi
+      pecahan L/P meleset diam-diam. Minimal: tampilkan hitungan "belum diisi"
+      di halaman laporan, jangan dilebur ke salah satu sisi.
+- [ ] **Belum ada halaman mutu data.** Audit RW 07 (2026-08-20) menemukan
+      hal-hal yang seharusnya kelihatan sendiri oleh pengurus tanpa perlu
+      dibedah manual: orang yang sama muncul di dua KK, No.KK/NIK bukan 16
+      digit atau tersimpan dalam notasi ilmiah, dan KK yang belum punya satu
+      pun anggota. Semuanya bisa dideteksi query sederhana. Pertimbangkan
+      perintah `php artisan data:periksa` dan/atau satu tab di Laporan.
+- [ ] **Importer menerima No.KK/NIK rusak tanpa protes.** `ImportAnggota`
+      melewatkan referensi yang tidak cocok dan melaporkannya (bagus), tapi
+      `ImportPendataanKeluarga` tetap menyimpan No.KK bernilai
+      `3.205063190736E+016` apa adanya. Tolak atau normalkan di batas impor,
+      karena setelah masuk DB ia jadi kunci relasi yang tidak bisa dicocokkan.
 - [ ] **Inkonsistensi warisan `keluarga_id`:** `anggotas.keluarga_id` berisi
       ID bisnis string, `iuran_*.keluarga_id` berisi id numerik keluargas.id
       (alur bayar menyimpan parameter rute). Scope turunan sudah sadar-kolom;

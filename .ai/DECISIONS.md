@@ -3,6 +3,42 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-08-20 - API PowerDNS dibuka untuk dua rentang /23, sandi arkanova dipertahankan
+**Konteks:** Setelah kunci API PowerDNS dirotasi jadi acak 256-bit dan
+database DNS ditutup dari internet, agen mengangkat dua kekhawatiran:
+`webserver-allow-from` memuat `160.236.18.0/23` (512 alamat publik), dan sandi
+SSH `arkanova` lemah serta sudah melintas di percakapan. Port 8081 memang
+terbuka ke internet dan terbukti disondai alamat asing.
+**Opsi:** (a) persempit ACL ke daftar IP tunggal dan rotasi sandi SSH;
+(b) pertahankan rentang lebar karena perkakas pemilik tersebar di sana, dan
+pertahankan sandi.
+**Pilihan:** (b), atas keputusan pemilik, ditambah `103.194.46.0/23`.
+**Alasan:** Pemilik adalah ISP; kedua /23 itu jaringannya sendiri, dan
+perkakas yang perlu membaca zona/record tidak duduk di satu alamat tetap.
+Kekhawatiran sudah disampaikan sekali dan pemilik menegaskan pilihannya, jadi
+itu keputusannya.
+**Konsekuensi yang perlu diketahui sesi berikutnya:**
+1. **JANGAN mencabut kedua /23 itu "demi keamanan".** Itu bukan kelalaian,
+   itu keputusan sadar yang tercatat di sini.
+2. Yang menjaga API sekarang adalah KUNCInya, bukan lagi ACL-nya, karena
+   1024 alamat publik boleh menyentuhnya. Kunci 256-bit di
+   `/root/.pdns-api-key-baru` (server DNS) dan `~/.pdns-api-key` (server web)
+   itulah satu-satunya pembatas nyata. Kalau kunci itu bocor, seluruh DNS
+   ikut. Jangan pernah mencetaknya ke log, chat, atau berkas repo.
+3. Rentang `103.194.46.0/23` mencakup 103.194.46.0-103.194.47.255, jadi
+   entri tunggal `103.194.46.46`, `103.194.46.165`, dan `103.194.47.165` kini
+   mubazir. Sengaja dibiarkan supaya diff-nya kecil dan mudah dikembalikan.
+4. **Database MySQL TIDAK ikut dibuka.** Ia tetap hanya menerima
+   `jabnet_pdns@103.194.46.46`. Akses data zona dari rentang lain harus lewat
+   REST API, bukan koneksi langsung ke 3306. Kalau suatu saat perlu diubah,
+   ingat bahwa `@'%'` pernah membuat 13 zona bisa ditulis siapa pun dari
+   internet.
+5. Sandi `arkanova` di server DNS sengaja TIDAK diganti atas permintaan
+   pemilik, dan `sudo` di sana memakai sandi yang sama. Nilainya tidak
+   ditulis di repo; tanyakan pemilik. Konsekuensinya
+   `PasswordAuthentication` tidak boleh dimatikan sampai pemilik memasang
+   kuncinya sendiri, kalau tidak ia terkunci dari servernya.
+
 ## 2026-08-18 - Otorisasi jadi matriks kapabilitas, bukan hierarki level
 **Konteks:** Pemilik minta pembagian tugas pengurus RW ditegakkan sistem
 (hanya sekretaris yang membuat surat, bendahara yang memegang uang, ketua yang
@@ -115,6 +151,25 @@ slug lama (rw-07-bagendit) bisa tidak cocok dengan nama baru (RW 10);
 itu diterima sebagai identifier historis, bukan tampilan. AppSetting
 alamat_portal hanya dikoreksi bila masih menunjuk hostname lama - override
 kustom milik tenant dihormati.
+
+## 2026-08-20 - Keunikan NIK ditegakkan aplikasi, bukan index unik database
+**Konteks:** Rilis 1 memasang pemeriksa NIK/No.KK. Pertanyaannya: kenapa tidak
+sekalian `unique()` di kolomnya, yang lebih murah dan tidak bisa dibobol
+balapan tulis?
+**Pilihan:** (a) index unik di `keluargas.nik`/`noKK` dan `anggotas.nik`,
+(b) index biasa + pemeriksaan di lapisan aplikasi.
+**Diambil: (b).** Alasannya bukan selera: data warisan tiga desa produksi memuat
+NIK kosong (boleh, pendataan bertahap), NIK duplikat yang belum diputuskan
+siapa yang benar, dan sisa notasi ilmiah dari Google Sheets. Migrasi unique
+akan GAGAL di tengah jalan pada data itu, dan membersihkannya lebih dulu
+mustahil karena digit yang hilang harus disalin ulang dari kartu asli oleh
+petugas RT, bukan ditebak. Ditambah: begitu fitur pindah warga hidup, arsip di
+RW asal memang SENGAJA berbagi NIK dengan KK aktif di RW tujuan, jadi unique
+lintas tenant justru akan salah.
+**Konsekuensi yang disadari:** dua penyimpanan bersamaan dengan NIK sama masih
+bisa lolos berdua. Diterima: pengurus RW menyimpan data warga beberapa kali
+sehari, bukan beberapa kali sedetik. Kalau nanti data sudah bersih, unique bisa
+dipasang sebagai pengunci terakhir - jangan sebelum itu.
 
 ## 2026-08-16 - Cakupan kelola akun mengikuti tingkat HOST, bukan level user
 **Konteks:** Owner minta kelola akun bertingkat; /akun lama menampilkan

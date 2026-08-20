@@ -60,7 +60,27 @@
                 </div>
             </div>
             <div><label class="f-label">Alamat *</label><textarea name="alamat" rows="2" required class="f-input" style="font-family:inherit;">{{ $kk->alamat }}</textarea></div>
-            <div><label class="f-label">Status</label><select name="status" class="f-input"><option value="aktif" {{ $kk->status=='aktif'?'selected':'' }}>Aktif</option><option value="nonaktif" {{ $kk->status=='nonaktif'?'selected':'' }}>Nonaktif</option><option value="pindah" {{ $kk->status=='pindah'?'selected':'' }}>Pindah</option></select></div>
+            {{-- "Pindah" sengaja bukan pilihan di sini: status itu hanya boleh
+                 dipasang lewat alur pemindahan warga yang butuh persetujuan
+                 pengelola desa. Kalau KK memang sudah pindah, statusnya
+                 ditampilkan sebagai keterangan, bukan sebagai pilihan. --}}
+            @if ($kk->status === 'pindah')
+                <div>
+                    <span class="f-label">Status</span>
+                    <p class="badge badge-gray" style="margin-top:6px;">
+                        <i class="fas fa-truck-moving" aria-hidden="true"></i> Sudah pindah
+                    </p>
+                    <small style="color:var(--text3);">Diubah lewat alur pemindahan warga, bukan dari halaman ini.</small>
+                </div>
+            @else
+                <div>
+                    <label class="f-label" for="status-kk">Status</label>
+                    <select name="status" id="status-kk" class="f-input">
+                        <option value="aktif" {{ $kk->status=='aktif'?'selected':'' }}>Aktif</option>
+                        <option value="nonaktif" {{ $kk->status=='nonaktif'?'selected':'' }}>Nonaktif</option>
+                    </select>
+                </div>
+            @endif
         </div>
         <button type="button" class="btn btn-primary" style="width:100%; margin-top:20px;" onclick="goStep(2)">Lanjut <i class="fas fa-arrow-right"></i></button>
     </div>

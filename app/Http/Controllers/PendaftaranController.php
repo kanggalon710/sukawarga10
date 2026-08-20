@@ -23,12 +23,11 @@ class PendaftaranController extends Controller
         $username = null;
         $generatedPin = null;
 
-        // Check if this NIK or KK is already in keluargas (prevent duplicate warga)
-        $dupQuery = \App\Models\Keluarga::where('nik', $p->nik);
-        if (!empty($p->no_kk)) {
-            $dupQuery->orWhere('noKK', $p->no_kk);
-        }
-        if ($dupQuery->exists()) {
+        // Cek duplikat lewat pemeriksa terpusat. Selain merapikan (dulu query OR
+        // di sini bisa menembus global scope tenant), ini ikut memeriksa tabel
+        // anggota - pemohon yang sudah tercatat sebagai anggota keluarga tidak
+        // boleh diangkat jadi KK baru.
+        if (\App\Services\PemeriksaNikWarga::sudahDipakai($p->nik, $p->no_kk)) {
             // Auto-reject this duplicate and all other pending duplicates
             \App\Models\Pendaftaran::where('nik', $p->nik)
                 ->where('status', 'pending')

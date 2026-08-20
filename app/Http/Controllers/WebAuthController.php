@@ -52,21 +52,20 @@ class WebAuthController extends Controller
             'no_wa' => 'nullable|string|max:20',
         ]);
 
-        // Check if NIK already registered as warga
-        if (\App\Models\Keluarga::where('nik', $request->nik)->exists()) {
-            return back()->with('error_register', 'NIK ini sudah terdaftar sebagai warga. Silakan langsung login.')
+        // NIK/No.KK sudah terdaftar sebagai warga. Sengaja memakai sudahDipakai()
+        // yang tidak menyebut nama siapa pun: halaman ini terbuka tanpa login,
+        // jadi pesannya tidak boleh memberi tahu tamu siapa pemilik sebuah NIK.
+        // Berbeda dari cek lama, ini ikut memeriksa tabel anggota - orang yang
+        // sudah tercatat sebagai anggota keluarga tidak boleh mendaftar lagi
+        // sebagai kepala keluarga baru.
+        if (\App\Services\PemeriksaNikWarga::sudahDipakai($request->nik, $request->no_kk)) {
+            return back()->with('error_register', 'NIK atau No. KK ini sudah terdaftar sebagai warga. Silakan langsung login, atau hubungi pengurus RW bila lupa akun.')
                          ->withInput();
         }
 
         // Check if NIK already has a pending registration
         if (\App\Models\Pendaftaran::where('nik', $request->nik)->where('status', 'pending')->exists()) {
             return back()->with('error_register', 'NIK ini sudah memiliki pengajuan yang menunggu verifikasi. Mohon tunggu proses persetujuan.')
-                         ->withInput();
-        }
-
-        // Check if No KK already registered
-        if (\App\Models\Keluarga::where('noKK', $request->no_kk)->exists()) {
-            return back()->with('error_register', 'No. KK ini sudah terdaftar dalam data warga.')
                          ->withInput();
         }
 

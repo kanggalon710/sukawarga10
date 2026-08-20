@@ -111,8 +111,12 @@ class ImportTenantTest extends TestCase
 
     public function test_baris_kepala_keluarga_melengkapi_kk_bukan_jadi_anggota(): void
     {
+        // Nama, No. KK, dan tanggal lahir di bawah adalah SINTETIS (kode wilayah
+        // 999999 tidak ada di Permendagri). Sebelum 2026-08-20 tes ini memakai
+        // data warga RW 07 yang sungguhan - repositori ini publik, jadi contoh
+        // di tes tidak boleh diambil dari orang yang benar-benar ada.
         // KK dulu.
-        $csvKk = "Nama KK,No. KK,RT,Alamat\nAyat Hidayat,3205062031200031,01,Kp. Parung\n";
+        $csvKk = "Nama KK,No. KK,RT,Alamat\nUjang Sutisna,9999992031200031,01,Kp. Parung\n";
         $this->actingAs($this->adminCibunar)
             ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/keluarga', [
                 'file_keluarga' => UploadedFile::fake()->createWithContent('kk.csv', $csvKk),
@@ -121,14 +125,14 @@ class ImportTenantTest extends TestCase
         // Anggota: baris kepala + satu istri; referensi via No. KK; tanggal
         // gaya spreadsheet dd-mm-yyyy.
         $csvAg = "No,Nama KK (Referensi),RT,Nama Anggota,L/P,Tgl Lahir,Status Keluarga,Pekerjaan,BPJS,Keterangan\n".
-                 ",3205062031200031,RT 01,AYAT HIDAYAT,L,05-12-1983,Kepala Keluarga,Wiraswasta,,\n".
-                 ",3205062031200031,RT 01,RATNA SARI,P,25-11-1985,Istri,Mengurus Rumah Tangga,,\n";
+                 ",9999992031200031,RT 01,UJANG SUTISNA,L,07-03-1981,Kepala Keluarga,Wiraswasta,,\n".
+                 ",9999992031200031,RT 01,SITI RAHAYU,P,19-06-1984,Istri,Mengurus Rumah Tangga,,\n";
         $this->actingAs($this->adminCibunar)
             ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/anggota', [
                 'file_anggota' => UploadedFile::fake()->createWithContent('ag.csv', $csvAg),
             ])->assertRedirect();
 
-        $kk = Keluarga::withoutGlobalScope('organisasi')->where('noKK', '3205062031200031')->firstOrFail();
+        $kk = Keluarga::withoutGlobalScope('organisasi')->where('noKK', '9999992031200031')->firstOrFail();
         // Kepala TIDAK digandakan jadi anggota (hindari jiwa dobel)...
         $this->assertSame(
             1, \App\Models\Anggota::withoutGlobalScope('organisasi')
@@ -136,15 +140,15 @@ class ImportTenantTest extends TestCase
         );
         // ...tapi melengkapi data KK-nya, seperti importer CLI.
         $this->assertSame('L', $kk->jenisKelaminKK);
-        $this->assertSame('1983-12-05', $kk->tanggalLahirKK?->format('Y-m-d'));
+        $this->assertSame('1981-03-07', $kk->tanggalLahirKK?->format('Y-m-d'));
         // Pekerjaan kepala ikut tersimpan di KK - dulu dibuang sehingga
         // mayoritas KK hasil impor tampak tanpa pekerjaan di Laporan.
         $this->assertSame('Wiraswasta', $kk->pekerjaan);
 
         $istri = \App\Models\Anggota::withoutGlobalScope('organisasi')
             ->where('keluarga_id', $kk->keluarga_id)->first();
-        $this->assertSame('RATNA SARI', $istri->nama);
-        $this->assertSame('1985-11-25', $istri->tanggalLahir?->format('Y-m-d'));
+        $this->assertSame('SITI RAHAYU', $istri->nama);
+        $this->assertSame('1984-06-19', $istri->tanggalLahir?->format('Y-m-d'));
         $this->assertNotNull($istri->statusPekerjaan);
     }
 
@@ -179,12 +183,18 @@ class ImportTenantTest extends TestCase
         $kkAsing->organization_id = Organization::where('slug', 'rw-10-sukakarya')->value('id');
         $kkAsing->saveQuietly();
 
-        // KK cibunar ber-noKK sama diimpor lewat request tenant cibunar.
-        $csvKk = "Nama KK,No. KK,RT,Alamat\nKK Cibunar,3205069999999999,01,Kp. Parung\n";
-        $this->actingAs($this->adminCibunar)
-            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/keluarga', [
-                'file_keluarga' => UploadedFile::fake()->createWithContent('kk.csv', $csvKk),
-            ])->assertRedirect();
+        // KK cibunar ber-noKK SAMA. Dibuat langsung, bukan lewat impor: sejak
+        // pemeriksa identitas hidup (2026-08-20), impor menolak No.KK yang sudah
+        // terdaftar di portal lain. Keadaan yang diuji di sini tetap nyata, karena
+        // data warisan tiga desa sudah memuat duplikat semacam ini sejak sebelum
+        // penjagaan itu ada - dan justru baris warisan itulah yang dulu membuat
+        // OR tanpa kurung menembus scope tenant.
+        $kkCibunar = new Keluarga([
+            'keluarga_id' => 'kk_cibunar_ref', 'nama' => 'KK Cibunar',
+            'alamat' => 'Kp. Parung', 'rt' => '01', 'noKK' => '3205069999999999',
+        ]);
+        $kkCibunar->organization_id = Organization::where('slug', 'rw-01-cibunar')->value('id');
+        $kkCibunar->saveQuietly();
 
         $csvAg = "Nama KK (Referensi),Nama Anggota,L/P,Status Keluarga\n".
                  "3205069999999999,ANAK CIBUNAR,L,Anak\n";
@@ -197,6 +207,32 @@ class ImportTenantTest extends TestCase
         // orWhere tanpa kurung membuat OR menembus scope tenant.
         $anak = \App\Models\Anggota::withoutGlobalScope('organisasi')->where('nama', 'ANAK CIBUNAR')->firstOrFail();
         $this->assertNotSame('kk_asing_ref', $anak->keluarga_id);
+    }
+
+    public function test_impor_menolak_no_kk_yang_sudah_terdaftar_di_portal_lain(): void
+    {
+        $kkAsing = new Keluarga([
+            'keluarga_id' => 'kk_asing_tolak', 'nama' => 'KK Asing',
+            'alamat' => 'Jl. Asing', 'rt' => '01', 'noKK' => '3205068888888888',
+        ]);
+        $kkAsing->organization_id = Organization::where('slug', 'rw-10-sukakarya')->value('id');
+        $kkAsing->saveQuietly();
+
+        $csv = "Nama KK,No. KK,RT,Alamat\nKK Baru Cibunar,3205068888888888,01,Kp. Parung\n";
+        $this->actingAs($this->adminCibunar)
+            ->post('https://cibunar-rw01.desa.jabnet.id/warga/import/keluarga', [
+                'file_keluarga' => UploadedFile::fake()->createWithContent('kk.csv', $csv),
+            ])->assertRedirect();
+
+        $this->assertDatabaseMissing('keluargas', ['nama' => 'KK Baru Cibunar']);
+
+        // Jalur massal tidak pernah menyebut LOKASI: satu unggahan bisa memuat
+        // ribuan baris, jadi menyebut desa per baris berarti menyerahkan peta
+        // tempat tinggal ribuan orang dalam satu klik.
+        $pesan = session('success');
+        $this->assertStringContainsString('DILEWATI', $pesan);
+        $this->assertStringNotContainsString('RW 10', $pesan);
+        $this->assertStringNotContainsString('Sukakarya', $pesan);
     }
 
     public function test_setting_kelurahan_tenant_menimpa_turunan_nama_desa(): void

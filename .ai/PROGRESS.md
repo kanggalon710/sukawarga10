@@ -2,6 +2,289 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-08-20 - Rilis 2: NIK ganda lintas desa ditolak, tanpa membocorkan alamat orang
+
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Portal melayani beberapa desa, dan sebelum ini orang yang sama bisa terdaftar
+di dua RW di dua desa berbeda tanpa ada yang tahu, sehingga statistik kedua portal
+sama-sama salah.
+**Perubahan:** Pencarian lintas tenant di `PemeriksaNikWarga` (`withoutGlobalScope`
+eksplisit, hanya mengambil `organization_id`), dipasang di form tambah/ubah KK dan
+anggota, plus jalur massal `alasanTolakMassal()` untuk importir.
+**Keputusan privasi yang membentuk rancangannya - jangan dilonggarkan tanpa alasan:**
+1. Yang boleh keluar hanya nama DESA dan RW. Tidak pernah nama, alamat, tanggal lahir,
+   atau nomor HP. Query-nya sengaja hanya menarik `organization_id` supaya kolom lain
+   tidak mungkin ikut terbawa karena kelalaian di kemudian hari.
+2. Kuota 5 pengungkapan lokasi per pengurus per hari. Sesudah habis, simpan tetap
+   ditolak tapi pesannya turun jadi tanpa lokasi. Tanpa itu, satu akun pengurus yang
+   bocor bisa dipakai menembak NIK satu per satu sampai jadi peta tempat tinggal warga
+   tiga desa.
+3. Jalur massal TIDAK PERNAH menyebut lokasi. Satu unggahan CSV bisa memuat ribuan
+   baris, jadi kuota harian tidak menolong - semuanya terjadi dalam satu request.
+4. Pendaftaran warga (halaman PUBLIK) sengaja TIDAK ikut memeriksa lintas tenant.
+   Kalau dipasang di sana, siapa pun dari internet bisa menembak NIK untuk menebak di
+   desa mana seseorang terdaftar. Pemeriksaannya menunggu sampai pengurus menyetujui.
+5. Log Sistem menyimpan NIK ter-sidik ber-kunci APP_KEY, bukan mentah dan bukan hash
+   polos: ruang NIK terlalu kecil, hash tanpa kunci bisa dibongkar dengan mencoba
+   seluruh kemungkinan tanggal lahir.
+**Wajib diingat:** pencarian lintas tenant MENGECUALIKAN `status = 'pindah'`. Tanpa itu,
+begitu fitur pindah warga hidup, warga yang baru pindah tidak akan pernah bisa disunting
+lagi - arsipnya sendiri di RW asal selamanya dilaporkan sebagai pemakai NIK itu.
+**Bug lama yang ikut ketemu dan diperbaiki:** `pendaftarans.no_kk` dibuat NOT NULL
+padahal `registerWarga` memvalidasinya `nullable` dan formulirnya memang tidak
+mewajibkan. Warga yang mendaftar tanpa memegang kartu keluarga dapat halaman 500, bukan
+pesan. Ketahuan saat menulis tes, bukan dari laporan.
+**Tes yang disesuaikan:** `ImportTenantTest::test_referensi_no_kk_tidak_nyangkut...`
+dulu menyiapkan No.KK kembar lewat impor; impor sekarang menolak itu, jadi datanya
+disiapkan langsung. Tujuan tesnya tidak diubah, dan keadaan yang diuji tetap nyata
+karena data warisan sudah memuat duplikat semacam itu sejak sebelum penjagaan ada.
+**File:** app/Services/PemeriksaNikWarga.php,
+app/Http/Controllers/ExportImportController.php,
+database/migrations/2026_08_20_000002_pendaftarans_no_kk_boleh_kosong.php,
+tests/Feature/NikLintasTenantTest.php, tests/Feature/ImportTenantTest.php
+**Verifikasi:** `composer test` 406 lulus, 1585 assertion. Migrasi diuji maju-mundur-maju.
+Pint bersih untuk berkas baru.
+**Catatan:** Di produksi hari ini hanya RW 07 Bagendit yang berisi data, jadi rilis ini
+belum akan menolak apa pun sampai RW kedua diisi. Itu justru waktu terbaik memasangnya.
+
+## 2026-08-20 - Rilis 1: identitas warga dijaga di batas masuk
+
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Sampai hari ini tidak ada satu pun validasi keunikan NIK/No.KK, bahkan di
+dalam satu RW, dan nomor 16 digit yang rusak di spreadsheet masuk apa adanya. Keduanya
+terbukti merusak data nyata: satu orang tercatat di dua KK sekaligus, dan 14 dari 71 KK
+punya identitas yang digitnya sudah hilang. Nomor rusak bukan sekadar jelek disimpan -
+ia dipakai sebagai kunci pencocokan importir, jadi satu keluarga bisa terpecah dua tiap
+kali impor diulang.
+**Perubahan:** `normalisasiIdentitas()` + `identitasRusak()` di helpers, satu service
+`PemeriksaNikWarga`, index pada `keluargas.nik`/`noKK` dan `anggotas.nik`, lalu dipasang
+di seluruh jalur tulis warga: form tambah/ubah KK, tambah/ubah anggota, anggota inline,
+profil swalayan warga, importir CSV web, dan importir konsol. Dua cek NIK lama
+(`WebAuthController::registerWarga`, `PendaftaranController::approve`) dialihkan ke
+service yang sama.
+**Tiga penjaga yang dipasang sekarang, sebelum status `pindah` punya makna:**
+(1) `status` di form Ubah KK dibatasi `aktif|nonaktif` dan opsi "Pindah" dicabut dari
+dropdown - tanpa ini seluruh persetujuan pengelola desa bisa dilewati dari halaman itu;
+(2) Hapus Duplikat melewati baris berstatus `pindah` - kalau tidak, keluarga yang pindah
+lalu kembali dianggap duplikat arsipnya sendiri dan yang dihapus justru yang aktif;
+(3) Hapus KK menolak jalan bila masih dirujuk transaksi, iuran, atau akun login, karena
+`iuran_*.keluarga_id` dan `transaksis.refKeluargaId` menyimpan id NUMERIK dan
+penghapusan lama tidak menyentuh keduanya.
+**Keputusan yang membentuk rancangannya:** kosong bukan salah (pendataan memang
+bertahap), dan nilai yang TIDAK berubah tidak diperiksa - kalau tidak, 14 KK RW 07 yang
+identitasnya telanjur rusak jadi tidak bisa disunting sama sekali, termasuk untuk
+membetulkan RT-nya, yang justru pekerjaan yang sedang didorong.
+**Privasi:** pendaftaran warga adalah endpoint PUBLIK, jadi pesannya memakai
+`sudahDipakai()` yang tidak menyebut nama siapa pun. Pesan yang menyebut pemilik NIK
+hanya untuk halaman pengurus. Cek lintas tenant belum ada di rilis ini.
+**Verifikasi:** `composer test` 397 lulus, 1557 assertion. Migrasi `up`, `down`, lalu
+`up` lagi diuji di database sekali pakai. Pint bersih untuk seluruh berkas baru; berkas
+lama dibandingkan per-berkas dengan baseline dan tidak ada yang bertambah buruk
+(`PendaftaranController` justru berkurang satu pelanggaran).
+**File:** app/helpers.php, app/Services/PemeriksaNikWarga.php,
+database/migrations/2026_08_20_000001_tambah_index_identitas_warga.php,
+app/Http/Controllers/{Keluarga,ProfilWarga,Pengaturan,WebAuth,Pendaftaran,ExportImport}Controller.php,
+app/Console/Commands/ImportPendataanKeluarga.php, resources/views/warga/edit.blade.php,
+tests/Unit/NormalisasiIdentitasTest.php, tests/Feature/IdentitasWargaTest.php
+**Catatan:** Index sengaja BUKAN unique. Data warisan tiga desa memuat NIK kosong,
+duplikat, dan sisa notasi ilmiah, jadi unique tidak akan bisa dipasang tanpa
+membersihkan data lebih dulu; keunikan ditegakkan di lapisan aplikasi. Konsekuensinya
+balapan tulis (dua penyimpanan bersamaan dengan NIK sama) masih lolos. Dicatat di
+DECISIONS.
+
+## 2026-08-20 - Tambah anggota keluarga rusak di dua jalur: anggota_id tidak pernah diisi
+
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Ditemukan saat menyiapkan rencana fitur pindah warga, bukan dari laporan
+pengguna - dan itu bagian yang mengkhawatirkan: bug ini sudah hidup di produksi tanpa
+ada yang melaporkannya. `anggotas.anggota_id` NOT NULL + UNIQUE tanpa default, model
+`Anggota` tidak punya hook `creating`, dan dua jalur membuat anggota lewat relasi
+`$kk->anggota()->create()` tanpa mengisi kolom itu: anggota inline di form Tambah KK,
+dan menu Profil tempat warga mengisi data keluarganya sendiri. Jalur ketiga
+(`storeAnggota`) mengisinya dengan benar - itulah kenapa lolos bertahun-tahun: pengurus
+yang menambah anggota lewat halaman Ubah KK tidak pernah melihat masalahnya.
+**Perubahan:** Isi `anggota_id` di kedua jalur. Yang di dalam loop memakai `Str::uuid()`
+mengikuti `ImportAnggota` (juga loop), bukan `uniqid()` - dua panggilan `uniqid()`
+berurutan bisa mengembalikan nilai sama dan langsung melanggar UNIQUE. Yang tunggal
+memakai `uniqid()` mengikuti `storeAnggota` di berkas yang sama.
+**File:** app/Http/Controllers/KeluargaController.php,
+app/Http/Controllers/ProfilWargaController.php, tests/Feature/TambahAnggotaTest.php
+**Bukti:** Tes baru dibuktikan MERAH lebih dulu dengan perbaikan dilepas sementara
+(`SQLSTATE[23000] NOT NULL constraint failed: anggotas.anggota_id`), lalu hijau. Tiap
+kasus membuat DUA anggota: satu saja tidak menangkap pelanggaran UNIQUE di MySQL
+non-strict. Suite penuh 360 lulus, 1497 assertion. Pint pada berkas tersentuh identik
+dengan baseline (kedua controller memang sudah tidak bersih sejak sebelumnya, dan
+baris yang tidak disentuh tidak diformat ulang).
+**Catatan:** Ini menyangkut langsung 26 KK RW 07 yang belum punya anggota - jalur
+swalayan yang seharusnya dipakai warga mengisi datanya sendiri sedang mati. Perlu
+diumumkan ke pengurus setelah deploy, karena kemungkinan ada yang sudah pernah mencoba,
+gagal, lalu berhenti mencoba.
+
+## 2026-08-20 - Koreksi data ganda RW 07 Bagendit setelah konfirmasi pengurus
+
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Lanjutan audit hari ini. Tiga pertanyaan identitas yang tidak bisa dijawab dari data
+akhirnya dijawab pengurus RW (satu istri yang tercatat sebagai kepala keluarga sendiri, dan dua
+perempuan yang muncul di dua KK sekaligus, ketiganya dipastikan satu orang). Tanpa jawaban itu
+penggabungan catatan orang tidak boleh dilakukan, karena salah gabung lebih mahal dibereskan
+daripada dibiarkan.
+**Perubahan:** Hanya data produksi org 7, tidak ada kode yang berubah. Satu KK hantu dihapus
+(No.KK-nya salah ketik 3 digit dari No.KK suaminya, sehingga satu keluarga terbelah dua), dua
+anggotanya dipindah ke KK yang benar, dan tiga baris orang ganda dihapus. Statistik laporan turun
+dari 72 KK / 185 jiwa / 98 L / 87 P menjadi 71 KK / 181 jiwa / 97 L / 84 P.
+**Koreksi temuan sebelumnya:** entri audit di bawah menyebut satu kepala keluarga terhitung ganda
+di KK-nya sendiri. Itu keliru: kepalanya lahir 1969 sedangkan yang berstatus Anak lahir 2012, jadi
+anak yang dinamai sama dengan ayahnya, bukan duplikat. Barisnya tidak disentuh. Dugaan itu lahir
+dari pencocokan nama saja; tanggal lahir yang membantahnya baru terbaca saat menyiapkan perubahan.
+Pelajarannya: nama tidak pernah cukup untuk menyatakan dua baris adalah orang yang sama.
+**Catatan penting untuk pekerjaan berikutnya:** `anggotas.keluarga_id` menyimpan
+`keluargas.keluarga_id` (string `K-...`), BUKAN `keluargas.id`. Query yang menyamakannya dengan id
+numerik mengembalikan nol baris tanpa error, dan itu diam-diam terlihat seperti "tidak ada
+anggota". Sudah lama tercatat sebagai utang di TODO, sekarang ada korbannya.
+**Cara pulih bila keliru:** cadangan lengkap 72 KK + 113 anggota sebelum perubahan ada di server
+produksi `/home/jabnet/cadangan-rw07-sebelum-koreksi.json`.
+**Catatan:** Perubahan dilakukan lewat skrip langsung ke database, sehingga TIDAK masuk AuditLog
+aplikasi. Entri ini yang jadi jejaknya. Sisa 39 butir koreksi (26 KK belum punya anggota, 11 nomor
+identitas rusak, 2 jenis kelamin bertentangan dengan NIK) masih menunggu pendataan RT. Daftar
+rincinya sengaja disimpan di luar repo karena memuat nama dan NIK warga.
+
+## 2026-08-20 - Audit selisih statistik RW 07 Bagendit: portal benar, sumber data yang keliru
+**Agen:** claude | **Status:** selesai (analisis; perbaikan data menunggu konfirmasi RT)
+**Kenapa:** Pengurus RW 07 melaporkan portal menampilkan 72 KK / 185 jiwa sementara
+spreadsheet pendataan dianggap berisi 71 KK / 188 jiwa, sehingga statistik dicurigai salah.
+**Temuan:** Angka portal identik dengan sheet "Anggota Keluarga" (185 baris, 98 L, 87 P) dan
+identik dengan sheet DASHBOARD DEMOGRAFI milik spreadsheet itu sendiri. Angka 188 adalah
+nomor baris terakhir, bukan jumlah baris: judul, subjudul, dan header memakai baris 1-3.
+Selisih 71 vs 72 KK muncul karena satu baris KK tidak punya NIK sehingga tidak ikut terhitung
+rumus dashboard. Yang benar-benar salah ada di sumber data, bukan di aplikasi: 2 orang
+terhitung ganda (satu istri terdaftar sebagai kepala keluarga karena No.KK salah ketik 3 digit,
+satu kepala keluarga terdaftar lagi sebagai anak), 2 nama muncul di dua KK dan perlu
+dipastikan RT, 11 KK punya No.KK/NIK rusak (Google Sheets menyimpannya sebagai angka lalu
+mengekspornya dalam notasi ilmiah atau terpotong), dan 26 dari 72 KK belum punya satu pun
+anggota sehingga rata-rata cuma 2,6 jiwa/KK.
+**Perubahan:** Tidak ada perubahan kode maupun data produksi. Lembar koreksi dibuat di luar
+repo (berisi data pribadi warga, tidak boleh ikut ter-commit).
+**Catatan:** LaporanController diam-diam menganggap kepala keluarga tanpa jenis kelamin
+sebagai Laki-laki (`?? 'L'`). Di RW 07 ada 2 KK seperti itu dan setidaknya satu di antaranya
+perempuan menurut NIK-nya, jadi pecahan L/P sedikit meleset tanpa peringatan apa pun.
+Sudah dicatat di TODO.
+
+## 2026-08-20 - API DNS dibuka untuk 103.194.46.0/23 atas permintaan pemilik
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Perkakas pemilik yang perlu membaca dan menulis zona/record
+tersebar di jaringannya sendiri, tidak duduk di satu alamat tetap.
+`160.236.18.0/23` sudah ada di daftar sejak sebelumnya, jadi yang perlu
+ditambahkan hanya `103.194.46.0/23`.
+**Perubahan:** satu entri ditambahkan ke `webserver-allow-from` di
+`/etc/powerdns/pdns.conf`, lalu pdns di-restart.
+**File:** (tidak ada di repo; infrastruktur)
+**Catatan:** Cara memverifikasi perubahan ACL PowerDNS tanpa menebak, dan
+tanpa perlu memegang kunci API: panggil endpoint dari alamat yang diuji.
+Jawaban **000** berarti koneksi diputus ACL, jawaban **401** berarti ACL
+meloloskan dan yang menolak hanya kuncinya. Sebelum perubahan alamat penguji
+menjawab 000, sesudahnya 401, lalu dengan kunci asli terbaca 13 zona dan 129
+rrset. Keputusan mempertahankan rentang lebar dan sandi `arkanova` dicatat di
+`.ai/DECISIONS.md` supaya tidak dicabut sesi berikutnya. Yang menjaga API
+sekarang KUNCInya, bukan ACL-nya. Database MySQL sengaja TIDAK ikut dibuka:
+tetap hanya `jabnet_pdns@103.194.46.46`.
+
+## 2026-08-20 - Database DNS ditutup dari internet + rotasi kredensial
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Saat memastikan portal desa sudah aman, ditemukan lubang yang jauh
+lebih besar dan lebih lama daripada pekerjaan hari ini: pengguna MySQL
+`jabnet_pdns` punya `GRANT ALL PRIVILEGES ON jabnet_powerdns.* TO
+'jabnet_pdns'@'%'`, dan port 3306 di 103.194.47.165 terbuka ke internet.
+Artinya siapa pun yang memegang sandinya bisa menulis ulang 13 zona DNS
+(jabnet.id, arkanova.id, arkanova.co.id, pararel.id, zonaruang.com,
+jab.biz.id, jabnet.biz.id, plus zona balik) dari alamat mana pun. Yang
+menguasai DNS bisa mengalihkan email dan menerbitkan sertifikat TLS sah atas
+nama domain itu. Terbukti langsung, bukan dugaan: koneksi dari mesin di luar
+kedua server berhasil masuk dan membaca tabel.
+**Perubahan:** `103.194.46.46` didaftarkan sebagai host MySQL yang sah, lalu
+izin `%` dicabut; sandi `jabnet_pdns` dirotasi dan diperbarui serentak di
+`/etc/powerdns/pdns.conf` dan `/opt/PowerDNS-Admin/docker-compose.yml`;
+kunci SSH khusus dipasang untuk `arkanova` sehingga akses tidak lagi
+bergantung pada sandi.
+**File:** (tidak ada di repo; seluruhnya infrastruktur)
+**Catatan:** Urutan operasinya yang menyelamatkan, dan wajib ditiru kalau
+diulang: `CURRENT_USER()` diperiksa LEBIH DULU dari server DNS, dan hasilnya
+`jabnet_pdns@103.194.46.46`, bukan `@%`. Itu membuktikan PowerDNS memakai
+izin khusus alamatnya sendiri sehingga mencabut `%` tidak mungkin mematikan
+DNS. Tanpa pemeriksaan itu, mencabut `%` adalah tebakan yang bisa
+menjatuhkan seluruh DNS. Catatan lain: `uapi Mysql get_hosts` TIDAK ADA di
+cPanel ini dan mengembalikan "function not found" yang kalau diurai sebagai
+JSON terlihat seperti "0 host" - jangan percaya hasilnya, pakai
+`SHOW GRANTS FOR CURRENT_USER()`. Autentikasi sandi SSH SENGAJA dibiarkan
+hidup: hanya `arkanova` yang punya kunci dan kuncinya ada di mesin agen, jadi
+mematikannya akan mengunci pemilik dari servernya sendiri. Yang menahan
+serangan sementara ini: `permitrootlogin no`, port tidak baku 4636, dan
+fail2ban yang sudah memblokir 645 alamat.
+
+## 2026-08-20 - Wildcard `*.desa.jabnet.id` terpasang, tenant baru tidak perlu langkah cPanel lagi
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Tiap desa dan RW baru sebelumnya menuntut satu subdomain cPanel
+dibuat manual lalu menunggu AutoSSL. Langkah itu gampang terlupa, dan kalau
+terlupa portalnya gagal TLS. Sertifikat wildcard menghapus langkah itu
+sepenuhnya.
+**Perubahan:** rotasi kunci API PowerDNS ke acak 256-bit; `kind` zona
+`jabnet.id` diubah Native -> Master; acme.sh dipasang di home `jabnet`;
+sertifikat wildcard terbit lewat DNS-01; vhost `*.desa.jabnet.id` dibuat;
+kaitan pemasangan ulang otomatis dibuat di `~/bin/pasang-ssl-desa.py`.
+**File:** (tidak ada di repo; seluruhnya infrastruktur)
+**Catatan:** Temuan yang menentukan dan pantas diingat: zona `jabnet.id`
+bertipe **Native**, dan PowerDNS TIDAK PERNAH mengirim NOTIFY untuk zona
+Native. Akibatnya ns2 (103.194.46.253) hanya menarik data tiap `refresh` SOA,
+yaitu 1 jam, jadi catatan TXT tantangan ACME belum tentu terlihat saat
+Let's Encrypt memvalidasi dari beberapa titik sekaligus. Sesudah `kind`
+diubah ke Master, ns2 menyusul dalam 24 detik dan serial kedua nameserver
+kembali sama. Ini juga memperbaiki masalah operasional yang lebih luas:
+SEMUA perubahan DNS dulu butuh sampai satu jam untuk sampai ke ns2.
+Ketahanan yang sudah diamankan: (1) perpanjangan diuji sekali dengan paksa
+dan serial yang DISAJIKAN situs benar-benar berubah, jadi rantai
+terbit -> pasang -> sajikan terbukti utuh, bukan sekadar berkas baru di
+disk; (2) `*.desa.jabnet.id` dikecualikan dari AutoSSL supaya cPanel tidak
+menimpanya dengan sertifikat penampung seperti yang pernah terjadi;
+(3) kredensial PowerDNS tersimpan di `~/.acme.sh/account.conf` sehingga cron
+perpanjangan berjalan tanpa awak. Akun ACME sengaja didaftarkan TANPA email
+supaya alamat pribadi pemilik tidak dikirim ke pihak ketiga; konsekuensinya
+tidak ada surel peringatan kedaluwarsa, jadi cron dan kaitannyalah satu-satunya
+pengaman. Subdomain per-tenant BELUM dihapus: akun cPanel ini tidak punya API
+penghapusnya (UAPI hanya punya `addsubdomain`, dan `cpapi2` mustahil dipakai
+karena binari `/usr/local/cpanel/cpanel` tidak ada), jadi harus lewat
+antarmuka cPanel. Menghapusnya aman dan sudah dibuktikan: host yang tidak
+punya vhost sendiri jatuh ke wildcard dan tetap melayani TLS sah.
+
+## 2026-08-20 - PowerDNS-Admin pulih: kunci API tidak sinkron (infrastruktur)
+**Agen:** claude | **Status:** selesai
+**Kenapa:** Persiapan sertifikat wildcard `*.desa.jabnet.id` lewat DNS-01
+memerlukan API PowerDNS, tapi API menolak permintaan dan PowerDNS-Admin gagal
+menampilkan zona. Akarnya satu: `api-key` di `/etc/powerdns/pdns.conf` sudah
+diganti jadi kunci baru, sedangkan PowerDNS-Admin masih menyimpan kunci LAMA
+di tabel `setting`, kolom `pdns_api_key`. Setiap panggilan
+ke `/api/v1/servers/localhost/zones/...` dijawab 401, jadi seluruh halaman zona
+kosong.
+**Perubahan:** menyelaraskan `setting.pdns_api_key` dengan kunci hidup, lalu
+restart container `powerdns_admin`. Tidak ada perubahan kode di repo ini.
+**File:** (tidak ada; perubahan di server DNS 103.194.46.46 dan basis data
+`jabnet_powerdns` di 103.194.47.165)
+**Catatan:** Peta infrastruktur yang perlu diingat sesi berikutnya. PowerDNS
+berjalan di LXC `POWER-DNS` (103.194.46.46), backend `gmysql` menunjuk ke
+MySQL cPanel 103.194.47.165 basis data `jabnet_powerdns`; PowerDNS-Admin
+(container `powerdns_admin`, network host) mendengarkan di port 9191 dan
+memakai basis data yang sama. Tiga jebakan yang sudah terbukti menyesatkan:
+(1) label `unhealthy` pada container adalah alarm palsu, healthcheck bawaan
+image menembak `http://127.0.0.1/` di port 80 sementara aplikasi ada di 9191,
+sudah gagal 725 ribu kali sejak 8 Juli dan bukan tanda aplikasi mati;
+(2) `/proc/loadavg` di dalam LXC menampilkan angka HOST, bukan container, jadi
+load 21 dengan 41 proses itu kebocoran angka hipervisor, bukan masalah di sini;
+(3) API yang menjawab "Empty reply from server" berarti ditolak
+`webserver-allow-from`, sedangkan yang menjawab 401 berarti alamatnya lolos
+tapi kuncinya salah. Membedakan keduanya memangkas waktu diagnosis.
+Catatan keamanan: kunci API yang sedang dipakai sama persis dengan sandi SSH
+akun `arkanova` dan sudah melintas di percakapan, jadi wajib dirotasi sebelum
+ditanam ke acme.sh. `webserver-allow-from` juga memuat `160.236.18.0/23`
+(512 alamat publik) yang perlu ditinjau. Sudah dicatat di TODO.
+
 ## 2026-08-18 - Portal dipaksa HTTPS (akar 419 PAGE EXPIRED di tenant baru)
 **Agen:** claude | **Status:** selesai
 **Kenapa:** Tenant baru (ygao) yang sertifikatnya belum terbit tetap melayani
