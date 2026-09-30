@@ -14,23 +14,36 @@ diverifikasi dengan riwayat git baru dan dataset kosong.
 
 ### P0 - keamanan dan data
 
-- [ ] Validasi seluruh unggahan `fotoKK`, `fotoRumah`, dan `dokumenPBB` dengan
+- [x] Validasi seluruh unggahan `fotoKK`, `fotoRumah`, dan `dokumenPBB` dengan
       MIME hasil sniff server, ukuran, ekstensi aman, dan satu pipeline bersama.
-      Simpan di lokasi yang tidak dapat mengeksekusi skrip; hapus berkas lama saat
-      diganti dan saat KK dihapus.
-- [ ] Amankan registrasi dan lupa PIN publik: throttle per IP dan identitas,
-      respons anti-enumerasi, jangan ubah PIN sebelum WA berhasil, jangan log nomor
-      penuh/username, dan pertimbangkan token sekali pakai alih-alih mengirim PIN.
-- [ ] Pisahkan rahasia MPWA dari `AppSetting` yang diwariskan/dapat dibaca tenant.
-      Masking UI saja tidak cukup. Batasi host URL gateway dengan allow-list agar
-      tidak menjadi SSRF atau mengirim API key ke host yang dipilih tenant.
-- [ ] Rotasi API key MPWA serta PIN akun produksi/default. Seeder harus membaca
-      kredensial awal dari environment, bukan menyimpan PIN terkenal di repo publik.
+      SELESAI di branch `codex/p0-security-remediation` (2026-09-30), belum deploy.
+- [x] Amankan registrasi dan lupa PIN publik (throttle, anti-enumerasi, kode sekali
+      pakai, log tersamarkan). SELESAI di branch P0, belum deploy.
+- [x] Pisahkan rahasia MPWA dari setting yang terbaca tenant + allow-list host
+      gateway. SELESAI di branch P0, belum deploy.
+- [x] Seeder membaca kredensial awal dari environment (SELESAI di branch P0).
+- [ ] Rotasi API key MPWA serta PIN akun produksi/default - SETELAH rilis P0 aktif
+      (butuh pemilik; lihat DEPLOY.md "Rilis P0 keamanan" langkah 7).
 - [ ] Putuskan pembersihan riwayat git publik yang pernah memuat data warga. Setelah
       itu rotasi semua rahasia yang mungkin pernah terekspos dan koordinasikan
       force-push dengan semua clone/deploy.
 - [ ] Perbarui `laravel/framework` minimal ke 12.69.0 dan `league/flysystem` ke
       versi yang menutup GHSA-jh5r-qr3c-85q8 dan GHSA-cxf4-7mrp-vvpr, lalu tes ulang.
+
+### Tindak lanjut dari Phase 1 (2026-09-30)
+
+- [ ] Minta izin pemilik: push `codex/p0-security-remediation` dan buka PR ke `main`.
+- [ ] Saat deploy P0: `APP_DEBUG=false`, php.ini `upload_max_filesize>=8M`,
+      `post_max_size>=26M`, `memory_limit>=256M`; baca keluaran migrasi dokumen.
+- [ ] Broadcast WA masih menerima `sender` bebas dari daftar empat nomor yang
+      ditulis tetap di `MpwaController::index`; batasi ke sender tenant.
+- [ ] Persetujuan pendaftaran masih mengirim PIN awal lewat WA (bukan pintu
+      publik; bila gagal kirim, warga kini bisa memakai lupa PIN).
+- [ ] Audit login masih mencatat username yang dicoba (bisa berisi PIN salah ketik).
+- [ ] Form tambah KK tidak memulihkan isian (`old()`) setelah galat validasi;
+      kini ada ringkasan galat, pemulihan isian menyusul di fase aksesibilitas.
+- [ ] `ringkasan-galat`/`unggah-dokumen-kk`: modal login/daftar lain masih 14px
+      dan tombol tutup 32px (hanya modal lupa PIN yang sudah diperbaiki).
 
 ### P1 - keandalan, performa, dan operasi
 
@@ -44,7 +57,7 @@ diverifikasi dengan riwayat git baru dan dataset kosong.
       status per penerima, dan mekanisme worker yang cocok untuk cPanel.
 - [ ] Tambahkan pagination pada semua daftar yang dapat tumbuh.
 - [ ] Keraskan pembaru aplikasi: validasi branch/working tree, catat commit rollback,
-      rate-limit aksi, dan jangan tampilkan output shell mentah ke browser.
+      rate-limit aksi. (Output shell mentah ke browser SUDAH ditutup di branch P0.)
 - [ ] Selesaikan race nomor surat dan NIK dengan constraint/locking setelah data lama
       dibersihkan.
 

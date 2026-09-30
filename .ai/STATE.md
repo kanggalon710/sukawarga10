@@ -1,66 +1,69 @@
 # STATE - Kampung Paru / Sukawarga
-Updated: 2026-09-30 by codex-gpt-5 (Codex)
+Updated: 2026-09-30 by claude-opus-5.5 (Claude Code)
 
 ## What this is
 Portal informasi, administrasi, dan penagihan iuran warga berbasis Laravel 12,
-Blade, dan CSS biasa. Produksi aktif terverifikasi di `https://desa.jabnet.id`;
-data produksi memuat uang iuran dan data pribadi warga. Repositori GitHub
-`kanggalon710/sukawarga10` bersifat publik.
+Blade, dan CSS biasa. Produksi aktif di `https://desa.jabnet.id`; data produksi
+memuat uang iuran dan data pribadi warga. Repo GitHub `kanggalon710/sukawarga10`
+bersifat publik.
 
 ## Run and verify
 ```bash
 composer install
-composer setup
-composer test
+cp .env.example .env && php artisan key:generate
+ADMIN_USERNAME=namaanda composer setup   # seeder WAJIB ADMIN_USERNAME
+composer test                            # 493 lulus, 1947 assertion (dengan .env)
 php artisan serve
 ```
-Tanpa `.env`, `composer test` saat ini gagal karena `APP_KEY` tidak ada. Dengan
-APP_KEY sementara, 406 tes/1585 assertion tidak gagal, tetapi menghasilkan 348
-peringatan karena `.env` tidak ada. `vendor/bin/pint --test` menemukan 34 berkas
-yang belum sesuai format.
+Tanpa `.env`, tes masih gagal karena APP_KEY (Phase 2). Pint: berkas baru bersih;
+berkas lama tidak bertambah pelanggaran (baseline 34 berkas, Phase 2).
 
 ## Works
-- Remote `origin` terhubung ke GitHub; `main` sinkron dengan `origin/main` pada
-  `f1f3084`. `dev` sama dengan `main`; `production` tertinggal satu commit.
-- Produksi `desa.jabnet.id` menjawab HTTPS, login tampil, file sensitif umum 404,
-  cookie aman, HSTS/X-Frame-Options/nosniff aktif.
-- Migrasi dan seeder berhasil pada SQLite kosong.
-- 174 berkas PHP lolos pemeriksaan sintaks.
-- Cache konfigurasi, rute, dan Blade dapat dibangun.
-- Sampel UI login, dashboard, warga, MPWA, laporan, pengaturan, dan surat tidak
-  overflow dan konsol bersih pada lebar 360/768/1280 px.
-- Matriks kapabilitas, feature flag, global tenant scope, AppSetting bertingkat,
-  dan audit log memiliki cakupan tes yang kuat.
+- Phase 1 (P0 keamanan) SELESAI di branch `codex/p0-security-remediation`
+  (basis `f1f3084`, belum di-push, belum di-merge, belum di-deploy):
+  unggahan lewat `PenyimpanBerkas` (sniff isi, batas ukuran, kode ulang GD,
+  disk privat, `DokumenWargaController` berizin); lupa PIN berkode sekali pakai
+  + pembatas laju + jawaban seragam; kunci MPWA terenkripsi, tidak pernah ke
+  view, host gateway dari config + allow-list; seeder tanpa PIN literal;
+  galat mentah diganti kode rujukan (`laporGagal`).
+- Review independen (skill code-review, high): 10 temuan, semua diperbaiki.
+- Browser 360/768/1280: 268/268 cek lolos (overflow, label, fokus, konsol,
+  status galat/jaringan/batas laju). Skrip: lihat PROGRESS 2026-09-30.
+- Matriks kapabilitas, feature flag, scope tenant, AppSetting bertingkat tetap.
 
 ## In progress
-Audit 2026-09-30 selesai tanpa mengubah kode aplikasi. Rencana eksekusi dan prompt
-agen ada di `.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md`. Prioritas berikutnya:
-putuskan tenant vs aplikasi terpisah, lalu kerjakan fase keamanan P0 sebelum
-membuat aplikasi bermerek baru dari snapshot rilis yang sudah terverifikasi.
+Menunggu pemilik: review PR dari branch di atas. Langkah berikutnya setelah
+disetujui: push branch + buka PR (butuh izin eksplisit), lalu Phase 2
+(`.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md`): CI, APP_KEY tes, upgrade
+Laravel >= 12.69 + Flysystem, Larastan, rapikan 34 berkas Pint.
 
 ## Blocked, needs a human
-- Putuskan dan lakukan pembersihan riwayat git yang pernah memuat data warga;
-  force-push berdampak pada semua clone.
-- Rotasi PIN bawaan/produksi dan kunci MPWA karena repo publik serta paparan
-  pengaturan lintas tenant.
-- Tentukan apakah halaman publik desa harus dapat diindeks. Saat ini robots
-  memblokir seluruh situs dan tidak ada sitemap.
+- Izin push branch + buat PR; merge; deploy (ikuti `DEPLOY.md` bagian
+  "Rilis P0 keamanan", termasuk php.ini dan `APP_DEBUG=false`).
+- Rotasi kunci MPWA dan PIN lama SETELAH rilis P0 aktif di produksi.
+- Keputusan pembersihan riwayat git publik (data warga + PIN lama).
+- Kebijakan SEO halaman publik desa (robots saat ini memblokir semua).
 
 ## Traps
-- Upload KK/profil tidak memvalidasi MIME/ukuran sebelum masuk disk publik:
-  `KeluargaController.php:37-41,118-122` dan `ProfilWargaController.php:51-94`.
-- Ketua RW dapat menyimpan URL MPWA generik sementara kunci efektif diwariskan
-  dan ditampilkan polos: `PengaturanController.php:26-32,56-59` dan
-  `admin/pengaturan.blade.php:96-99`.
-- Pemulihan PIN mengubah PIN sebelum pengiriman WA dan tidak dibatasi lajunya:
-  `WebAuthController.php:224-274` dan `routes/web.php:23-26`.
-- Query bulanan laporan berada dalam loop: `LaporanController.php:47-49`.
-- Notifikasi/broadcast WA berjalan sinkron dan dapat menahan request lama:
-  `MpwaController.php:187-227`.
+- `AppSetting::simpan('mpwa_api_key', ..)` MELEMPAR exception: rahasia wajib
+  lewat `simpanRahasia()`/`rahasia()` (`app/Models/AppSetting.php`). Mengganti
+  APP_KEY membuat kunci MPWA tak terbaca.
+- Unggahan berkas: JANGAN `->store()` langsung; pakai `PenyimpanBerkas`
+  (`app/Services/PenyimpanBerkas.php`). Dokumen warga di disk `local`, bukan `public`.
+- Lupa PIN memakai `defer()`: di tes wajib `$this->withoutDefer()`; kedua
+  `Http::fake()` TIDAK menimpa stub pertama (pakai closure bersaklar).
+- Rollback rilis P0: `migrate:rollback --step=3` SELAGI kode baru terpasang.
+- Query bulanan laporan dalam loop (`LaporanController.php:47-49`) dan WA
+  broadcast sinkron masih ada (Phase 3).
 
 ## Recently touched
-- `.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md`, `.ai/STATE.md`,
-  `.ai/HANDOFF.md`, `.ai/PROGRESS.md`, dan `.ai/TODO.md` oleh codex-gpt-5
-  (dokumentasi audit/rencana saja, tidak ada perubahan kode aplikasi).
-- Berkas tak terlacak `stai-garut-r-7095b88a.webp` adalah milik pengguna dan
-  sengaja tidak disentuh.
+Oleh claude-opus-5.5 (Claude Code), 2026-09-30: `app/Services/{PenyimpanBerkas,
+MpwaService,PembaruAplikasi,AuditLogService,PemeriksaNikWarga}.php`,
+`app/Http/Controllers/{DokumenWarga,Keluarga,ProfilWarga,Pengaturan,WebAuth,
+Mpwa,ExportImport}Controller.php`, `app/Models/{AppSetting,PemulihanPin}.php`,
+`app/Console/Commands/{AmankanDokumenWarga,ImportPendataanKeluarga}.php`,
+`app/helpers.php`, `app/Providers/AppServiceProvider.php`, 3 migrasi
+`2026_09_30_*`, seeder, config (app/services/filesystems), routes, view
+login/pengaturan/pembaruan/warga + 2 partial, `public/css/styles.css`,
+7 berkas tes baru + 5 disesuaikan, README/DEPLOY/.env.example.
+Berkas `stai-garut-r-7095b88a.webp` milik pengguna, tidak disentuh.

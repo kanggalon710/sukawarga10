@@ -36,6 +36,46 @@ Backup database tetap wajib sebelum update yang membawa migrasi.
 Paket ini berisi seluruh perubahan + data terbaru (101 KK RW-10 + 280 anggota, nomor WA ter-normalisasi).
 Production memakai **MySQL** (`jabnet_rw10`). Data dibawa lewat artisan importer (DB-agnostic), bukan file SQLite.
 
+## Rilis P0 keamanan (2026-09-30) - langkah khusus
+
+Berlaku sekali, saat branch `codex/p0-security-remediation` (atau hasil
+merge-nya) pertama kali masuk produksi. Jangan dijalankan tanpa persetujuan
+pemilik.
+
+1. **Backup dulu:** database (mysqldump) DAN folder
+   `storage/app/public/dokumen` + `storage/app/public/kop`.
+2. **`.env` produksi**, sebelum migrasi:
+   - `APP_DEBUG=false` (wajib; dengan `true` Laravel menampilkan exception mentah).
+   - `APP_KEY` JANGAN diganti: kunci MPWA kini terenkripsi dengan APP_KEY;
+     APP_KEY baru = kunci MPWA tak terbaca (isi ulang lewat Pengaturan).
+   - `MPWA_API_URL=https://mpwa.jabnet.id` dan `MPWA_ALLOWED_HOSTS=mpwa.jabnet.id`
+     (nilai bawaan sama; baris ini hanya bila gateway pindah host).
+3. **PHP (MultiPHP INI Editor):** `upload_max_filesize` >= 8M,
+   `post_max_size` >= 26M (tiga berkas sekaligus), `memory_limit` >= 256M
+   (dekode foto 25 MP memakai +-100 MB).
+4. **Migrasi** (`php artisan migrate --force`, atau tombol Perbarui Sekarang).
+   Tiga migrasi baru: tabel `pemulihan_pins`; enkripsi `mpwa_api_key` +
+   hapus `mpwa_api_url`; pemindahan dokumen warga dari disk publik ke
+   `storage/app/private`. Baca keluarannya: jumlah dipindah, dan baris
+   "BERBEDA" bila ada salinan ganda yang isinya lain (periksa manual).
+5. **Periksa:** `php artisan dokumen:amankan` (tanpa `--jalankan` = laporan).
+   "Akan dipindah" harus 0. Berkas yatim hanya dihapus bila pemilik setuju:
+   `php artisan dokumen:amankan --jalankan --hapus-yatim`.
+6. **Uji konten:** `https://<host>/storage/dokumen/<nama-berkas-lama>` harus 404;
+   halaman Ubah KK menampilkan foto lewat `/warga/{id}/dokumen/...`;
+   Pengaturan > WhatsApp API tidak memuat kunci (lihat source HTML).
+7. **Rotasi SETELAH kode ini aktif:** kunci API MPWA (isi baru lewat
+   Pengaturan > WhatsApp API di host platform) dan PIN akun lama yang pernah
+   tercatat di repo publik (`admin`, `jabnet`, dan akun dari `auth.js` lama).
+
+**Rollback (urutan penting):** selagi kode BARU masih terpasang, jalankan
+`php artisan migrate:rollback --step=3 --force` (down() memakai perintah
+`dokumen:amankan` yang hanya ada di kode baru), baru deploy ulang commit
+sebelumnya dan bangun ulang cache. Rollback mengembalikan dokumen ke disk publik (kode lama menautkan
+`/storage/...`) dan mendekripsi kunci MPWA. `mpwa_api_url` lama tidak
+dipulihkan (kode lama jatuh ke `https://mpwa.jabnet.id`). Kode pemulihan PIN
+yang sedang berjalan ikut hilang (tidak berbahaya).
+
 ## 0. Sebelum mulai
 - Server sudah punya `.env` sendiri (MySQL) - paket ini **tidak menyertakan `.env`**, jadi konfigurasi produksi aman.
 - **Tidak ada variabel `.env` baru** yang perlu ditambah. Identitas aplikasi

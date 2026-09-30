@@ -16,10 +16,10 @@ riwayat kronologis; baca kalau butuh konteks sejarah, bukan untuk orientasi.
 
 | | |
 |---|---|
-| Commit | `f1f3084` pada audit 2026-09-30 |
+| Commit | `main` = `f1f3084`; Phase 1 P0 ada di branch lokal `codex/p0-security-remediation` (belum di-push) |
 | Branch | `main` dan `dev` sama; `production` tertinggal satu commit |
 | Remote | `git@github.com:kanggalon710/sukawarga10.git` (SSH, bukan HTTPS) |
-| Tes | 406 tanpa kegagalan, 1585 assertion, tetapi 348 peringatan tanpa `.env`/APP_KEY sementara |
+| Tes | Branch P0: 493 lulus, 1947 assertion (dengan `.env`); tanpa `.env` masih gagal APP_KEY |
 | Working tree | satu gambar milik pengguna tidak terlacak; kode aplikasi bersih |
 
 Produksi terverifikasi berjalan di `https://desa.jabnet.id` dengan MySQL;
@@ -34,6 +34,7 @@ data warga di dalam kode atau commit. Yang sudah terlanjur: PIN superadmin
 `463696` ada di `database/seeders/DatabaseSeeder.php` dan sudah masuk riwayat
 git publik. Itu keputusan sadar pemilik project (lihat `.ai/TODO.md`), tapi
 perlakukan PIN itu sebagai **sudah bocor**. Jangan menambah yang serupa.
+(Branch P0 2026-09-30 menghapusnya dari seeder; riwayat git tetap memuatnya.)
 
 **`$fillable` harus cocok dengan kolom tabel.** Laravel membuang atribut
 non-fillable tanpa bersuara. `Transaksi` dan `User` pernah menyebut kolom yang

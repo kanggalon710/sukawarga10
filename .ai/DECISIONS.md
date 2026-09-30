@@ -3,6 +3,43 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-09-30 - P0: service unggahan + controller penyaji, di luar pola "controller gemuk"
+**Konteks:** Tiga controller menyimpan dokumen warga masing-masing ke disk publik.
+**Pilihan:** `App\Services\PenyimpanBerkas` (satu pipeline: sniff, batas, kode
+ulang GD, UUID, folder whitelist, hapus ber-realpath) + `DokumenWargaController`
+kecil untuk menyajikan dari disk privat. Pengecualian sadar atas konvensi
+controller gemuk: aturan keamanan unggahan tidak boleh punya tiga salinan.
+PDF disajikan sebagai unduhan (penampil PDF Chrome tidak jalan di dokumen
+ber-sandbox), gambar inline di bawah CSP sandbox. Dokumen warisan dipindah oleh
+MIGRASI (bukan langkah manual) karena pembaru satu-klik hanya menjalankan migrate.
+
+## 2026-09-30 - P0: rahasia di app_settings terenkripsi dan tidak ikut semuaEfektif()
+**Konteks:** `mpwa_api_key` terwarisi platform->desa->RW dan tampil di form tenant.
+**Opsi:** (a) kunci hanya di `.env`; (b) tabel khusus; (c) tetap di app_settings,
+terenkripsi, dikecualikan dari `semuaEfektif()`, dibaca lewat `rahasia()`.
+**Pilihan (disetujui pemilik):** (c) dengan fallback server-side ke kunci desa/platform
+(tenant tanpa kunci sendiri tetap bisa mengirim, tanpa pernah melihat kuncinya).
+Host gateway dari `config('services.mpwa')` + allow-list; `mpwa_api_url` dihapus
+dari setting. APP_KEY kini ikut menjaga kunci MPWA: menggantinya = isi ulang kunci.
+
+## 2026-09-30 - P0: lupa PIN = kode WA sekali pakai, disimpan sebagai HMAC
+**Pilihan (disetujui pemilik):** kode 6 digit, 10 menit, 5 percobaan, sekali pakai;
+PIN hanya berubah setelah kode terbukti; username baru ditampilkan setelah itu.
+HMAC ber-APP_KEY, bukan bcrypt, dan SELURUH kerja (cari akun, terbitkan, kirim,
+audit) lewat `defer()` setelah respons, supaya waktu respons tidak membedakan
+nomor terdaftar. Kode salah dijawab 200 + success:false agar konsol bersih.
+
+## 2026-09-30 - P0: admin pertama dari environment, tanpa PIN bawaan
+**Pilihan (disetujui pemilik):** satu admin platform dari `ADMIN_USERNAME`
+(wajib) + `ADMIN_PIN` (atau PIN acak dicetak sekali), dibaca lewat
+`config('app.admin_awal')` agar tetap jalan dengan config cache. Seeder tidak
+menyentuh akun apa pun bila super admin platform sudah ada. `composer setup`
+kini butuh `ADMIN_USERNAME` - disengaja (fail loudly).
+
+## 2026-09-30 - Branch berawalan `codex/` dibuat oleh Claude
+Pemilik meminta awalan `codex/` untuk branch Phase 1 walau pelaksananya Claude
+Code; nama branch tidak menyiratkan agen yang mengerjakan. Lihat PROGRESS.
+
 ## 2026-08-20 - API PowerDNS dibuka untuk dua rentang /23, sandi arkanova dipertahankan
 **Konteks:** Setelah kunci API PowerDNS dirotasi jadi acak 256-bit dan
 database DNS ditutup dari internet, agen mengangkat dua kekhawatiran:

@@ -2,6 +2,36 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-09-30 - Phase 1: remediasi keamanan P0
+**Agen:** claude-opus-5.5 (Claude Code) | **Status:** selesai di branch, belum di-push/merge/deploy
+**Kenapa:** Audit menemukan lima jalur berisiko tinggi di sistem yang memegang uang
+iuran dan data pribadi warga: scan KK terbuka publik, lupa PIN yang bisa dipakai
+menebak akun dan mengunci pemilik, kunci MPWA yang terwarisi dan tampil polos
+(plus SSRF lewat URL gateway), PIN seeder di repo publik, dan galat mentah ke browser.
+**Perubahan:** Branch `codex/p0-security-remediation` (basis `f1f3084`), 9 commit.
+(1) `PenyimpanBerkas` satu pipeline unggahan + `DokumenWargaController` + perintah
+`dokumen:amankan` + migrasi pemindahan otomatis; (2) pembatas laju per IP & identitas,
+jawaban seragam, kode pemulihan 6 digit sekali pakai (`pemulihan_pins`), kerja
+setelah respons; (3) kunci MPWA terenkripsi di luar `semuaEfektif()`, host dari
+config + allow-list, redirect tidak diikuti, test/broadcast lewat `MpwaService`;
+(4) seeder dari `ADMIN_USERNAME`/`ADMIN_PIN`; (5) `laporGagal`/`redaksiDiagnostik`,
+pembaru hanya menampilkan langkah + status. Review independen menemukan 10 hal
+(PDF di bawah sandbox, memori GD, hapus duplikat membuang scan, autofill PIN ke
+kolom kunci, kebocoran waktu, dll.) - semuanya diperbaiki dengan tes.
+**File:** lihat `.ai/STATE.md` bagian Recently touched.
+**Verifikasi:** `composer test` 493 lulus/1947 assertion (awal 406); setiap tes
+baru dipastikan GAGAL di kode lama sebelum perbaikan; `php -l` 186 berkas bersih;
+Pint berkas baru bersih, berkas lama tidak bertambah pelanggaran vs `f1f3084`;
+`composer audit` hanya dua advisory low lama (Phase 2); `config/route/view:cache`
+berhasil; migrasi up -> rollback --step=3 -> up diuji lokal dengan berkas nyata.
+Browser (Chrome headless via playwright-core di scratchpad, bukan dependensi repo)
+360/768/1280: 268/268 cek lolos, termasuk overflow, label, fokus Tab, konsol,
+galat unggah, gagal jaringan, batas laju. Gateway diarahkan ke host `.invalid`
+supaya tidak ada pesan WA sungguhan.
+**Catatan:** `/pembaruan` hanya dirender, tombol Perbarui tidak diklik di browser
+(akan menjalankan git sungguhan); kegagalannya diuji lewat `Process::fake`.
+Belum ada analisis statis (Larastan = Phase 2).
+
 ## 2026-09-30 - Rencana pengerasan dan pembuatan aplikasi bermerek baru
 
 **Agen:** codex-gpt-5 (Codex) | **Status:** dokumentasi selesai, eksekusi belum dimulai
