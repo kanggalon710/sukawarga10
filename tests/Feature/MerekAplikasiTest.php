@@ -251,6 +251,14 @@ class MerekAplikasiTest extends TestCase
         $this->assertStringContainsString($this->milikRw10('merek_ikon').'-192.png', $manifest['icons'][0]['src']);
     }
 
+    public function test_manifest_tersedia_di_host_platform_dan_desa(): void
+    {
+        $this->get('https://desa.jabnet.id/site.webmanifest')->assertOk()->assertJsonStructure(['name', 'icons']);
+        $this->get('https://sukakarya.desa.jabnet.id/site.webmanifest')->assertOk();
+        // Halaman modul tetap tertutup di host platform.
+        $this->get('https://desa.jabnet.id/warga')->assertNotFound();
+    }
+
     public function test_tanpa_izin_ubah_pengaturan_ditolak(): void
     {
         $sekretaris = User::create([

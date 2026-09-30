@@ -44,7 +44,9 @@ class ResolveTenant
         // Authenticate sehingga tamu malah di-redirect ke login, bukan 404.
         if ($context->rw() === null) {
             $path = trim($request->path(), '/');
-            $boleh = $path === '';
+            // site.webmanifest: dirujuk <head> semua halaman (juga halaman
+            // platform/desa); tanpa ini tiap halaman di host itu memicu 404.
+            $boleh = $path === '' || $path === 'site.webmanifest';
             foreach (['login', 'logout', 'tenant', 'pembaruan', 'akun'] as $awalan) {
                 if ($path === $awalan || str_starts_with($path, $awalan.'/')) {
                     $boleh = true;
