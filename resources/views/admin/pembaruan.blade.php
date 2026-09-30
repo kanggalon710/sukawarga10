@@ -88,10 +88,26 @@
 @if(session('logPembaruan'))
 <div class="card">
     <div class="card-header"><div class="card-title"><i class="fas fa-terminal" aria-hidden="true"></i> Log pembaruan</div></div>
+    {{-- Hanya langkah + status: keluaran shell mentah (path server, URL remote
+         ber-token) sengaja tidak pernah ditampilkan. Detail ada di log server,
+         dicari lewat kode rujukan. --}}
+    <ul style="list-style:none; padding:0; margin:10px 0 0;">
     @foreach(session('logPembaruan') as $langkah)
-        <p style="margin:10px 0 4px; font-size:13px; font-weight:700;"><code>$ {{ $langkah['perintah'] }}</code></p>
-        <div class="pembaruan-log">{{ $langkah['keluaran'] !== '' ? $langkah['keluaran'] : '(tanpa keluaran)' }}</div>
+        <li style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:6px 0; font-size:13px;">
+            @if(($langkah['status'] ?? '') === 'ok')
+                <i class="fas fa-check-circle" style="color:var(--hijau);" aria-hidden="true"></i><span class="visually-hidden">Berhasil:</span>
+            @else
+                <i class="fas fa-times-circle" style="color:var(--merah-teks);" aria-hidden="true"></i><span class="visually-hidden">Gagal:</span>
+            @endif
+            <code style="overflow-wrap:anywhere;">$ {{ $langkah['perintah'] }}</code>
+            @if(($langkah['status'] ?? '') !== 'ok')
+                <span style="color:var(--merah-teks); font-weight:700;">gagal</span>
+            @endif
+            <span style="color:var(--text3);">{{ $langkah['rujukan'] ?? '' }}</span>
+        </li>
     @endforeach
+    </ul>
+    <p style="font-size:12px; color:var(--text3); margin-top:8px;">Keluaran lengkap tiap langkah tercatat di log server (<code>storage/logs</code>), cari dengan kode rujukan di atas.</p>
 </div>
 @endif
 

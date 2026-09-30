@@ -21,7 +21,7 @@ class AuditLogService
             ]);
         } catch (\Exception $e) {
             // Silently fail — don't break the app if logging fails
-            \Log::warning('AuditLog failed: ' . $e->getMessage());
+            \Log::warning('AuditLog failed: ' . redaksiDiagnostik($e->getMessage()));
         }
     }
 }

@@ -49,7 +49,10 @@ class PembaruAplikasi
 
         $fetch = Process::path(base_path())->timeout(60)->run("git fetch {$remote} {$branch}");
         if ($fetch->failed()) {
-            throw new \RuntimeException('Gagal menghubungi repositori: '.trim($fetch->errorOutput()));
+            // Keluaran git bisa memuat URL remote beserta token dan path
+            // server: hanya ke log (tersamarkan), browser menerima kode rujukan.
+            $kode = self::catatKeluaran('git fetch', $fetch->errorOutput() ?: $fetch->output(), true);
+            throw new \RuntimeException("Gagal menghubungi repositori. Kode rujukan: {$kode}.");
         }
 
         $jumlah = (int) trim(Process::path(base_path())
@@ -140,10 +143,14 @@ class PembaruAplikasi
 
         foreach ($langkah as [$perintah, $timeout]) {
             $hasil = Process::path(base_path())->timeout($timeout)->run($perintah);
-            $log[] = ['perintah' => $perintah, 'keluaran' => trim($hasil->output()."\n".$hasil->errorOutput())];
+            $kode = self::catatKeluaran($perintah, $hasil->output()."\n".$hasil->errorOutput(), $hasil->failed());
+            // Browser hanya menerima nama langkah dan statusnya. Keluaran shell
+            // (path server, URL remote ber-token, isi .env yang tercetak) hanya
+            // ke log server, tersamarkan, dengan kode rujukan untuk mencocokkan.
+            $log[] = ['perintah' => $perintah, 'status' => $hasil->failed() ? 'gagal' : 'ok', 'rujukan' => $kode];
             if ($hasil->failed()) {
                 throw new \RuntimeException(
-                    "Gagal pada `{$perintah}`: ".trim($hasil->errorOutput() ?: $hasil->output()),
+                    "Gagal pada langkah `{$perintah}`. Kode rujukan: {$kode}.",
                     0,
                     new \Exception(json_encode($log))
                 );
@@ -157,5 +164,18 @@ class PembaruAplikasi
         ], now()->addDays(7));
 
         return ['mutakhir' => false, 'log' => $log];
+    }
+
+    /** Catat keluaran satu langkah ke log server (tersamarkan); kembalikan kode rujukan. */
+    private static function catatKeluaran(string $perintah, string $keluaran, bool $gagal): string
+    {
+        $kode = 'UPD-'.strtoupper(\Illuminate\Support\Str::random(6));
+        \Illuminate\Support\Facades\Log::log($gagal ? 'error' : 'info', 'Pembaruan aplikasi: '.$perintah, [
+            'rujukan' => $kode,
+            'status' => $gagal ? 'gagal' : 'ok',
+            'keluaran' => redaksiDiagnostik(trim($keluaran)),
+        ]);
+
+        return $kode;
     }
 }

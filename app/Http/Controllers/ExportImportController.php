@@ -439,7 +439,8 @@ class ExportImportController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             if (isset($handle) && is_resource($handle)) fclose($handle);
-            return back()->with('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+            // Kode rujukan saja: pesan database memuat baris CSV (data warga).
+            return back()->with('error', 'Terjadi kesalahan saat import. Kode rujukan: ' . laporGagal($e, 'Impor warga') . '.');
         }
     }
 
@@ -571,7 +572,8 @@ class ExportImportController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             if (isset($handle) && is_resource($handle)) fclose($handle);
-            return back()->with('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+            // Kode rujukan saja: pesan database memuat baris CSV (data warga).
+            return back()->with('error', 'Terjadi kesalahan saat import. Kode rujukan: ' . laporGagal($e, 'Impor warga') . '.');
         }
     }
 }

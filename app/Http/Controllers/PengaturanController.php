@@ -178,8 +178,10 @@ class PengaturanController extends Controller
                     $kelas::query()->delete();
                 }
             });
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal reset data: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            // Pesan exception database memuat SQL beserta nilainya (data warga):
+            // hanya kode rujukan yang sampai ke browser, detailnya ke log.
+            return back()->with('error', 'Gagal reset data. Kode rujukan: ' . laporGagal($e, 'Reset data') . '.');
         }
 
         app(PenyimpanBerkas::class)->hapusBerkasKeluarga($berkasKk);
@@ -268,9 +270,9 @@ class PengaturanController extends Controller
 
             $msg = "Pembersihan duplikat selesai: $countKeluarga KK duplikat dan $countDupAnggota Anggota duplikat dihapus.";
             return back()->with('success', $msg);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollback();
-            return back()->with('error', 'Gagal membersihkan duplikat: ' . $e->getMessage());
+            return back()->with('error', 'Gagal membersihkan duplikat. Kode rujukan: ' . laporGagal($e, 'Hapus duplikat') . '.');
         }
     }
 }
