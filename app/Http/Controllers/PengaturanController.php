@@ -194,7 +194,7 @@ class PengaturanController extends Controller
         if (($validated['merek_warna_aksi'] ?? null) === 'reset') {
             AppSetting::simpan('merek_warna_utama', '');
             $aksi[] = 'merek_warna (reset)';
-        } elseif (! empty($validated['merek_warna'])) {
+        } elseif (!empty($validated['merek_warna'])) {
             // Input warna selalu terkirim bersama form; hanya simpan bila
             // benar-benar berbeda, supaya menyimpan tab lain tidak membekukan
             // warna bawaan/warisan sebagai milik tenant ini.

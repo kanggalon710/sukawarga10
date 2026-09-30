@@ -17,7 +17,7 @@ class BuatTenant extends Command
         {label : Label domain huruf kecil tanpa spasi, mis. cibunar}
         {--kecamatan= : Nama kecamatan, jadi pembeda di nama organisasi}
         {--rw=* : Nomor RW (boleh dipisah koma), mis. --rw=01,02,03}
-        {--basis=desa.jabnet.id : Domain induk subdomain tenant}
+        {--basis= : Domain induk subdomain tenant (bawaan: TENANT_DOMAIN / desa.jabnet.id)}
         {--tanpa-admin : Jangan buatkan akun admin per RW}';
 
     protected $description = 'Buka tenant baru: organisasi desa + RW + domain + akun admin RW';

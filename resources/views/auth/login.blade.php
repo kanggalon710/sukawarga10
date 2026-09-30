@@ -218,6 +218,7 @@
     @include('partials.kepala-merek')
 </head>
 <body>
+    @include('partials.pita-demo')
     <canvas id="bgCanvas"></canvas>
     <svg class="mountain-bg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
         <path d="M0,350 L120,180 L240,280 L380,130 L500,250 L650,100 L780,220 L900,80 L1050,200 L1180,120 L1320,240 L1440,150 L1440,400 L0,400 Z" fill="rgba(15,90,55,0.5)"/>

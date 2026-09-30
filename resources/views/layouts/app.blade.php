@@ -26,6 +26,7 @@
     @include('partials.kepala-merek')
 </head>
 <body>
+    @include('partials.pita-demo')
     <div class="app-layout">
         <!-- Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>

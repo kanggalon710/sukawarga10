@@ -33,11 +33,13 @@ class PembukaTenant
         string $label,
         string $kecamatan,
         array $daftarRw,
-        string $basis = 'desa.jabnet.id',
+        string $basis = '',
         bool $buatAdmin = true,
     ): array {
         $label = strtolower(trim($label));
-        $basis = strtolower(trim($basis));
+        // Kosong = domain induk instalasi ini (TENANT_DOMAIN), bukan tulisan
+        // tetap: instalasi kedua (demo) tidak boleh membuat host produksi.
+        $basis = strtolower(trim($basis !== '' ? $basis : (string) config('app.domain_tenant')));
 
         // Label jadi bagian hostname: batasi ke huruf/angka/strip ala DNS.
         if (! preg_match(self::POLA_LABEL, $label)) {

@@ -76,6 +76,22 @@ return [
     | diisi; PIN kosong = PIN acak dicetak sekali ke konsol. Hapus ADMIN_PIN
     | dari .env setelah seeding pertama.
     */
+    /*
+    | Instalasi demo (mis. demo-sukawarga.jabnet.id): data fiktif, pita
+    | "Situs demo", dan pengiriman WhatsApp dimatikan total. DemoSeeder hanya
+    | mau berjalan bila DEMO_MODE=true.
+    */
+    'demo' => (bool) env('DEMO_MODE', false),
+    'demo_host' => env('DEMO_HOST'),
+    'demo_pin' => env('DEMO_PIN'),
+
+    /*
+    | Domain induk subdomain tenant baru (Manajemen Desa & tenant:buat).
+    | Instalasi lain WAJIB mengubahnya: nilai bawaan membuat hostname yang
+    | dilayani instalasi produksi desa.jabnet.id.
+    */
+    'domain_tenant' => env('TENANT_DOMAIN', 'desa.jabnet.id'),
+
     'admin_awal' => [
         'username' => env('ADMIN_USERNAME'),
         'pin' => env('ADMIN_PIN'),

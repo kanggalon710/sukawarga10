@@ -159,6 +159,14 @@ class MpwaService
      */
     private static function kirimKeGateway(string $endpoint, array $payload, int $timeout): array
     {
+        // Instalasi demo berisi nomor fiktif dan bisa dicoba siapa saja:
+        // tidak ada satu pesan pun yang boleh keluar, bahkan bila kunci diisi.
+        if (config('app.demo')) {
+            Log::info('MPWA: pengiriman dilewati karena mode demo', ['to' => samarkanWa($payload['number'] ?? '')]);
+
+            return ['ok' => false, 'alasan' => 'Situs demo: pengiriman WhatsApp dinonaktifkan.'];
+        }
+
         $baseUrl = self::baseUrl();
         if ($baseUrl === null || !in_array($endpoint, self::ENDPOINT, true)) {
             return ['ok' => false, 'alasan' => 'Gateway WhatsApp tidak diizinkan. Hubungi admin platform.'];
