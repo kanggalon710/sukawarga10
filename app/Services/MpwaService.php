@@ -7,13 +7,17 @@ use Illuminate\Support\Facades\Log;
 use App\Models\AppSetting;
 
 /**
- * MpwaService — Production WhatsApp notification service
- * Uses mpwa.jabnet.id API exclusively.
- * API Key & sender are embedded; only sender can be overridden per-call.
+ * MpwaService - satu-satunya jalur ke gateway WhatsApp MPWA.
+ *
+ * Host gateway dari config (services.mpwa.url) dan wajib https + terdaftar di
+ * services.mpwa.allowed_hosts; kunci API dibaca lewat AppSetting::rahasia()
+ * dan tidak pernah keluar ke browser. Seluruh request HTTP ke gateway lewat
+ * kirimKeGateway(), tidak ada Http::post lain di aplikasi.
  */
 class MpwaService
 {
-    const BASE_URL = 'https://mpwa.jabnet.id';
+    /** Endpoint gateway yang boleh dipanggil. */
+    private const ENDPOINT = ['/send-message', '/send-button-message'];
 
     /**
      * Footer pesan WhatsApp.
@@ -39,10 +43,13 @@ class MpwaService
         return '🙏 Pengurus ' . namaAplikasi();
     }
 
-    /** Read API key from DB, fallback empty (will fail gracefully). */
+    /**
+     * Kunci API efektif (milik tenant, atau warisan desa/platform), hanya
+     * untuk dipakai server. Jangan diteruskan ke view atau respons.
+     */
     public static function apiKey(): string
     {
-        return AppSetting::nilai('mpwa_api_key') ?? '';
+        return AppSetting::rahasia('mpwa_api_key') ?? '';
     }
 
     /** Read default sender from DB. */
@@ -51,10 +58,39 @@ class MpwaService
         return AppSetting::nilai('mpwa_sender') ?? '';
     }
 
-    /** Base URL gateway; bisa ditimpa lewat AppSetting `mpwa_api_url`. */
-    public static function baseUrl(): string
+    /**
+     * Base URL gateway dari config, atau null bila tidak lolos allow-list.
+     *
+     * Dulu bisa ditimpa tenant lewat setting `mpwa_api_url`, sehingga kunci
+     * API warisan ikut terkirim ke host pilihan tenant (SSRF + kebocoran
+     * kunci). Sekarang hanya https ke host yang terdaftar.
+     */
+    public static function baseUrl(): ?string
     {
-        return rtrim(AppSetting::nilai('mpwa_api_url') ?: self::BASE_URL, '/');
+        $url = rtrim((string) config('services.mpwa.url'), '/');
+        $bagian = parse_url($url);
+        $host = strtolower((string) ($bagian['host'] ?? ''));
+        $diizinkan = array_map('strtolower', (array) config('services.mpwa.allowed_hosts', []));
+
+        $sah = ($bagian['scheme'] ?? '') === 'https'
+            && $host !== ''
+            && in_array($host, $diizinkan, true)
+            && ! isset($bagian['user'], $bagian['pass'])
+            && ! isset($bagian['query'], $bagian['fragment']);
+
+        if (! $sah) {
+            Log::error('MPWA: URL gateway ditolak (bukan https atau host di luar allow-list)', ['host' => $host]);
+
+            return null;
+        }
+
+        return $url;
+    }
+
+    /** Nama host gateway untuk ditampilkan (bukan rahasia). */
+    public static function hostGateway(): string
+    {
+        return (string) parse_url((string) config('services.mpwa.url'), PHP_URL_HOST);
     }
 
     /**
@@ -68,37 +104,88 @@ class MpwaService
         string $sender = '',
         string $apiKey = ''
     ): bool {
+        return self::kirimPesan($to, $message, $sender, $apiKey)['ok'];
+    }
+
+    /**
+     * Kirim satu pesan dan kembalikan hasil yang aman ditampilkan:
+     * ['ok' => bool, 'alasan' => ?string]. Alasan selalu kalimat umum; isi
+     * respons gateway dan pesan exception hanya masuk log server.
+     *
+     * @param  list<array{displayText: string, id: string}>  $tombol
+     * @return array{ok: bool, alasan: ?string}
+     */
+    public static function kirimPesan(
+        string $to,
+        string $message,
+        string $sender = '',
+        string $apiKey = '',
+        array $tombol = [],
+        int $timeout = 12
+    ): array {
         $number = normalizeWa($to);   // 08xx/8xx/+62/0062 → 62xxxx (format wajib WhatsApp)
-        if (!$number || strlen($number) < 10) return false;
+        if (!$number || strlen($number) < 10) {
+            return ['ok' => false, 'alasan' => 'Nomor tujuan tidak valid.'];
+        }
 
         $apiKey = $apiKey ?: self::apiKey();
         $sender  = $sender  ?: self::sender();
 
         if (!$apiKey || !$sender) {
             Log::warning('MPWA send skipped: API key or sender not configured.');
-            return false;
+            return ['ok' => false, 'alasan' => 'Gateway WhatsApp belum dikonfigurasi.'];
         }
 
+        $payload = [
+            'api_key' => $apiKey,
+            'sender'  => $sender,
+            'number'  => $number,
+            'message' => $message,
+            'footer'  => self::footer(),
+        ];
+        if ($tombol !== []) {
+            $payload['buttons'] = $tombol;
+        }
+
+        return self::kirimKeGateway($tombol !== [] ? '/send-button-message' : '/send-message', $payload, $timeout);
+    }
+
+    /**
+     * Satu-satunya request HTTP ke gateway. Redirect TIDAK diikuti: host
+     * tepercaya yang mengalihkan ke tempat lain tidak boleh membawa kunci API.
+     *
+     * @return array{ok: bool, alasan: ?string}
+     */
+    private static function kirimKeGateway(string $endpoint, array $payload, int $timeout): array
+    {
+        $baseUrl = self::baseUrl();
+        if ($baseUrl === null || ! in_array($endpoint, self::ENDPOINT, true)) {
+            return ['ok' => false, 'alasan' => 'Gateway WhatsApp tidak diizinkan. Hubungi admin platform.'];
+        }
+
+        $tujuan = samarkanWa($payload['number'] ?? '');
         try {
-            $resp = Http::timeout(12)->post(self::baseUrl() . '/send-message', [
-                'api_key' => $apiKey,
-                'sender'  => $sender,
-                'number'  => $number,
-                'message' => $message,
-                'footer'  => self::footer(),
-            ]);
-
+            $resp = Http::timeout($timeout)->withoutRedirecting()->post($baseUrl.$endpoint, $payload);
             $body = $resp->json();
-            $ok = $resp->successful() && (($body['status'] ?? false) || isset($body['id']));
+            $ok = $resp->successful()
+                && is_array($body)
+                && (($body['status'] ?? false) === true || ($body['status'] ?? null) === 'true' || isset($body['id']));
 
-            if (!$ok) {
-                Log::warning('MPWA send failed', ['to' => $number, 'response' => $body]);
+            if (! $ok) {
+                Log::warning('MPWA send failed', [
+                    'to' => $tujuan,
+                    'http' => $resp->status(),
+                    'response' => is_array($body) ? mb_substr((string) ($body['message'] ?? ''), 0, 200) : null,
+                ]);
+
+                return ['ok' => false, 'alasan' => 'Gateway menolak pesan. Periksa API key, nomor pengirim, dan nomor tujuan.'];
             }
-            return $ok;
 
-        } catch (\Exception $e) {
-            Log::error('MPWA send exception', ['to' => $number, 'error' => $e->getMessage()]);
-            return false;
+            return ['ok' => true, 'alasan' => null];
+        } catch (\Throwable $e) {
+            Log::error('MPWA send exception', ['to' => $tujuan, 'error' => redaksiDiagnostik($e->getMessage())]);
+
+            return ['ok' => false, 'alasan' => 'Gateway WhatsApp tidak dapat dihubungi.'];
         }
     }
 
@@ -171,11 +258,11 @@ class MpwaService
              . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Halo *{$nama}*,\n\n"
-             . "Pendaftaran Anda sebagai warga RT {$rt} telah kami terima.\n\n"
-             . "⏳ *Status:* Menunggu Verifikasi\n\n"
-             . "Tim pengurus RW akan segera memverifikasi data Anda. "
-             . "Anda akan mendapat notifikasi WhatsApp setelah proses verifikasi selesai.\n\n"
-             . "_Jika ada pertanyaan, silakan hubungi pengurus RW 10 secara langsung._\n\n"
+             . "Pengajuan pendaftaran Anda sebagai warga RT {$rt} telah kami terima "
+             . "dan akan diperiksa pengurus RW.\n\n"
+             . "Bila data Anda ternyata sudah terdaftar, silakan masuk ke portal atau "
+             . "gunakan menu Lupa Username / PIN.\n\n"
+             . "_Jika ada pertanyaan, silakan hubungi pengurus RW secara langsung._\n\n"
              . self::tandaTangan();
         return self::send($noWa, $msg);
     }
@@ -250,23 +337,22 @@ class MpwaService
     }
 
     /**
-     * Kirim kredensial akun saat lupa PIN/username.
+     * Kode pemulihan PIN sekali pakai. Tidak memuat username maupun PIN:
+     * username baru ditampilkan setelah kode terbukti benar.
      */
-    public static function notifyForgotCredentials(
-        string $noWa, string $nama, string $username, string $newPin
-    ): bool {
+    public static function notifyKodePemulihan(string $noWa, string $nama, string $kode): bool
+    {
         if (!$noWa) return false;
-        $msg = "🔐 *RESET KREDENSIAL AKUN*\n"
+        $msg = "🔐 *KODE PEMULIHAN PIN*\n"
              . self::kop() . "\n"
              . "━━━━━━━━━━━━━━━━━━━━\n"
              . "Halo *{$nama}*,\n\n"
-             . "Berikut data akun Anda yang telah direset:\n\n"
-             . "🔑 *Info Akun:*\n"
-             . "   Username : *{$username}*\n"
-             . "   PIN Baru : *{$newPin}*\n\n"
-             . "⚠️ *SIMPAN PIN INI BAIK-BAIK!*\n"
-             . "Jangan bagikan PIN kepada siapapun.\n\n"
-             . "🌐 Login di: " . alamatPortal() . "\n\n"
+             . "Kode pemulihan Anda: *{$kode}*\n\n"
+             . "Masukkan kode ini di halaman Lupa Username / PIN untuk membuat PIN baru. "
+             . "Kode berlaku " . \App\Models\PemulihanPin::MASA_BERLAKU_MENIT . " menit dan hanya bisa dipakai sekali.\n\n"
+             . "⚠️ Jangan bagikan kode ini kepada siapa pun, termasuk yang mengaku pengurus. "
+             . "Bila Anda tidak memintanya, abaikan pesan ini; PIN Anda tidak berubah.\n\n"
+             . "🌐 " . alamatPortal() . "\n\n"
              . self::tandaTangan();
         return self::send($noWa, $msg);
     }

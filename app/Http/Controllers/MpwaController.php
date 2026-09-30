@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use App\Models\Keluarga;
 use App\Models\IuranSampah;
 use App\Models\IuranPadaringan;
@@ -113,30 +112,31 @@ class MpwaController extends Controller
     // ── Test Connection ───────────────────────────────────────────────────────
     public function testConnection(Request $request)
     {
-        $apiKey = $request->input('api_key') ?: MpwaService::apiKey();
-        $sender = $request->input('sender')  ?: MpwaService::sender();
+        // api_key dari form boleh (menguji kunci baru sebelum disimpan), tapi
+        // tujuannya selalu host gateway tepercaya dari config, bukan pilihan
+        // tenant, dan kunci tersimpan tidak pernah dikirim balik ke browser.
+        $apiKey = (string) ($request->input('api_key') ?: MpwaService::apiKey());
+        $sender = (string) ($request->input('sender') ?: MpwaService::sender());
         $testNo = normalizeWa($request->input('test_number', ''));
 
         if (!$apiKey) return response()->json(['success' => false, 'message' => 'API Key belum dikonfigurasi di Pengaturan.']);
         if (!$sender) return response()->json(['success' => false, 'message' => 'Nomor Pengirim belum dikonfigurasi di Pengaturan.']);
         if (!$testNo) return response()->json(['success' => false, 'message' => 'Nomor tujuan test tidak valid.']);
 
-        $resp = Http::timeout(20)->post(MpwaService::baseUrl() . '/send-message', [
-            'api_key' => $apiKey,
-            'sender'  => $sender,
-            'number'  => $testNo,
-            'message' => "✅ *Test Koneksi MPWA*\n\n" . namaAplikasi() . " berhasil terhubung ke gateway WhatsApp!\n_Pesan ini dikirim otomatis oleh sistem._",
-            'footer'  => MpwaService::footer(),
-        ]);
+        $hasil = MpwaService::kirimPesan(
+            $testNo,
+            "✅ *Test Koneksi MPWA*\n\n" . namaAplikasi() . " berhasil terhubung ke gateway WhatsApp!\n_Pesan ini dikirim otomatis oleh sistem._",
+            $sender,
+            $apiKey,
+            [],
+            20
+        );
 
-        $body = $resp->json();
-        $ok = $resp->successful() && ($body['status'] === true || $body['status'] === 'true' || isset($body['id']));
-
-        if ($ok) {
-            AuditLogService::log('mpwa_test', 'mpwa', "Test koneksi MPWA berhasil ke: $testNo via sender $sender");
+        if ($hasil['ok']) {
+            AuditLogService::log('mpwa_test', 'mpwa', 'Test koneksi MPWA berhasil ke ' . samarkanWa($testNo) . ' via sender ' . samarkanWa($sender));
             return response()->json(['success' => true, 'message' => "Pesan test berhasil dikirim ke $testNo!"]);
         }
-        return response()->json(['success' => false, 'message' => $body['message'] ?? 'Gagal. Cek API Key dan nomor Sender.']);
+        return response()->json(['success' => false, 'message' => $hasil['alasan'] ?? 'Gagal. Cek API Key dan nomor Sender.']);
     }
 
     // ── Broadcast ─────────────────────────────────────────────────────────────
@@ -194,34 +194,14 @@ class MpwaController extends Controller
                 $pesan
             );
 
-            try {
-                $payload = [
-                    'api_key' => $apiKey,
-                    'sender'  => $sender,
-                    'number'  => $number,
-                    'message' => $msg,
-                    'footer'  => MpwaService::footer(),
-                ];
-
-                // Use button endpoint if buttons exist
-                if (!empty($buttons)) {
-                    $payload['buttons'] = $buttons;
-                    $endpoint = '/send-button-message';
-                } else {
-                    $endpoint = '/send-message';
-                }
-
-                $resp = Http::timeout(15)->post(MpwaService::baseUrl() . $endpoint, $payload);
-                $body = $resp->json();
-                if ($resp->successful() && (($body['status'] ?? false) || isset($body['id']))) {
-                    $sent++;
-                } else {
-                    $failed++;
-                    $errors[] = ($warga->kepala_keluarga ?? '?') . ': ' . ($body['message'] ?? 'error');
-                }
-            } catch (\Exception $e) {
+            // Lewat MpwaService (satu jalur gateway, host ber-allow-list);
+            // alasan gagal selalu kalimat umum, bukan isi exception/gateway.
+            $hasil = MpwaService::kirimPesan($number, $msg, $sender, $apiKey, $buttons, 15);
+            if ($hasil['ok']) {
+                $sent++;
+            } else {
                 $failed++;
-                $errors[] = ($warga->kepala_keluarga ?? '?') . ': ' . $e->getMessage();
+                $errors[] = ($warga->kepala_keluarga ?? $warga->nama ?? '?') . ': ' . ($hasil['alasan'] ?? 'gagal');
             }
 
             usleep(300000); // 300ms anti-rate-limit

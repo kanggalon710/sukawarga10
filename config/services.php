@@ -28,6 +28,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Gateway WhatsApp MPWA. Host-nya dari sini, BUKAN setting tenant: kunci
+    // API (bisa warisan desa/platform) dikirim ke host ini, jadi host wajib
+    // https dan terdaftar di allow-list (MpwaService::baseUrl menolak sisanya).
+    'mpwa' => [
+        'url' => env('MPWA_API_URL', 'https://mpwa.jabnet.id'),
+        'allowed_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('MPWA_ALLOWED_HOSTS', 'mpwa.jabnet.id'))))),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

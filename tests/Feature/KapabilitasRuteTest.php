@@ -27,6 +27,7 @@ class KapabilitasRuteTest extends TestCase
         'login.post' => 'form login',
         'login.register' => 'pendaftaran warga baru dari halaman login publik',
         'login.forgot' => 'lupa kredensial dari halaman login publik',
+        'login.forgot.verifikasi' => 'verifikasi kode pemulihan PIN dari halaman login publik',
         'logout' => 'mengakhiri sesi sendiri',
         // Self-service: gerbangnya KEPEMILIKAN (users.keluarga_id), bukan peran.
         'akunSaya.simpan' => 'mengganti username/PIN sendiri dengan verifikasi PIN lama',

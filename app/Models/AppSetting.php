@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Services\TenantContext;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Key-value konfigurasi, ber-scope organisasi sejak Phase F.
@@ -17,6 +20,16 @@ use Illuminate\Database\Eloquent\Model;
 class AppSetting extends Model
 {
     protected $guarded = [];
+
+    /**
+     * Key rahasia: tersimpan terenkripsi dan TIDAK PERNAH ikut semuaEfektif().
+     *
+     * semuaEfektif() diteruskan utuh ke view (Pengaturan, MPWA, cetak surat),
+     * jadi apa pun yang ada di sana bisa berakhir di HTML tenant. Dulu kunci
+     * API MPWA milik desa/platform ikut terwarisi ke RW dan tampil polos di
+     * form. Rahasia hanya dibaca server lewat rahasia().
+     */
+    public const KEY_RAHASIA = ['mpwa_api_key'];
 
     /** Nilai efektif satu key untuk tenant request ini. */
     public static function nilai(string $key, ?string $default = null): ?string
@@ -42,6 +55,7 @@ class AppSetting extends Model
                         $q->orWhereIn('organization_id', $rantai);
                     }
                 })
+                ->whereNotIn('key', self::KEY_RAHASIA)
                 ->get(['key', 'value', 'organization_id']);
 
             // Peringkat: indeks di rantai (kecil = dekat = menang); NULL paling jauh.
@@ -73,8 +87,100 @@ class AppSetting extends Model
      */
     public static function simpan(string $key, $value): static
     {
+        if (in_array($key, self::KEY_RAHASIA, true)) {
+            throw new \InvalidArgumentException("Key rahasia {$key} wajib lewat simpanRahasia().");
+        }
+
+        return static::tulisUntukHost($key, $value);
+    }
+
+    /**
+     * Nilai rahasia terdekat di rantai tenant (RW -> desa -> platform), sudah
+     * didekripsi. HANYA untuk dipakai server (mis. memanggil gateway); jangan
+     * pernah diteruskan ke view atau respons JSON.
+     */
+    public static function rahasia(string $key): ?string
+    {
+        $baris = static::barisRahasiaTerdekat($key);
+        if ($baris === null || $baris->value === null || $baris->value === '') {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($baris->value);
+        } catch (DecryptException) {
+            Log::error('Setting rahasia tidak dapat didekripsi (APP_KEY berubah?)', ['key' => $key]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Status rahasia untuk UI tanpa membuka nilainya:
+     * 'sendiri' (milik organisasi host), 'warisan' (dari desa/platform), 'kosong'.
+     */
+    public static function statusRahasia(string $key): string
+    {
+        $baris = static::barisRahasiaTerdekat($key);
+        if ($baris === null || $baris->value === null || $baris->value === '') {
+            return 'kosong';
+        }
+
+        return $baris->organization_id === static::orgHost() ? 'sendiri' : 'warisan';
+    }
+
+    /**
+     * Simpan rahasia terenkripsi untuk organisasi host. Nilai kosong MENGHAPUS
+     * baris milik host (kembali memakai warisan, bila ada); form memakai
+     * checkbox eksplisit untuk itu, bukan input kosong.
+     */
+    public static function simpanRahasia(string $key, ?string $nilai): void
+    {
+        if (! in_array($key, self::KEY_RAHASIA, true)) {
+            throw new \InvalidArgumentException("{$key} bukan key rahasia.");
+        }
+
+        if ($nilai === null || $nilai === '') {
+            static::where('key', $key)->where('organization_id', static::orgHost())->delete();
+            app(TenantContext::class)->lupakan('app_settings.efektif');
+
+            return;
+        }
+
+        static::tulisUntukHost($key, Crypt::encryptString($nilai));
+    }
+
+    private static function barisRahasiaTerdekat(string $key): ?self
+    {
+        $rantai = app(TenantContext::class)->rantaiLeluhurIds();
+        $peringkat = array_flip($rantai);
+
+        return static::query()
+            ->where('key', $key)
+            ->where(function ($q) use ($rantai) {
+                $q->whereNull('organization_id');
+                if ($rantai !== []) {
+                    $q->orWhereIn('organization_id', $rantai);
+                }
+            })
+            ->get(['key', 'value', 'organization_id'])
+            ->sortBy(fn ($b) => $b->organization_id === null
+                ? PHP_INT_MAX
+                : ($peringkat[$b->organization_id] ?? PHP_INT_MAX - 1))
+            ->first();
+    }
+
+    private static function orgHost(): ?int
+    {
         $context = app(TenantContext::class);
-        $orgId = $context->sudahDitetapkan() ? $context->organisasi()?->id : null;
+
+        return $context->sudahDitetapkan() ? $context->organisasi()?->id : null;
+    }
+
+    private static function tulisUntukHost(string $key, $value): static
+    {
+        $context = app(TenantContext::class);
+        $orgId = static::orgHost();
 
         $baris = static::updateOrCreate(
             ['key' => $key, 'organization_id' => $orgId],
@@ -92,6 +198,10 @@ class AppSetting extends Model
      */
     public static function simpanUntuk(?int $orgId, string $key, $value): static
     {
+        if (in_array($key, self::KEY_RAHASIA, true)) {
+            throw new \InvalidArgumentException("Key rahasia {$key} wajib lewat simpanRahasia().");
+        }
+
         $baris = static::updateOrCreate(
             ['key' => $key, 'organization_id' => $orgId],
             ['value' => $value]

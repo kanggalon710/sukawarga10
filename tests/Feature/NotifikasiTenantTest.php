@@ -31,7 +31,8 @@ class NotifikasiTenantTest extends TestCase
 
         // Kredensial gateway di default platform supaya pengiriman benar-benar
         // sampai ke lapisan HTTP dan penerimanya bisa diperiksa.
-        AppSetting::create(['key' => 'mpwa_api_key', 'value' => 'kunci-uji']);
+        // Kunci MPWA kini rahasia terenkripsi: ditulis lewat simpanRahasia().
+        AppSetting::simpanRahasia('mpwa_api_key', 'kunci-uji');
         AppSetting::create(['key' => 'mpwa_sender', 'value' => '628000000000']);
 
         $this->rwAsing = Organization::create([

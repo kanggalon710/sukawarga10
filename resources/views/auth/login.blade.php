@@ -181,6 +181,25 @@
         }
         .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
         .alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+        /* Modal Lupa PIN: input 16px (iOS tidak zoom), target sentuh 44px, dan
+           warna teks alert yang lolos kontras 4,5:1. Dibatasi ke modal ini;
+           form lain di halaman ini menyusul di fase aksesibilitas. */
+        #forgotModal .form-control { font-size: 16px; min-height: 44px; }
+        #forgotModal .modal-close { width: 44px; height: 44px; top: 8px; right: 8px; }
+        #forgotModal .btn-action { min-height: 48px; }
+        #forgotModal .form-control[aria-invalid="true"] { border-color: #b91c1c; }
+        #forgotAlert { font-size: 13px; line-height: 1.45; }
+        #forgotAlert.alert-error { color: #b91c1c; }
+        #forgotAlert.alert-success { color: #166534; }
+        .forgot-aksi { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 10px; }
+        .forgot-tautan, .forgot-kembali {
+            background: none; border: none; color: var(--primary); font: inherit; font-size: 13.5px;
+            font-weight: 700; cursor: pointer; min-height: 44px; padding: 0 4px;
+            display: inline-flex; align-items: center; text-decoration: none;
+        }
+        .forgot-tautan:focus-visible, .forgot-kembali:focus-visible, #forgotModal .modal-close:focus-visible {
+            outline: 3px solid var(--primary); outline-offset: 2px; border-radius: 8px;
+        }
 
         /* ── RESPONSIVE ── */
         @media(max-width: 600px) {
@@ -425,26 +444,64 @@
     </div>
 
     {{-- ══ FORGOT MODAL ══ --}}
+    {{-- Dua langkah: (1) nomor WA -> kode sekali pakai dikirim; (2) kode + PIN
+         baru. PIN baru hanya disimpan setelah kode terbukti, dan jawaban
+         langkah 1 sama untuk nomor terdaftar maupun tidak. --}}
     <div id="forgotModal" class="modal-overlay" onclick="if(event.target===this)closeModal('forgotModal')">
-        <div class="modal-card">
-            <button class="modal-close" onclick="closeModal('forgotModal')"><i class="fas fa-times"></i></button>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="forgotJudul" aria-describedby="forgotPetunjuk">
+            <button type="button" class="modal-close" aria-label="Tutup" onclick="closeModal('forgotModal')"><i class="fas fa-times" aria-hidden="true"></i></button>
             <div class="modal-header">
-                <h2>🔑 Lupa Akun</h2>
-                <p>Masukkan nomor WhatsApp terdaftar untuk menerima username & PIN baru</p>
+                <h2 id="forgotJudul"><span aria-hidden="true">🔑</span> Lupa Username / PIN</h2>
+                <p id="forgotPetunjuk">Masukkan nomor WhatsApp terdaftar. Kami akan mengirim kode pemulihan 6 digit.</p>
             </div>
-            <div id="forgotAlert" style="display:none;" class="alert"></div>
-            <div class="input-group">
-                <label>Nomor WhatsApp Terdaftar</label>
-                <div class="input-wrapper">
-                    <i class="fab fa-whatsapp input-icon" style="color:#25D366;"></i>
-                    <input type="text" id="forgotWa" class="form-control" placeholder="08xxxxx atau 628xxxxx" inputmode="numeric" maxlength="20">
+            <div id="forgotAlert" class="alert" style="display:none;" role="status" aria-live="polite"></div>
+
+            <form id="forgotLangkah1" onsubmit="handleForgot(event)" novalidate>
+                <div class="input-group">
+                    <label for="forgotWa">Nomor WhatsApp Terdaftar</label>
+                    <div class="input-wrapper">
+                        <i class="fab fa-whatsapp input-icon" style="color:#25D366;" aria-hidden="true"></i>
+                        <input type="tel" id="forgotWa" name="no_wa" class="form-control" placeholder="08xxxxx atau 628xxxxx" inputmode="numeric" autocomplete="tel" maxlength="20" required>
+                    </div>
                 </div>
-            </div>
-            <button type="button" class="btn-action green" id="forgotBtn" onclick="handleForgot()">
-                <i class="fab fa-whatsapp"></i> Kirim via WhatsApp
-            </button>
+                <button type="submit" class="btn-action green" id="forgotBtn">
+                    <i class="fab fa-whatsapp" aria-hidden="true"></i> Kirim Kode via WhatsApp
+                </button>
+            </form>
+
+            <form id="forgotLangkah2" onsubmit="handleVerifikasi(event)" style="display:none;" novalidate>
+                <div class="input-group">
+                    <label for="forgotKode">Kode Pemulihan (6 angka dari WhatsApp)</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-hashtag input-icon" aria-hidden="true"></i>
+                        <input type="text" id="forgotKode" name="kode" class="form-control" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="forgotPinBaru">PIN Baru (6 angka)</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon" aria-hidden="true"></i>
+                        <input type="password" id="forgotPinBaru" name="pin_baru" class="form-control" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{6}" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="forgotPinUlang">Ulangi PIN Baru</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon" aria-hidden="true"></i>
+                        <input type="password" id="forgotPinUlang" name="pin_baru_confirmation" class="form-control" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{6}" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-action green" id="forgotSimpanBtn">
+                    <i class="fas fa-check" aria-hidden="true"></i> Simpan PIN Baru
+                </button>
+                <div class="forgot-aksi">
+                    <button type="button" class="forgot-tautan" onclick="kirimUlangKode()">Kirim ulang kode</button>
+                    <button type="button" class="forgot-tautan" onclick="gantiNomor()">Ganti nomor</button>
+                </div>
+            </form>
+
             <div style="text-align:center; margin-top:14px; font-size:12.5px; color:#94a3b8;">
-                <a href="#" onclick="closeModal('forgotModal'); setTimeout(()=>openModal('loginModal'),200); return false;" style="color:var(--primary); font-weight:700; text-decoration:none;">← Kembali ke Login</a>
+                <a href="#" onclick="closeModal('forgotModal'); setTimeout(()=>openModal('loginModal'),200); return false;" class="forgot-kembali">← Kembali ke Login</a>
             </div>
         </div>
     </div>
@@ -477,36 +534,120 @@
             openModal('loginModal');
         @endif
 
-        async function handleForgot() {
-            const wa = document.getElementById('forgotWa').value.trim();
-            if (!wa || wa.length < 9) return showForgotAlert(false, 'Masukkan nomor WhatsApp yang valid.');
+        const RUTE_KODE = @json(route('login.forgot'));
+        const RUTE_VERIFIKASI = @json(route('login.forgot.verifikasi'));
+        let nomorPemulihan = '';
 
-            const btn = document.getElementById('forgotBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-
-            try {
-                const res = await fetch('{{ route("login.forgot") }}', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}'},
-                    body: JSON.stringify({ no_wa: wa })
-                });
-                const data = await res.json();
-                showForgotAlert(data.success, data.message);
-                if (data.success) document.getElementById('forgotWa').value = '';
-            } catch(e) {
-                showForgotAlert(false, 'Gagal terhubung ke server.');
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fab fa-whatsapp"></i> Kirim via WhatsApp';
+        async function kirimJson(url, isi) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token())},
+                body: JSON.stringify(isi)
+            });
+            let data = {};
+            try { data = await res.json(); } catch (e) { data = {}; }
+            // Galat validasi Laravel (422) datang sebagai {errors: {...}}.
+            if (!data.message && data.errors) data.message = Object.values(data.errors).flat()[0];
+            if (res.status === 419) data.message = 'Sesi halaman kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+            return { ok: res.ok && data.success === true, data };
         }
 
+        function setSibuk(btn, sibuk, labelHtml) {
+            btn.disabled = sibuk;
+            btn.setAttribute('aria-busy', sibuk ? 'true' : 'false');
+            btn.innerHTML = sibuk ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Memproses...' : labelHtml;
+        }
+
+        async function handleForgot(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('forgotWa');
+            const wa = input.value.trim();
+            if (wa.replace(/\D/g, '').length < 9) {
+                input.setAttribute('aria-invalid', 'true');
+                input.focus();
+                return showForgotAlert(false, 'Masukkan nomor WhatsApp yang valid.');
+            }
+            input.removeAttribute('aria-invalid');
+
+            const btn = document.getElementById('forgotBtn');
+            const label = btn.innerHTML;
+            setSibuk(btn, true);
+            try {
+                const { ok, data } = await kirimJson(RUTE_KODE, { no_wa: wa });
+                showForgotAlert(ok, data.message || 'Permintaan tidak dapat diproses. Coba lagi.');
+                if (ok) {
+                    nomorPemulihan = wa;
+                    document.getElementById('forgotLangkah1').style.display = 'none';
+                    document.getElementById('forgotLangkah2').style.display = 'block';
+                    document.getElementById('forgotKode').focus();
+                }
+            } catch (e) {
+                showForgotAlert(false, 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda lalu coba lagi.');
+            }
+            setSibuk(btn, false, label);
+        }
+
+        async function handleVerifikasi(event) {
+            event.preventDefault();
+            const kode = document.getElementById('forgotKode');
+            const pin = document.getElementById('forgotPinBaru');
+            const ulang = document.getElementById('forgotPinUlang');
+            [kode, pin, ulang].forEach(el => el.removeAttribute('aria-invalid'));
+
+            const salah = (el, pesan) => { el.setAttribute('aria-invalid', 'true'); el.focus(); showForgotAlert(false, pesan); };
+            if (!/^\d{6}$/.test(kode.value)) return salah(kode, 'Kode terdiri dari 6 angka.');
+            if (!/^\d{6}$/.test(pin.value)) return salah(pin, 'PIN baru harus 6 angka.');
+            if (pin.value !== ulang.value) return salah(ulang, 'Konfirmasi PIN tidak sama.');
+
+            const btn = document.getElementById('forgotSimpanBtn');
+            const label = btn.innerHTML;
+            setSibuk(btn, true);
+            try {
+                const { ok, data } = await kirimJson(RUTE_VERIFIKASI, {
+                    no_wa: nomorPemulihan, kode: kode.value, pin_baru: pin.value, pin_baru_confirmation: ulang.value
+                });
+                showForgotAlert(ok, data.message || 'Permintaan tidak dapat diproses. Coba lagi.');
+                if (ok) {
+                    document.getElementById('forgotLangkah2').reset();
+                    document.getElementById('forgotLangkah2').style.display = 'none';
+                    const username = document.querySelector('#loginModal input[name="username"]');
+                    if (username && data.username) username.value = data.username;
+                } else {
+                    kode.focus();
+                }
+            } catch (e) {
+                showForgotAlert(false, 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda lalu coba lagi.');
+            }
+            setSibuk(btn, false, label);
+        }
+
+        function kirimUlangKode() {
+            document.getElementById('forgotWa').value = nomorPemulihan;
+            handleForgot();
+        }
+
+        function gantiNomor() {
+            document.getElementById('forgotLangkah2').reset();
+            document.getElementById('forgotLangkah2').style.display = 'none';
+            document.getElementById('forgotLangkah1').style.display = 'block';
+            document.getElementById('forgotAlert').style.display = 'none';
+            document.getElementById('forgotWa').focus();
+        }
+
+        // Pesan dirender lewat textContent: isinya bisa memuat username, dan
+        // username berasal dari nama yang diketik orang saat mendaftar.
         function showForgotAlert(success, msg) {
             const el = document.getElementById('forgotAlert');
             el.style.display = 'flex';
             el.className = 'alert ' + (success ? 'alert-success' : 'alert-error');
-            el.innerHTML = `<i class="fas fa-${success ? 'check' : 'exclamation'}-circle"></i> ${msg}`;
+            el.setAttribute('role', success ? 'status' : 'alert');
+            el.replaceChildren();
+            const ikon = document.createElement('i');
+            ikon.className = 'fas fa-' + (success ? 'check' : 'exclamation') + '-circle';
+            ikon.setAttribute('aria-hidden', 'true');
+            const teks = document.createElement('span');
+            teks.textContent = msg;
+            el.append(ikon, teks);
         }
 
         // ========== CANVAS AURORA ==========

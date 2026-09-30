@@ -12,7 +12,12 @@ class PengaturanController extends Controller
     public function index()
     {
         $settings = AppSetting::semuaEfektif();
-        return view('admin.pengaturan', compact('settings'));
+        // Status kunci MPWA saja, bukan nilainya: rahasia tidak pernah
+        // dirender ke HTML (lihat AppSetting::KEY_RAHASIA).
+        $statusKunciMpwa = AppSetting::statusRahasia('mpwa_api_key');
+        $hostGateway = \App\Services\MpwaService::hostGateway();
+
+        return view('admin.pengaturan', compact('settings', 'statusKunciMpwa', 'hostGateway'));
     }
 
     /**
@@ -23,13 +28,17 @@ class PengaturanController extends Controller
      * request berarti siapa pun yang bisa membuka halaman ini bisa menaikkan
      * haknya sendiri. `role_permissions` hanya lewat Manajemen Akun (superadmin),
      * `mpwa_templates` & `notif_*` hanya lewat halaman MPWA.
+     *
+     * `mpwa_api_key` sengaja TIDAK di sini: rahasia, ditulis terpisah lewat
+     * simpanRahasia(). `mpwa_api_url` sudah tidak bisa diatur tenant sama
+     * sekali (host gateway dari config + allow-list).
      */
     private const KEY_DIIZINKAN = [
         'nama_aplikasi', 'tagline_aplikasi', 'lokasi_singkat', 'alamat_portal',
         'nama_rw', 'ketua_rw', 'kelurahan', 'kecamatan', 'kabupaten', 'alamat_rw',
         'nama_operator', 'tahun_aktif',
         'tarif_sampah', 'tarif_padaringan', 'garis_kemiskinan',
-        'mpwa_api_key', 'mpwa_sender', 'mpwa_api_url',
+        'mpwa_sender',
     ];
 
     public function update(Request $request)
@@ -54,9 +63,10 @@ class PengaturanController extends Controller
             'tarif_sampah'     => 'nullable|integer|min:0',
             'tarif_padaringan' => 'nullable|integer|min:0',
             'garis_kemiskinan' => 'nullable|integer|min:0',
-            'mpwa_api_key'     => 'nullable|string|max:255',
+            // Kosong = pertahankan kunci yang ada; menghapus lewat checkbox.
+            'mpwa_api_key'     => ['nullable', 'string', 'max:255', 'regex:/^\S+$/'],
+            'mpwa_api_key_hapus' => 'nullable|boolean',
             'mpwa_sender'      => 'nullable|string|max:50',
-            'mpwa_api_url'     => 'nullable|url|max:255',
             // Logo kop: tanpa SVG (bisa memuat skrip = stored XSS, dilayani
             // same-origin dari /storage), maksimal 1 MB.
             // Isi berkas diperiksa ulang oleh PenyimpanBerkas (sniff + kode ulang);
@@ -91,11 +101,20 @@ class PengaturanController extends Controller
             AppSetting::simpan($key, $validated[$key]);
         }
 
+        $aksiKunci = null;
+        if (! empty($validated['mpwa_api_key'])) {
+            AppSetting::simpanRahasia('mpwa_api_key', $validated['mpwa_api_key']);
+            $aksiKunci = 'mpwa_api_key (diganti)';
+        } elseif ($request->boolean('mpwa_api_key_hapus')) {
+            AppSetting::simpanRahasia('mpwa_api_key', null);
+            $aksiKunci = 'mpwa_api_key (dihapus)';
+        }
+
         \App\Services\AuditLogService::log(
             'update', 'pengaturan',
             'Ubah pengaturan: ' . implode(', ', array_filter(array_merge(
                 array_keys(array_intersect_key($validated, array_flip(self::KEY_DIIZINKAN))),
-                [$aksiLogo]
+                [$aksiLogo, $aksiKunci]
             )))
         );
 

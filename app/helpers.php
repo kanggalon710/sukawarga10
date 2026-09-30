@@ -410,3 +410,75 @@ if (!function_exists('normalizeWa')) {
         return $d ?: null;
     }
 }
+
+if (!function_exists('sidikPribadi')) {
+    /**
+     * Sidik ber-kunci APP_KEY untuk data pribadi (NIK, nomor WA) di log dan
+     * kunci pembatas laju.
+     *
+     * Bukan hash polos: ruang NIK dan nomor HP terlalu kecil, hash tanpa kunci
+     * bisa dibongkar dengan mencoba seluruh kemungkinan. Satu sumber, dipakai
+     * PemeriksaNikWarga, pembatas laju publik, dan log pengiriman WA.
+     */
+    function sidikPribadi(string $nilai): string
+    {
+        return substr(hash_hmac('sha256', $nilai, (string) config('app.key')), 0, 12);
+    }
+}
+
+if (!function_exists('samarkanWa')) {
+    /**
+     * Nomor WA yang disamarkan untuk log: 6281*****890.
+     * Cukup untuk mengenali salah ketik tanpa menyimpan nomor utuh.
+     */
+    function samarkanWa($raw): string
+    {
+        $d = normalizeWa($raw) ?? '';
+        if (strlen($d) < 8) {
+            return str_repeat('*', strlen($d));
+        }
+
+        return substr($d, 0, 4).str_repeat('*', strlen($d) - 7).substr($d, -3);
+    }
+}
+
+if (!function_exists('redaksiDiagnostik')) {
+    /**
+     * Bersihkan teks diagnostik (pesan exception, keluaran shell) sebelum
+     * dicatat: path absolut server, kredensial di URL, dan deret angka
+     * panjang (NIK, No.KK, nomor HP) disamarkan.
+     */
+    function redaksiDiagnostik(string $teks): string
+    {
+        $teks = str_replace(base_path(), '[app]', $teks);
+        $teks = preg_replace('#(/home|/var|/usr|/opt|/srv)/[^\s\'"`:]+#', '[path]', $teks) ?? $teks;
+        $teks = preg_replace('#(://)[^/\s:@]+:[^/\s@]+@#', '$1[kredensial]@', $teks) ?? $teks;
+        $teks = preg_replace('/\d{8,}/', '[angka]', $teks) ?? $teks;
+
+        return mb_substr($teks, 0, 2000);
+    }
+}
+
+if (!function_exists('laporGagal')) {
+    /**
+     * Catat kegagalan tak terduga di log server (tersamarkan) dan kembalikan
+     * kode rujukan untuk ditampilkan ke pengguna.
+     *
+     * Pesan exception mentah TIDAK boleh sampai ke browser: pesan database
+     * memuat SQL beserta nilainya (data warga), dan pesan lain bisa memuat
+     * path server. Pengguna cukup menerima kode yang bisa dicocokkan admin
+     * dengan log.
+     */
+    function laporGagal(\Throwable $e, string $konteks): string
+    {
+        $kode = 'ERR-'.strtoupper(\Illuminate\Support\Str::random(6));
+        \Illuminate\Support\Facades\Log::error("{$konteks} gagal", [
+            'rujukan' => $kode,
+            'jenis' => get_class($e),
+            'lokasi' => str_replace(base_path().DIRECTORY_SEPARATOR, '', $e->getFile()).':'.$e->getLine(),
+            'pesan' => redaksiDiagnostik($e->getMessage()),
+        ]);
+
+        return $kode;
+    }
+}

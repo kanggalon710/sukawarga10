@@ -52,32 +52,30 @@ class WebAuthController extends Controller
             'no_wa' => 'nullable|string|max:20',
         ]);
 
-        // NIK/No.KK sudah terdaftar sebagai warga. Sengaja memakai sudahDipakai()
-        // yang tidak menyebut nama siapa pun: halaman ini terbuka tanpa login,
-        // jadi pesannya tidak boleh memberi tahu tamu siapa pemilik sebuah NIK.
-        // Berbeda dari cek lama, ini ikut memeriksa tabel anggota - orang yang
-        // sudah tercatat sebagai anggota keluarga tidak boleh mendaftar lagi
-        // sebagai kepala keluarga baru.
-        if (\App\Services\PemeriksaNikWarga::sudahDipakai($request->nik, $request->no_kk)) {
-            return back()->with('error_register', 'NIK atau No. KK ini sudah terdaftar sebagai warga. Silakan langsung login, atau hubungi pengurus RW bila lupa akun.')
-                         ->withInput();
+        // Jawaban SERAGAM untuk pengajuan baru, NIK yang sudah jadi warga, dan
+        // NIK yang pengajuannya masih menunggu: halaman ini terbuka tanpa
+        // login, dan jawaban yang berbeda dulu bisa dipakai menebak siapa
+        // yang terdaftar di RW ini. Hanya pengajuan yang benar-benar baru
+        // yang dicatat; tanda terima WA tetap dikirim di semua kasus (setelah
+        // respons, lewat defer) supaya WA maupun waktu respons tidak menjadi
+        // saluran samping. sudahDipakai() ikut memeriksa tabel anggota.
+        $sudahAda = \App\Services\PemeriksaNikWarga::sudahDipakai($request->nik, $request->no_kk)
+            || \App\Models\Pendaftaran::where('nik', $request->nik)->where('status', 'pending')->exists();
+
+        if (! $sudahAda) {
+            \App\Models\Pendaftaran::create($request->only(['nik', 'no_kk', 'nama_lengkap', 'rt', 'no_wa']));
         }
 
-        // Check if NIK already has a pending registration
-        if (\App\Models\Pendaftaran::where('nik', $request->nik)->where('status', 'pending')->exists()) {
-            return back()->with('error_register', 'NIK ini sudah memiliki pengajuan yang menunggu verifikasi. Mohon tunggu proses persetujuan.')
-                         ->withInput();
+        $noWa = (string) $request->no_wa;
+        if ($noWa !== '') {
+            $nama = (string) $request->nama_lengkap;
+            $rt = (string) $request->rt;
+            \Illuminate\Support\defer(fn () => MpwaService::notifyPendaftaranDiterima($noWa, $nama, $rt));
         }
 
-        $noWa = $request->no_wa ?? null;
-        \App\Models\Pendaftaran::create($request->only(['nik', 'no_kk', 'nama_lengkap', 'rt', 'no_wa']));
-
-        // Send WA acknowledgement (fire-and-forget)
-        if ($noWa) {
-            MpwaService::notifyPendaftaranDiterima($noWa, $request->nama_lengkap, $request->rt);
-        }
-
-        return back()->with('success_register', 'Pendaftaran berhasil dikirim! Menunggu persetujuan Admin RW.' . ($noWa ? ' Notifikasi WA telah dikirim.' : ''));
+        return back()->with('success_register',
+            'Pengajuan pendaftaran diterima dan akan diperiksa pengurus RW. '
+            .'Bila NIK Anda ternyata sudah terdaftar, silakan masuk atau gunakan menu Lupa Username / PIN.');
     }
 
     public function login(Request $request) {
@@ -218,59 +216,126 @@ class WebAuthController extends Controller
         return redirect()->route('login');
     }
 
+    /** Jawaban publik tunggal untuk permintaan kode, apa pun keadaan nomornya. */
+    private const PESAN_KODE_DIKIRIM = 'Bila nomor tersebut terdaftar, kode pemulihan 6 digit sudah dikirim lewat WhatsApp '
+        .'dan berlaku 10 menit. Bila tidak menerima pesan dalam beberapa menit, hubungi pengurus RW.';
+
+    private const PESAN_KODE_SALAH = 'Kode salah atau sudah kedaluwarsa. Periksa kembali, atau minta kode baru.';
+
     /**
-     * Forgot PIN / Username — find user by WA number, reset PIN, send via WA.
+     * Lupa Username / PIN, langkah 1: kirim kode sekali pakai lewat WA.
+     *
+     * PIN TIDAK diubah di sini. Dulu PIN baru disimpan lebih dulu lalu dikirim;
+     * bila WA gagal, pemilik akun terkunci tanpa tahu PIN-nya, dan nomor tak
+     * dikenal dijawab "tidak ditemukan" sehingga bisa dipakai menebak akun.
      */
     public function forgotCredentials(Request $request) {
         $request->validate([
             'no_wa' => 'required|string|min:9|max:20',
         ]);
 
-        $noWa = preg_replace('/[^0-9]/', '', $request->no_wa);
+        $nomor = normalizeWa($request->no_wa);
+        $user = $nomor ? $this->penggunaDariWa($nomor) : null;
 
-        // Find user by WA number
-        $user = User::where('wa', $noWa)->orWhere('wa', $request->no_wa)->first();
-        if (!$user) {
-            // Also try with leading 0 replaced by 62
-            $altNumber = '62' . ltrim($noWa, '0');
-            $user = User::where('wa', $altNumber)->first();
-            if (!$user) {
-                $altNumber2 = '0' . substr($noWa, 2);
-                $user = User::where('wa', $altNumber2)->first();
+        if ($user) {
+            $kode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $pemulihan = \App\Models\PemulihanPin::terbitkan($user, $kode);
+            $nama = $user->namaLengkap ?? $user->username;
+
+            // Dikirim SETELAH respons: waktu respons tidak boleh membedakan
+            // nomor terdaftar (menunggu gateway) dari yang tidak. Gagal kirim
+            // = kode dihanguskan, PIN tetap yang lama.
+            \Illuminate\Support\defer(function () use ($pemulihan, $nomor, $nama, $kode, $user) {
+                if (! MpwaService::notifyKodePemulihan($nomor, $nama, $kode)) {
+                    $pemulihan->forceFill(['dipakai_pada' => now()])->save();
+                    \Illuminate\Support\Facades\Log::warning('Kode pemulihan PIN gagal dikirim', [
+                        'akun' => $user->id, 'wa' => samarkanWa($nomor),
+                    ]);
+                }
+            });
+
+            AuditLogService::log('pemulihan_pin_diminta', 'auth', 'Kode pemulihan PIN diterbitkan untuk akun #'.$user->id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'langkah' => 'kode',
+            'message' => self::PESAN_KODE_DIKIRIM,
+        ]);
+    }
+
+    /**
+     * Lupa Username / PIN, langkah 2: kode benar -> PIN baru disimpan.
+     * Username baru ditampilkan di sini, setelah pemilik nomor terbukti.
+     */
+    public function verifikasiPemulihan(Request $request) {
+        $data = $request->validate([
+            'no_wa' => 'required|string|min:9|max:20',
+            'kode' => 'required|digits:6',
+            'pin_baru' => 'required|digits:6|confirmed',
+        ], [
+            'kode.digits' => 'Kode terdiri dari 6 angka.',
+            'pin_baru.digits' => 'PIN baru harus 6 angka.',
+            'pin_baru.confirmed' => 'Konfirmasi PIN tidak sama.',
+        ]);
+
+        $nomor = normalizeWa($data['no_wa']);
+        $user = $nomor ? $this->penggunaDariWa($nomor) : null;
+
+        $berhasil = $user !== null && \Illuminate\Support\Facades\DB::transaction(function () use ($user, $data) {
+            $pemulihan = \App\Models\PemulihanPin::where('user_id', $user->id)
+                ->whereNull('dipakai_pada')
+                ->where('expires_at', '>', now())
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $pemulihan || $pemulihan->percobaan >= \App\Models\PemulihanPin::PERCOBAAN_MAKS) {
+                return false;
             }
+            if (! $pemulihan->cocok($user, $data['kode'])) {
+                $pemulihan->increment('percobaan');
+
+                return false;
+            }
+
+            \App\Models\PemulihanPin::hanguskanMilik($user);
+            // forceFill: kolom penguncian tidak semuanya fillable, dan update()
+            // diam-diam membuang yang tidak fillable (aturan AGENTS #1-2).
+            $user->forceFill([
+                'pin' => Hash::make($data['pin_baru']),
+                'failed_login_count' => 0,
+                'locked_until' => null,
+            ])->save();
+
+            return true;
+        });
+
+        if (! $berhasil) {
+            return response()->json(['success' => false, 'message' => self::PESAN_KODE_SALAH], 422);
         }
 
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Nomor WhatsApp tidak ditemukan dalam sistem. Pastikan nomor yang Anda masukkan sesuai dengan yang terdaftar.'
-            ]);
-        }
+        AuditLogService::log('pemulihan_pin_berhasil', 'auth', 'PIN akun #'.$user->id.' diganti lewat kode pemulihan WA');
 
-        // Generate new random PIN
-        $newPin = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $user->update(['pin' => Hash::make($newPin)]);
+        return response()->json([
+            'success' => true,
+            'username' => $user->username,
+            'message' => 'PIN berhasil diganti. Username Anda: '.$user->username.'. Silakan masuk dengan PIN baru.',
+        ]);
+    }
 
-        AuditLogService::log('forgot_pin', 'auth', 'Reset PIN untuk user: ' . $user->username . ' via WA: ' . $noWa);
+    /**
+     * Akun aktif pemilik nomor WA. Nomor lama bisa tersimpan dalam beberapa
+     * format (08.., 8.., 62..), jadi semua bentuknya dicocokkan; id terkecil
+     * menang bila satu nomor dipakai beberapa akun (sama dengan perilaku lama).
+     */
+    private function penggunaDariWa(string $nomor62): ?User
+    {
+        $lokal = substr($nomor62, 2);
 
-        // Send via WA
-        $sent = MpwaService::notifyForgotCredentials(
-            $noWa,
-            $user->namaLengkap ?? $user->username,
-            $user->username,
-            $newPin
-        );
-
-        if ($sent) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Username dan PIN baru telah dikirim ke WhatsApp Anda. Silakan cek pesan masuk.'
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengirim via WhatsApp. Hubungi pengurus RW untuk bantuan.'
-            ]);
-        }
+        return User::whereIn('wa', [$nomor62, '0'.$lokal, $lokal, '+'.$nomor62])
+            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'aktif'))
+            ->orderBy('id')
+            ->first();
     }
 }

@@ -22,8 +22,13 @@ use App\Http\Controllers\ProfilWargaController;
 // Public Routes
 Route::get('/login', [WebAuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [WebAuthController::class, 'login'])->name('login.post');
-Route::post('/login/register', [WebAuthController::class, 'registerWarga'])->name('login.register');
-Route::post('/login/forgot', [WebAuthController::class, 'forgotCredentials'])->name('login.forgot');
+// Pintu publik dibatasi laju per IP DAN per identitas (AppServiceProvider).
+Route::post('/login/register', [WebAuthController::class, 'registerWarga'])
+    ->middleware('throttle:pendaftaran')->name('login.register');
+Route::post('/login/forgot', [WebAuthController::class, 'forgotCredentials'])
+    ->middleware('throttle:pemulihan-pin')->name('login.forgot');
+Route::post('/login/forgot/verifikasi', [WebAuthController::class, 'verifikasiPemulihan'])
+    ->middleware('throttle:pemulihan-verifikasi')->name('login.forgot.verifikasi');
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
 // Beranda per tingkat hirarki: di luar grup auth karena halaman desa PUBLIK;

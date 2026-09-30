@@ -292,7 +292,7 @@ class PemeriksaNikWarga
      */
     private static function sidik(string $nomor): string
     {
-        return substr(hash_hmac('sha256', $nomor, (string) config('app.key')), 0, 12);
+        return sidikPribadi($nomor);
     }
 
     private static function bolehSebutLokasi(): bool

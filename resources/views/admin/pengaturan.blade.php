@@ -85,60 +85,76 @@
 <!-- Tab WhatsApp API -->
 <div class="card" id="panelWa" style="display:none;">
     <div class="card-header"><div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp API</div></div>
-    <div class="card-sub">Konfigurasi koneksi ke gateway <strong>mpwa.jabnet.id</strong> · isi API Key dan nomor pengirim dari akun MPWA Anda.</div>
+    <div class="card-sub">Konfigurasi koneksi ke gateway <strong>{{ $hostGateway }}</strong> · isi API Key dan nomor pengirim dari akun MPWA Anda.</div>
     <div style="display:grid; gap:16px; margin-top:16px;">
 
-        <!-- API Key -->
+        {{-- API Key: TIDAK PERNAH dirender kembali ke HTML. Input kosong =
+             kunci lama dipertahankan; kunci warisan desa/platform hanya
+             ditandai statusnya. --}}
         <div>
-            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">
-                API Key <span style="color:var(--merah);">*</span>
+            <label for="mpwaApiKeyInput" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">
+                API Key @if($statusKunciMpwa === 'kosong')<span style="color:var(--merah-teks);">*</span>@endif
             </label>
-            <input type="text" id="mpwaApiKeyInput" name="mpwa_api_key"
-                   value="{{ $settings['mpwa_api_key'] ?? '' }}"
-                   placeholder="Masukkan API Key WhatsApp Anda"
-                   style="width:100%; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px; font-family:monospace; background:var(--abu);">
-            <span style="font-size:11px; color:var(--text3); margin-top:4px; display:block;">
-                Dapatkan API Key dari menu <strong>Setting</strong> di dashboard <a href="https://mpwa.jabnet.id" target="_blank" style="color:var(--hijau);">mpwa.jabnet.id</a>.
+            <input type="password" id="mpwaApiKeyInput" name="mpwa_api_key" value=""
+                   autocomplete="off" spellcheck="false" aria-describedby="mpwaApiKeyPetunjuk"
+                   @error('mpwa_api_key') aria-invalid="true" @enderror
+                   placeholder="{{ $statusKunciMpwa === 'kosong' ? 'Masukkan API Key WhatsApp Anda' : 'Kosongkan untuk mempertahankan API Key' }}"
+                   style="width:100%; min-height:44px; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:16px; font-family:monospace; background:var(--abu);">
+            <span id="mpwaApiKeyPetunjuk" style="font-size:12px; color:var(--text3); margin-top:4px; display:block;">
+                @if($statusKunciMpwa === 'sendiri')
+                    API Key RW ini sudah tersimpan dan tidak ditampilkan. Isi hanya bila ingin menggantinya.
+                @elseif($statusKunciMpwa === 'warisan')
+                    Memakai kunci bawaan dari desa/platform (tidak ditampilkan). Isi bila RW ini punya API Key sendiri.
+                @else
+                    Belum ada API Key. Dapatkan dari menu <strong>Setting</strong> di dashboard {{ $hostGateway }}.
+                @endif
             </span>
+            @error('mpwa_api_key')<div role="alert" style="font-size:13px; color:var(--merah-teks); margin-top:4px;">API Key tidak boleh memuat spasi.</div>@enderror
+            @if($statusKunciMpwa === 'sendiri')
+                <label style="display:flex; align-items:center; gap:8px; min-height:44px; font-size:13px; cursor:pointer; margin-top:4px;">
+                    <input type="checkbox" name="mpwa_api_key_hapus" value="1"> Hapus API Key milik RW ini
+                </label>
+            @endif
         </div>
 
         <!-- Sender Number -->
         <div>
-            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">
-                Nomor Pengirim (Sender WA) <span style="color:var(--merah);">*</span>
+            <label for="mpwaSenderInput" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">
+                Nomor Pengirim (Sender WA) <span style="color:var(--merah-teks);">*</span>
             </label>
             <input type="text" id="mpwaSenderInput" name="mpwa_sender"
                    value="{{ $settings['mpwa_sender'] ?? '' }}"
-                   placeholder="628xxxxxxxxxx"
-                   style="width:100%; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:14px;">
-            <span style="font-size:11px; color:var(--text3); margin-top:4px; display:block;">
+                   placeholder="628xxxxxxxxxx" inputmode="numeric" aria-describedby="mpwaSenderPetunjuk"
+                   style="width:100%; min-height:44px; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:16px;">
+            <span id="mpwaSenderPetunjuk" style="font-size:12px; color:var(--text3); margin-top:4px; display:block;">
                 Nomor WhatsApp yang terdaftar sebagai <em>device</em> di akun gateway WhatsApp. Format: 628xxxxx (tanpa + atau spasi).
             </span>
         </div>
 
         <!-- Status + Test Connection -->
         <div style="border-top:1px solid var(--abu2); padding-top:16px;">
-            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:10px;">Status & Test Koneksi</label>
+            <span style="display:block; font-size:12px; font-weight:600; margin-bottom:10px;">Status & Test Koneksi</span>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-                @if(!empty($settings['mpwa_api_key']) && !empty($settings['mpwa_sender']))
+                @if($statusKunciMpwa !== 'kosong' && !empty($settings['mpwa_sender']))
                     <span id="mpwaStatusBadge" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:var(--hijau-pale); color:var(--hijau); border-radius:6px; font-size:12px; font-weight:600;">
-                        <i class="fas fa-circle" style="font-size:8px;"></i> Terkonfigurasi
+                        <i class="fas fa-circle" style="font-size:8px;" aria-hidden="true"></i> {{ $statusKunciMpwa === 'sendiri' ? 'Tersimpan' : 'Memakai kunci bawaan' }}
                     </span>
                 @else
-                    <span id="mpwaStatusBadge" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:var(--merah-pale); color:var(--merah); border-radius:6px; font-size:12px; font-weight:600;">
-                        <i class="fas fa-circle" style="font-size:8px;"></i> Belum Dikonfigurasi
+                    <span id="mpwaStatusBadge" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:var(--merah-pale); color:var(--merah-teks); border-radius:6px; font-size:12px; font-weight:600;">
+                        <i class="fas fa-circle" style="font-size:8px;" aria-hidden="true"></i> Belum Dikonfigurasi
                     </span>
                 @endif
             </div>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <input type="text" id="pgTestNumber"
+                <label for="pgTestNumber" class="visually-hidden">Nomor tujuan test WA</label>
+                <input type="tel" id="pgTestNumber" inputmode="numeric"
                        placeholder="Nomor tujuan test WA (misal: 6281234567)"
-                       style="flex:1; min-width:200px; padding:9px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:13px;">
+                       style="flex:1; min-width:0; width:100%; min-height:44px; padding:9px 12px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:16px;">
                 <button type="button" class="btn btn-outline btn-sm" onclick="doMpwaTest()" id="mpwaTestBtn">
                     <i class="fas fa-wifi"></i> Kirim Test WA
                 </button>
             </div>
-            <div id="pgTestResult" style="display:none; margin-top:10px; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px;"></div>
+            <div id="pgTestResult" role="status" aria-live="polite" style="display:none; margin-top:10px; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px;"></div>
         </div>
     </div>
 
@@ -233,6 +249,7 @@ document.getElementById('resetConfirmInput')?.addEventListener('input', function
 document.getElementById('resetModal')?.addEventListener('click', function(e){if(e.target===this)this.style.display='none';});
 
 // MPWA Test from Pengaturan
+const KUNCI_TERSEDIA = @json($statusKunciMpwa !== 'kosong');
 async function doMpwaTest() {
     const testNo  = document.getElementById('pgTestNumber').value.trim();
     const apiKey  = document.getElementById('mpwaApiKeyInput')?.value.trim() || '';
@@ -240,7 +257,9 @@ async function doMpwaTest() {
     const resultEl = document.getElementById('pgTestResult');
     const btn = document.getElementById('mpwaTestBtn');
 
-    if (!apiKey)  return alert('Isi API Key WhatsApp terlebih dahulu.');
+    // API Key yang tersimpan tidak pernah ada di halaman ini; bila input
+    // kosong, server memakai kunci tersimpan/warisan.
+    if (!apiKey && !KUNCI_TERSEDIA) return alert('Isi API Key WhatsApp terlebih dahulu.');
     if (!sender)  return alert('Isi Nomor Pengirim (Sender) terlebih dahulu.');
     if (!testNo)  return alert('Masukkan nomor WA tujuan test.');
 
@@ -249,18 +268,18 @@ async function doMpwaTest() {
     resultEl.style.display = 'block';
     resultEl.style.background = 'var(--abu)';
     resultEl.style.color = 'var(--text2)';
-    resultEl.textContent = '⏳ Menghubungi mpwa.jabnet.id...';
+    resultEl.textContent = '⏳ Menghubungi gateway WhatsApp...';
 
     try {
         const res = await fetch('{{ route("mpwa.test") }}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}'},
-            body: JSON.stringify({ api_key: apiKey, sender, test_number: testNo })
+            body: JSON.stringify(apiKey ? { api_key: apiKey, sender, test_number: testNo } : { sender, test_number: testNo })
         });
         const data = await res.json();
         const ok = data.success;
         resultEl.style.background = ok ? 'var(--hijau-pale)' : 'var(--merah-pale)';
-        resultEl.style.color      = ok ? 'var(--hijau)' : 'var(--merah)';
+        resultEl.style.color      = ok ? 'var(--hijau)' : 'var(--merah-teks)';
         resultEl.textContent = (ok ? '✅ ' : '❌ ') + (data.message || 'Selesai');
 
         // Update status badge
