@@ -40,6 +40,13 @@ class PembukaTenant
         // Kosong = domain induk instalasi ini (TENANT_DOMAIN), bukan tulisan
         // tetap: instalasi kedua (demo) tidak boleh membuat host produksi.
         $basis = strtolower(trim($basis !== '' ? $basis : (string) config('app.domain_tenant')));
+        // Nama host polos, tanpa skema/path: TENANT_DOMAIN kosong atau berformat
+        // salah akan melahirkan hostname yang tidak pernah bisa dibuka.
+        if (! preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/', $basis)) {
+            throw new \InvalidArgumentException(
+                "Domain induk tenant '{$basis}' tidak sah. Isi TENANT_DOMAIN dengan nama host, mis. desa.jabnet.id."
+            );
+        }
 
         // Label jadi bagian hostname: batasi ke huruf/angka/strip ala DNS.
         if (! preg_match(self::POLA_LABEL, $label)) {

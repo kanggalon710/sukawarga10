@@ -37,7 +37,7 @@ class DemoSeederTest extends TestCase
 
     private function modeDemo(): void
     {
-        config(['app.demo' => true, 'app.demo_host' => self::HOST, 'app.demo_pin' => '739184']);
+        config(['app.demo' => true, 'app.demo_host' => self::HOST, 'app.demo_pin' => '739184', 'app.url' => 'https://'.self::HOST]);
     }
 
     private function seedDemo(): string
@@ -66,6 +66,43 @@ class DemoSeederTest extends TestCase
     {
         $this->modeDemo();
         Keluarga::create(['keluarga_id' => 'kk_nyata', 'nama' => 'Warga Nyata', 'alamat' => 'x', 'rt' => '01']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->seedDemo();
+    }
+
+    public function test_menolak_bila_app_url_bukan_host_demo(): void
+    {
+        // .env produksi yang DEMO_MODE-nya tertinggal menyala.
+        $this->modeDemo();
+        config(['app.url' => 'https://desa.jabnet.id']);
+
+        try {
+            $this->seedDemo();
+            $this->fail('Harus menolak APP_URL yang bukan host demo.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('APP_URL', $e->getMessage());
+        }
+        $this->assertTrue(\App\Models\Domain::where('hostname', 'desa.jabnet.id')->exists(), 'domain produksi tidak tersentuh');
+    }
+
+    public function test_menolak_database_yang_pernah_membuka_tenant(): void
+    {
+        $this->modeDemo();
+        \App\Models\Domain::create([
+            'organization_id' => Organization::where('slug', 'rw-10-sukakarya')->value('id'),
+            'hostname' => 'cibunar-rw01.desa.jabnet.id', 'is_primary' => false,
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->seedDemo();
+    }
+
+    public function test_menolak_bila_sudah_ada_akun_lain(): void
+    {
+        $this->modeDemo();
+        User::create(['user_id' => 'u1', 'username' => 'satu', 'namaLengkap' => 'Satu', 'pin' => 'x', 'level' => 'warga']);
+        User::create(['user_id' => 'u2', 'username' => 'dua', 'namaLengkap' => 'Dua', 'pin' => 'x', 'level' => 'warga']);
 
         $this->expectException(\RuntimeException::class);
         $this->seedDemo();
@@ -136,7 +173,7 @@ class DemoSeederTest extends TestCase
 
     public function test_pin_acak_dicetak_sekali_bila_tidak_ada_di_env(): void
     {
-        config(['app.demo' => true, 'app.demo_host' => self::HOST, 'app.demo_pin' => null]);
+        config(['app.demo' => true, 'app.demo_host' => self::HOST, 'app.demo_pin' => null, 'app.url' => 'https://'.self::HOST]);
         $keluaran = $this->seedDemo();
 
         $this->assertMatchesRegularExpression('/PIN akun demo: (\d{6})/', $keluaran);
@@ -181,6 +218,20 @@ class DemoSeederTest extends TestCase
     }
 
     // --- domain induk tenant ------------------------------------------------------------
+
+    public function test_domain_induk_tenant_kosong_atau_berskema_ditolak(): void
+    {
+        foreach (['', 'https://demo.jabnet.id', 'demo jabnet'] as $basis) {
+            config(['app.domain_tenant' => $basis]);
+            try {
+                app(PembukaTenant::class)->buka('Desa Uji', 'ujicoba', 'Kec Uji', ['1'], buatAdmin: false);
+                $this->fail("Basis '{$basis}' seharusnya ditolak.");
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('TENANT_DOMAIN', $e->getMessage());
+            }
+        }
+        $this->assertSame(0, \App\Models\Organization::where('slug', 'like', 'ujicoba%')->count());
+    }
 
     public function test_domain_induk_tenant_dari_konfigurasi(): void
     {

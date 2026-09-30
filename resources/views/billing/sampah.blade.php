@@ -19,7 +19,7 @@
     // Hitung total per bulan
     $totalTerkumpul = 0;
     foreach($keluargas as $k) {
-        $w = isset($iuran[$k->keluarga_id]) ? ($iuran[$k->keluarga_id]->weeks ?? []) : [];
+        $w = isset($iuran[$k->id]) ? ($iuran[$k->id]->weeks ?? []) : [];
         foreach($w as $key => $val) {
             if($val === 'lunas' && str_starts_with($key, $bulanKey)) $totalTerkumpul += $tarifSampah;
         }
@@ -64,7 +64,7 @@
                 <!-- Hidden data store -->
                 <div id="wargaData" style="display:none;">
                     @foreach($keluargas as $k)
-                    <div data-id="{{ $k->keluarga_id }}" data-nama="{{ $k->nama }}" data-rt="{{ $k->rt }}" data-hp="{{ $k->noHP ?? '' }}">{{ $k->nama }} · RT {{ $k->rt }}</div>
+                    <div data-id="{{ $k->id }}" data-nama="{{ $k->nama }}" data-rt="{{ $k->rt }}" data-hp="{{ $k->noHP ?? '' }}">{{ $k->nama }} · RT {{ $k->rt }}</div>
                     @endforeach
                 </div>
             </div>
@@ -163,7 +163,7 @@
                     <tbody>
                         @foreach($keluargas as $idx => $k)
                         @php
-                            $w = isset($iuran[$k->keluarga_id]) ? ($iuran[$k->keluarga_id]->weeks ?? []) : [];
+                            $w = isset($iuran[$k->id]) ? ($iuran[$k->id]->weeks ?? []) : [];
                             $paid = 0;
                             for($m=1;$m<=5;$m++) { if(isset($w[$bulanKey.'-M'.$m]) && $w[$bulanKey.'-M'.$m] === 'lunas') $paid++; }
                         @endphp

@@ -26,7 +26,9 @@ class LaporanController extends Controller
                 ->where('voided', false)
                 ->whereYear('tanggal', $tahun)
                 ->get(['refKeluargaId', 'jumlah']);
-            $allKK = Keluarga::where('status', 'aktif')->get()->keyBy('keluarga_id');
+            // refKeluargaId = keluargas.id NUMERIK (alur bayar), bukan ID bisnis kk_...;
+            // dengan kunci yang salah, tidak satu pun pemasukan masuk ranking RT.
+            $allKK = Keluarga::where('status', 'aktif')->get()->keyBy('id');
             $rtTotals = [];
             foreach ($allMasuk as $trx) {
                 $rt = null;

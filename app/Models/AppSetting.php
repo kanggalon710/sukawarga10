@@ -150,6 +150,24 @@ class AppSetting extends Model
         static::tulisUntukHost($key, Crypt::encryptString($nilai));
     }
 
+    /**
+     * Nilai MILIK organisasi host saja (bukan efektif/warisan), atau null bila
+     * host tidak punya baris sendiri. Untuk keputusan "boleh hapus berkas lama"
+     * dan "tampilkan tombol kembalikan": nilai warisan milik desa/platform
+     * tidak boleh disentuh dari tenant.
+     */
+    public static function milikHost(string $key): ?string
+    {
+        return static::where('key', $key)->where('organization_id', static::orgHost())->value('value');
+    }
+
+    /** Hapus baris milik host sehingga nilai kembali diwarisi (desa/platform/bawaan). */
+    public static function hapusMilikHost(string $key): void
+    {
+        static::where('key', $key)->where('organization_id', static::orgHost())->delete();
+        app(TenantContext::class)->lupakan('app_settings.efektif');
+    }
+
     private static function barisRahasiaTerdekat(string $key): ?self
     {
         $rantai = app(TenantContext::class)->rantaiLeluhurIds();

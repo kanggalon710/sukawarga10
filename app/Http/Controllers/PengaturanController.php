@@ -17,8 +17,15 @@ class PengaturanController extends Controller
         // dirender ke HTML (lihat AppSetting::KEY_RAHASIA).
         $statusKunciMpwa = AppSetting::statusRahasia('mpwa_api_key');
         $hostGateway = \App\Services\MpwaService::hostGateway();
+        // Tombol "Kembalikan" hanya untuk merek MILIK tenant ini; merek warisan
+        // desa/platform diubah di tingkat pemiliknya.
+        $merekSendiri = [
+            'logo' => (string) AppSetting::milikHost('merek_logo') !== '',
+            'ikon' => (string) AppSetting::milikHost('merek_ikon') !== '',
+            'warna' => (string) AppSetting::milikHost('merek_warna_utama') !== '',
+        ];
 
-        return view('admin.pengaturan', compact('settings', 'statusKunciMpwa', 'hostGateway'));
+        return view('admin.pengaturan', compact('settings', 'statusKunciMpwa', 'hostGateway', 'merekSendiri'));
     }
 
     /**
@@ -94,16 +101,34 @@ class PengaturanController extends Controller
             'merek_warna.regex' => 'Warna harus berupa kode hex 6 digit, mis. #0F7A4D.',
         ]);
 
+        // Semua berkas baru disimpan (dan diperiksa) DULU, sebelum satu pun
+        // setting atau berkas lama disentuh. Bila salah satu ditolak (mis. ikon
+        // tidak persegi), berkas baru yang telanjur tersimpan dibuang dan
+        // tidak ada yang berubah: tidak ada simpan sebagian.
+        $penyimpan = app(PenyimpanBerkas::class);
+        $baru = [];
+        try {
+            if ($request->hasFile('kop_logo_file')) {
+                $baru['kop_logo'] = $penyimpan->simpan($request->file('kop_logo_file'), 'logo_kop', 'kop_logo_file');
+            }
+            if ($request->hasFile('merek_logo_file')) {
+                $baru['merek_logo'] = $penyimpan->simpan($request->file('merek_logo_file'), 'logo_aplikasi', 'merek_logo_file');
+            }
+            if ($request->hasFile('merek_ikon_file')) {
+                $baru['merek_ikon'] = $penyimpan->simpanIkon($request->file('merek_ikon_file'), MerekAplikasi::UKURAN_IKON, 'merek_ikon_file');
+            }
+        } catch (\Throwable $e) {
+            $this->buangBerkasBaru($baru);
+            throw $e;
+        }
+
         // Logo kop di luar loop whitelist: nilai kop_logo HANYA hasil store()
         // atau konstanta - klien tidak pernah mengirim path (anti path injection).
         // Tiga status: '' = logo bawaan, 'kop/...' = upload, 'tanpa-logo' = tanpa logo.
         $aksiLogo = null;
-        if ($request->hasFile('kop_logo_file')) {
-            // Disimpan (dan diperiksa) DULU: logo lama hanya dihapus bila logo
-            // baru benar-benar sah, bukan sebelum validasinya.
-            $pathBaru = app(PenyimpanBerkas::class)->simpan($request->file('kop_logo_file'), 'logo_kop', 'kop_logo_file');
+        if (isset($baru['kop_logo'])) {
             $this->hapusFileLogoMilikTenant();
-            AppSetting::simpan('kop_logo', $pathBaru);
+            AppSetting::simpan('kop_logo', $baru['kop_logo']);
             $aksiLogo = 'kop_logo (upload)';
         } elseif (($validated['kop_logo_aksi'] ?? null) === 'hapus') {
             $this->hapusFileLogoMilikTenant();
@@ -115,7 +140,7 @@ class PengaturanController extends Controller
             $aksiLogo = 'kop_logo (reset)';
         }
 
-        $aksiMerek = $this->simpanMerek($request, $validated);
+        $aksiMerek = $this->terapkanMerek($baru, $validated);
 
         foreach (self::KEY_DIIZINKAN as $key) {
             if (!array_key_exists($key, $validated)) continue;
@@ -145,55 +170,48 @@ class PengaturanController extends Controller
 
     /**
      * Hapus file logo kop MILIK organisasi host request (sebelum diganti).
-     *
-     * Sengaja query langsung by-key, pengecualian sadar atas aturan model
-     * AppSetting: yang dibutuhkan baris milik org host, BUKAN nilai efektif -
-     * nilai efektif bisa warisan desa/platform dan file-nya masih dipakai
-     * tenant saudara, jadi tidak boleh ikut terhapus.
+     * Nilai efektif bisa warisan desa/platform yang file-nya masih dipakai
+     * tenant saudara, jadi yang dibaca hanya baris milik host.
      */
     private function hapusFileLogoMilikTenant(): void
     {
         // hapus() hanya bertindak di dalam folder kop/ (cek realpath).
-        app(PenyimpanBerkas::class)->hapus($this->nilaiMilikHost('kop_logo'), 'logo_kop');
+        app(PenyimpanBerkas::class)->hapus(AppSetting::milikHost('kop_logo'), 'logo_kop');
     }
 
     /**
-     * Logo, ikon, dan warna merek (tab Tampilan). Pola sama dengan logo kop:
-     * nilai setting HANYA hasil penyimpanan server atau konstanta, berkas lama
-     * yang dihapus hanya milik organisasi host (warisan desa/platform tetap).
+     * Terapkan logo, ikon, dan warna merek (tab Tampilan) setelah seluruh
+     * berkas baru lolos. "Kembalikan" MENGHAPUS baris milik host, sehingga
+     * merek kembali diwarisi dari desa/platform (atau bawaan repo), bukan
+     * dibekukan jadi bawaan di tingkat RW.
      *
+     * @param  array<string, string>  $baru  path berkas yang baru disimpan
      * @return list<string> ringkasan aksi untuk log audit
      */
-    private function simpanMerek(Request $request, array $validated): array
+    private function terapkanMerek(array $baru, array $validated): array
     {
         $penyimpan = app(PenyimpanBerkas::class);
         $aksi = [];
 
-        if ($request->hasFile('merek_logo_file')) {
-            $baru = $penyimpan->simpan($request->file('merek_logo_file'), 'logo_aplikasi', 'merek_logo_file');
-            $penyimpan->hapus($this->nilaiMilikHost('merek_logo'), 'logo_aplikasi');
-            AppSetting::simpan('merek_logo', $baru);
-            $aksi[] = 'merek_logo (upload)';
-        } elseif (($validated['merek_logo_aksi'] ?? null) === 'reset') {
-            $penyimpan->hapus($this->nilaiMilikHost('merek_logo'), 'logo_aplikasi');
-            AppSetting::simpan('merek_logo', '');
-            $aksi[] = 'merek_logo (reset)';
+        if (isset($baru['merek_logo']) || ($validated['merek_logo_aksi'] ?? null) === 'reset') {
+            $penyimpan->hapus(AppSetting::milikHost('merek_logo'), 'logo_aplikasi');
+            isset($baru['merek_logo'])
+                ? AppSetting::simpan('merek_logo', $baru['merek_logo'])
+                : AppSetting::hapusMilikHost('merek_logo');
+            $aksi[] = 'merek_logo ('.(isset($baru['merek_logo']) ? 'upload' : 'kembalikan').')';
         }
 
-        if ($request->hasFile('merek_ikon_file')) {
-            $baru = $penyimpan->simpanIkon($request->file('merek_ikon_file'), MerekAplikasi::UKURAN_IKON, 'merek_ikon_file');
-            $penyimpan->hapusIkon($this->nilaiMilikHost('merek_ikon'), MerekAplikasi::UKURAN_IKON);
-            AppSetting::simpan('merek_ikon', $baru);
-            $aksi[] = 'merek_ikon (upload)';
-        } elseif (($validated['merek_ikon_aksi'] ?? null) === 'reset') {
-            $penyimpan->hapusIkon($this->nilaiMilikHost('merek_ikon'), MerekAplikasi::UKURAN_IKON);
-            AppSetting::simpan('merek_ikon', '');
-            $aksi[] = 'merek_ikon (reset)';
+        if (isset($baru['merek_ikon']) || ($validated['merek_ikon_aksi'] ?? null) === 'reset') {
+            $penyimpan->hapusIkon(AppSetting::milikHost('merek_ikon'), MerekAplikasi::UKURAN_IKON);
+            isset($baru['merek_ikon'])
+                ? AppSetting::simpan('merek_ikon', $baru['merek_ikon'])
+                : AppSetting::hapusMilikHost('merek_ikon');
+            $aksi[] = 'merek_ikon ('.(isset($baru['merek_ikon']) ? 'upload' : 'kembalikan').')';
         }
 
         if (($validated['merek_warna_aksi'] ?? null) === 'reset') {
-            AppSetting::simpan('merek_warna_utama', '');
-            $aksi[] = 'merek_warna (reset)';
+            AppSetting::hapusMilikHost('merek_warna_utama');
+            $aksi[] = 'merek_warna (kembalikan)';
         } elseif (!empty($validated['merek_warna'])) {
             // Input warna selalu terkirim bersama form; hanya simpan bila
             // benar-benar berbeda, supaya menyimpan tab lain tidak membekukan
@@ -208,13 +226,13 @@ class PengaturanController extends Controller
         return $aksi;
     }
 
-    /** Nilai setting MILIK organisasi host (bukan efektif/warisan), untuk hapus berkas. */
-    private function nilaiMilikHost(string $key): ?string
+    /** Buang berkas yang baru disimpan karena unggahan lain di request yang sama ditolak. */
+    private function buangBerkasBaru(array $baru): void
     {
-        $context = app(\App\Services\TenantContext::class);
-        $orgId = $context->sudahDitetapkan() ? $context->organisasi()?->id : null;
-
-        return AppSetting::where('key', $key)->where('organization_id', $orgId)->value('value');
+        $penyimpan = app(PenyimpanBerkas::class);
+        $penyimpan->hapus($baru['kop_logo'] ?? null, 'logo_kop');
+        $penyimpan->hapus($baru['merek_logo'] ?? null, 'logo_aplikasi');
+        $penyimpan->hapusIkon($baru['merek_ikon'] ?? null, MerekAplikasi::UKURAN_IKON);
     }
 
     /**

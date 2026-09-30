@@ -9,7 +9,7 @@
     $bulanNames = ['JAN'=>'Januari','FEB'=>'Februari','MAR'=>'Maret','APR'=>'April','MEI'=>'Mei','JUN'=>'Juni','JUL'=>'Juli','AGU'=>'Agustus','SEP'=>'September','OKT'=>'Oktober','NOV'=>'November','DES'=>'Desember'];
     $totalTerkumpul = 0;
     foreach($keluargas as $k) {
-        $months = isset($iuran[$k->keluarga_id]) ? ($iuran[$k->keluarga_id]->months ?? []) : [];
+        $months = isset($iuran[$k->id]) ? ($iuran[$k->id]->months ?? []) : [];
         $totalTerkumpul += collect($months)->filter(fn($v) => $v)->count() * $tarifPadaringan;
     }
 @endphp
@@ -50,7 +50,7 @@
                 </div>
                 <div id="wargaData" style="display:none;">
                     @foreach($keluargas as $k)
-                    <div data-id="{{ $k->keluarga_id }}" data-nama="{{ $k->nama }}" data-rt="{{ $k->rt }}" data-hp="{{ $k->noHP ?? '' }}">{{ $k->nama }} · RT {{ $k->rt }}</div>
+                    <div data-id="{{ $k->id }}" data-nama="{{ $k->nama }}" data-rt="{{ $k->rt }}" data-hp="{{ $k->noHP ?? '' }}">{{ $k->nama }} · RT {{ $k->rt }}</div>
                     @endforeach
                 </div>
             </div>
@@ -142,7 +142,7 @@
                     <tbody>
                         @foreach($keluargas as $idx => $k)
                         @php
-                            $months = isset($iuran[$k->keluarga_id]) ? ($iuran[$k->keluarga_id]->months ?? []) : [];
+                            $months = isset($iuran[$k->id]) ? ($iuran[$k->id]->months ?? []) : [];
                             $paidCount = collect($months)->filter(fn($v) => $v)->count();
                         @endphp
                         <tr class="warga-row" data-nama="{{ strtolower($k->nama) }}" data-rt="{{ $k->rt }}">

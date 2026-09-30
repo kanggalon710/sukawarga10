@@ -127,7 +127,7 @@ class MerekAplikasiTest extends TestCase
 
         $this->simpan(['merek_logo_aksi' => 'reset'])->assertSessionHasNoErrors();
 
-        $this->assertSame('', $this->milikRw10('merek_logo'));
+        $this->assertNull($this->milikRw10('merek_logo'), 'kembalikan = hapus baris milik RW');
         Storage::disk('public')->assertMissing($path);
         $this->get('/login')->assertSee('logo-sukawarga.svg', false);
     }
@@ -265,6 +265,54 @@ class MerekAplikasiTest extends TestCase
 
         $this->actingAs($sekretaris)->post('/pengaturan', ['merek_warna' => '#1D4ED8'])->assertForbidden();
         $this->assertNull($this->milikRw10('merek_warna_utama'));
+    }
+
+    public function test_satu_unggahan_ditolak_tidak_menyimpan_sebagian(): void
+    {
+        $this->simpan(['merek_logo_file' => $this->png(300, 100)]);
+        $logoLama = $this->milikRw10('merek_logo');
+        $berkasSebelum = Storage::disk('public')->allFiles();
+
+        // Logo sah + ikon tidak persegi dalam satu kiriman.
+        $this->simpan([
+            'merek_logo_file' => $this->png(400, 100, 'logo-baru.png'),
+            'merek_ikon_file' => $this->png(600, 300, 'ikon.png'),
+            'nama_aplikasi' => 'Tidak Boleh Tersimpan',
+        ])->assertSessionHasErrors('merek_ikon_file');
+
+        $this->assertSame($logoLama, $this->milikRw10('merek_logo'), 'logo lama tidak boleh terganti');
+        $this->assertNull($this->milikRw10('nama_aplikasi'));
+        $this->assertEqualsCanonicalizing($berkasSebelum, Storage::disk('public')->allFiles(), 'tidak ada berkas baru tertinggal, tidak ada berkas lama hilang');
+    }
+
+    public function test_galat_membuka_kembali_tab_tampilan(): void
+    {
+        $this->actingAs($this->admin)->from('/pengaturan')
+            ->post('/pengaturan', ['_active_tab' => 'tampilan', 'merek_warna' => '#FDE047'])
+            ->assertRedirect('/pengaturan');
+
+        $this->actingAs($this->admin)->get('/pengaturan')
+            ->assertSee('"tampilan"', false)
+            ->assertSee('value="#fde047"', false);
+    }
+
+    public function test_kembalikan_memulihkan_merek_warisan_desa(): void
+    {
+        $desaId = Organization::where('slug', 'sukakarya')->value('id');
+        AppSetting::simpanUntuk($desaId, 'merek_warna_utama', '#1D4ED8');
+
+        // Warisan desa: tampil, tapi tombol "Kembalikan" tidak ditawarkan di RW.
+        $html = $this->actingAs($this->admin)->get('/pengaturan')->getContent();
+        $this->assertStringContainsString('--primary:#1D4ED8', $html);
+        $this->assertStringNotContainsString('name="merek_warna_aksi"', $html);
+
+        // RW menimpa, lalu mengembalikan: kembali mengikuti desa, bukan hijau bawaan.
+        $this->simpan(['merek_warna' => '#7C2D12']);
+        $this->assertSame('#7C2D12', $this->milikRw10('merek_warna_utama'));
+        $this->simpan(['merek_warna_aksi' => 'reset']);
+
+        $this->assertNull($this->milikRw10('merek_warna_utama'));
+        $this->assertStringContainsString('--primary:#1D4ED8', $this->get('/login')->getContent());
     }
 
     public function test_tab_tampilan_ada_di_pengaturan(): void

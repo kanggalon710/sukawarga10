@@ -156,10 +156,13 @@ class PenyimpanBerkas
 
         $dasar = $p['folder'].'/'.Str::uuid();
         $tertulis = [];
+        // Didekode SEKALI, lalu tiap ukuran di-resample dari gambar di memori:
+        // mendekode ulang sumber untuk lima ukuran membayar CPU & memori 5x.
+        $asal = $this->dekode($berkas->getRealPath(), $mime, $kolom, $p);
         try {
             foreach ($ukuran as $sisi) {
                 $path = "{$dasar}-{$sisi}.png";
-                $isi = $this->kodeUlang($berkas->getRealPath(), $mime, $sisi, $kolom, $p, 'image/png', true);
+                $isi = $this->enkode($this->kecilkan($asal, $sisi, true, false), 'image/png', $kolom, $p);
                 if (! Storage::disk($p['disk'])->put($path, $isi)) {
                     $this->tolak($kolom, 'Berkas tidak dapat disimpan. Coba lagi.');
                 }
@@ -170,6 +173,8 @@ class PenyimpanBerkas
                 Storage::disk($p['disk'])->delete($path);
             }
             throw $e;
+        } finally {
+            imagedestroy($asal);
         }
 
         return $dasar;
@@ -365,9 +370,23 @@ class PenyimpanBerkas
         return $path;
     }
 
-    private function kodeUlang(string $sumber, string $mime, int $sisiMaks, string $kolom, array $p, ?string $mimeKeluaran = null, bool $ukuranTepat = false): string
+    private function kodeUlang(string $sumber, string $mime, int $sisiMaks, string $kolom, array $p): string
     {
-        $keluaran = $mimeKeluaran ?? $mime;
+        // Diperkecil DULU ke kanvas truecolor transparan, baru diputar: memutar
+        // gambar ukuran penuh menahan dua salinan besar di memori sekaligus.
+        // imagecopyresampled ke kanvas beralfa juga menjaga transparansi PNG
+        // berpalet (logo), yang hilang bila lewat imagescale.
+        $gambar = $this->kecilkan($this->dekode($sumber, $mime, $kolom, $p), $sisiMaks);
+
+        if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
+            $gambar = $this->luruskanOrientasi($gambar, $sumber);
+        }
+
+        return $this->enkode($gambar, $mime, $kolom, $p);
+    }
+
+    private function dekode(string $sumber, string $mime, string $kolom, array $p): \GdImage
+    {
         $gambar = match ($mime) {
             'image/jpeg' => @imagecreatefromjpeg($sumber),
             'image/png' => @imagecreatefrompng($sumber),
@@ -377,23 +396,19 @@ class PenyimpanBerkas
             $this->tolak($kolom, $this->pesanJenis($p));
         }
 
-        // Diperkecil DULU ke kanvas truecolor transparan, baru diputar: memutar
-        // gambar ukuran penuh menahan dua salinan besar di memori sekaligus.
-        // imagecopyresampled ke kanvas beralfa juga menjaga transparansi PNG
-        // berpalet (logo), yang hilang bila lewat imagescale.
-        $gambar = $this->kecilkan($gambar, $sisiMaks, $ukuranTepat);
+        return $gambar;
+    }
 
-        if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
-            $gambar = $this->luruskanOrientasi($gambar, $sumber);
-        }
-
-        if ($keluaran !== 'image/jpeg') {
+    /** Kode ulang ke format keluaran; gambar dimusnahkan setelahnya. */
+    private function enkode(\GdImage $gambar, string $mime, string $kolom, array $p): string
+    {
+        if ($mime !== 'image/jpeg') {
             imagealphablending($gambar, false);
             imagesavealpha($gambar, true);
         }
 
         ob_start();
-        $ok = match ($keluaran) {
+        $ok = match ($mime) {
             'image/jpeg' => imagejpeg($gambar, null, 85),
             'image/png' => imagepng($gambar, null, 6),
             'image/webp' => imagewebp($gambar, null, 85),
@@ -409,7 +424,7 @@ class PenyimpanBerkas
     }
 
     /** Salin ke kanvas truecolor beralfa, diperkecil bila melewati sisi terpanjang. */
-    private function kecilkan(\GdImage $gambar, int $sisiMaks, bool $ukuranTepat = false): \GdImage
+    private function kecilkan(\GdImage $gambar, int $sisiMaks, bool $ukuranTepat = false, bool $musnahkanAsal = true): \GdImage
     {
         $lebar = imagesx($gambar);
         $tinggi = imagesy($gambar);
@@ -426,7 +441,9 @@ class PenyimpanBerkas
         imagesavealpha($kanvas, true);
         imagefill($kanvas, 0, 0, imagecolorallocatealpha($kanvas, 0, 0, 0, 127));
         imagecopyresampled($kanvas, $gambar, 0, 0, 0, 0, $lebarBaru, $tinggiBaru, $lebar, $tinggi);
-        imagedestroy($gambar);
+        if ($musnahkanAsal) {
+            imagedestroy($gambar);
+        }
 
         return $kanvas;
     }

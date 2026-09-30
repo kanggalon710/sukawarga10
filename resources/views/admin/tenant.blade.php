@@ -60,7 +60,7 @@
         </p>
         <p style="margin:8px 0 0; font-size:12.5px; color:var(--text3);">
             Admin desa mengelola akun seluruh RW desanya lewat
-            <code>{{ session('hasilAdminDesa')['username'] ? str_replace('-admin', '', session('hasilAdminDesa')['username']) : '' }}.desa.jabnet.id/akun</code>.
+            <code>{{ session('hasilAdminDesa')['username'] ? str_replace('-admin', '', session('hasilAdminDesa')['username']) : '' }}.{{ config('app.domain_tenant') }}/akun</code>.
         </p>
     @else
         <p style="margin:0; font-size:14px;">Akun <code>{{ session('hasilAdminDesa')['username'] }}</code> sudah ada - PIN tidak diubah.</p>
@@ -95,7 +95,7 @@
     <p style="margin:10px 0 0; font-size:12.5px; color:var(--text3);">
         Langkah berikutnya per alamat: cPanel &gt; Domains &gt; Create a New Domain
         (document root = folder <code>public</code> aplikasi) lalu Run AutoSSL - kecuali
-        sudah terpasang domain wildcard <code>*.desa.jabnet.id</code> ber-SSL.
+        sudah terpasang domain wildcard <code>*.{{ config('app.domain_tenant') }}</code> ber-SSL.
     </p>
 </div>
 @endif

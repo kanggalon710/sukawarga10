@@ -84,8 +84,9 @@ class TransaksiController extends Controller
 
         // Send WA receipt (fire-and-forget — never delays response)
         $noWa = $keluarga->noHP ?? $keluarga->no_wa ?? '';
+        $terkirim = false;
         if ($noWa) {
-            MpwaService::notifyBayarSampah(
+            $terkirim = MpwaService::notifyBayarSampah(
                 $noWa,
                 $keluarga->nama ?? $keluarga->kepala_keluarga ?? '-',
                 $keluarga->rt ?? '-',
@@ -96,7 +97,7 @@ class TransaksiController extends Controller
             );
         }
 
-        return back()->with('success', 'Pembayaran berhasil dicatat. No. Bukti: ' . $noBukti . ' — Rp ' . number_format($totalBayar,0,',','.') . (($noWa) ? ' ✅ Bukti dikirim ke WA warga.' : ''));
+        return back()->with('success', 'Pembayaran berhasil dicatat. No. Bukti: ' . $noBukti . ' — Rp ' . number_format($totalBayar,0,',','.') . $this->keteranganWa($noWa, $terkirim));
     }
 
     // --- IURAN PADARINGAN (PER BULAN) ---
@@ -153,8 +154,9 @@ class TransaksiController extends Controller
 
         // Send WA receipt (fire-and-forget)
         $noWa = $keluarga->noHP ?? $keluarga->no_wa ?? '';
+        $terkirim = false;
         if ($noWa) {
-            MpwaService::notifyBayarPadaringan(
+            $terkirim = MpwaService::notifyBayarPadaringan(
                 $noWa,
                 $keluarga->nama ?? $keluarga->kepala_keluarga ?? '-',
                 $keluarga->rt ?? '-',
@@ -165,7 +167,7 @@ class TransaksiController extends Controller
             );
         }
 
-        return back()->with('success', 'Pembayaran berhasil dicatat. No. Bukti: ' . $noBukti . ' — Rp ' . number_format($totalBayar,0,',','.') . (($noWa) ? ' ✅ Bukti dikirim ke WA warga.' : ''));
+        return back()->with('success', 'Pembayaran berhasil dicatat. No. Bukti: ' . $noBukti . ' — Rp ' . number_format($totalBayar,0,',','.') . $this->keteranganWa($noWa, $terkirim));
     }
 
     // --- VOID / ROLLBACK TRANSAKSI (pemegang transaksi.void) ---
@@ -303,4 +305,18 @@ class TransaksiController extends Controller
     // setorIndex()/sumbanganIndex() dihapus: tidak dirujuk rute mana pun dan
     // mengembalikan view tanpa data. Halaman itu dilayani SetorSampahController
     // dan SumbanganController.
+
+    /**
+     * Keterangan WA di pesan sukses pembayaran, sesuai HASIL pengiriman.
+     * Dulu "Bukti dikirim" tampil asal nomor ada, walau gateway belum diatur
+     * atau menolak, sehingga pengurus mengira warga sudah menerima bukti.
+     */
+    private function keteranganWa(string $noWa, bool $terkirim): string
+    {
+        if ($noWa === '') {
+            return '';
+        }
+
+        return $terkirim ? ' ✅ Bukti dikirim ke WA warga.' : ' ⚠️ Bukti WA tidak terkirim; berikan bukti secara langsung.';
+    }
 }

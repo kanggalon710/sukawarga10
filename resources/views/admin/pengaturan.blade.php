@@ -192,7 +192,7 @@
                            @error('merek_logo_file') aria-invalid="true" @enderror>
                     <p id="merek_logo_petunjuk" class="merek-petunjuk">PNG/JPG/WebP maks 1 MB, latar transparan disarankan. Diperkecil otomatis ke lebar 1024 px.</p>
                     @error('merek_logo_file')<p class="merek-galat" role="alert">{{ $message }}</p>@enderror
-                    @if(\App\Services\MerekAplikasi::adaLogoKustom())
+                    @if($merekSendiri['logo'])
                         <label class="merek-pilihan"><input type="checkbox" name="merek_logo_aksi" value="reset"> Kembalikan logo bawaan</label>
                     @endif
                 </div>
@@ -212,7 +212,7 @@
                            @error('merek_ikon_file') aria-invalid="true" @enderror>
                     <p id="merek_ikon_petunjuk" class="merek-petunjuk">PNG/WebP persegi maks 1 MB, disarankan 512 x 512 px. Ukuran favicon dibuat otomatis.</p>
                     @error('merek_ikon_file')<p class="merek-galat" role="alert">{{ $message }}</p>@enderror
-                    @if(\App\Services\MerekAplikasi::adaIkonKustom())
+                    @if($merekSendiri['ikon'])
                         <label class="merek-pilihan"><input type="checkbox" name="merek_ikon_aksi" value="reset"> Kembalikan ikon bawaan</label>
                     @endif
                 </div>
@@ -223,7 +223,7 @@
         <div class="merek-field">
             <label for="merek_warna" class="merek-label">Warna utama</label>
             <div class="merek-baris">
-                <input type="color" id="merek_warna" name="merek_warna" value="{{ strtolower(warnaMerek()) }}"
+                <input type="color" id="merek_warna" name="merek_warna" value="{{ strtolower(old('merek_warna', warnaMerek())) }}"
                        class="merek-warna" aria-describedby="merek_warna_petunjuk merek_warna_kontras"
                        @error('merek_warna') aria-invalid="true" @enderror>
                 <div class="merek-kontrol">
@@ -233,7 +233,7 @@
                     <p id="merek_warna_petunjuk" class="merek-petunjuk">Dipakai untuk tombol, sidebar, dan aksen. Harus cukup gelap agar teks putih terbaca (kontras minimal 4,5:1).</p>
                     <p id="merek_warna_kontras" class="merek-petunjuk" aria-live="polite"></p>
                     @error('merek_warna')<p class="merek-galat" role="alert">{{ $message }}</p>@enderror
-                    @if(\App\Services\MerekAplikasi::warnaKustom() !== null)
+                    @if($merekSendiri['warna'])
                         <label class="merek-pilihan"><input type="checkbox" name="merek_warna_aksi" value="reset"> Kembalikan warna bawaan</label>
                     @endif
                 </div>
@@ -286,6 +286,10 @@
     </div>
 </div>
 
+@php
+    // Tab yang dibuka setelah galat validasi (redirect back tanpa ?tab).
+    $tabAwal = in_array(old('_active_tab'), ['tarif', 'info', 'wa', 'tampilan', 'data'], true) ? old('_active_tab') : 'tarif';
+@endphp
 <script>
 function showTab(tab) {
     ['tarif','info','wa','tampilan','data'].forEach(t => {
@@ -305,7 +309,9 @@ function showTab(tab) {
 
 // Auto-open tab: from ?tab= URL param (used after redirect from save)
 const _qs = new URLSearchParams(window.location.search);
-const _tab = _qs.get('tab') || 'tarif';
+// Setelah galat validasi (redirect back tanpa ?tab), buka lagi tab yang
+// dikirim supaya pesan galatnya terlihat, bukan tersembunyi di tab lain.
+const _tab = _qs.get('tab') || @json($tabAwal);
 showTab(_tab);
 
 @if(session('success'))
@@ -327,7 +333,9 @@ document.getElementById('resetConfirmInput')?.addEventListener('input', function
 });
 document.getElementById('resetModal')?.addEventListener('click', function(e){if(e.target===this)this.style.display='none';});
 
-// Pratinjau warna merek + perkiraan kontras (server tetap penentu).
+// Pratinjau warna merek + perkiraan kontras (server tetap penentu; ambangnya
+// diambil dari MerekAplikasi::KONTRAS_MIN supaya tidak ada dua sumber aturan).
+const KONTRAS_MIN = @json(\App\Services\MerekAplikasi::KONTRAS_MIN);
 (function () {
     const input = document.getElementById('merek_warna');
     if (!input) return;
@@ -342,8 +350,8 @@ document.getElementById('resetModal')?.addEventListener('click', function(e){if(
         const rasio = 1.05 / (lum(input.value) + 0.05);
         contoh.style.background = input.value;
         info.textContent = 'Kontras dengan teks putih: ' + rasio.toFixed(1).replace('.', ',') + ':1'
-            + (rasio < 4.5 ? ' (terlalu terang, akan ditolak)' : ' (cukup)');
-        info.className = 'merek-petunjuk' + (rasio < 4.5 ? ' merek-galat' : '');
+            + (rasio < KONTRAS_MIN ? ' (terlalu terang, akan ditolak)' : ' (cukup)');
+        info.className = 'merek-petunjuk' + (rasio < KONTRAS_MIN ? ' merek-galat' : '');
     };
     input.addEventListener('input', perbarui);
     perbarui();

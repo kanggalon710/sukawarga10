@@ -54,10 +54,7 @@ class DemoSeeder extends Seeder
         if (! preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/', $host)) {
             throw new \RuntimeException('Isi DEMO_HOST dengan nama host demo, mis. demo-sukawarga.jabnet.id.');
         }
-        // Lintas tenant dengan sadar: yang diperiksa seluruh isi database.
-        if (Keluarga::withoutGlobalScope('organisasi')->exists()) {
-            throw new \RuntimeException('Database sudah berisi data warga. DemoSeeder hanya untuk database demo yang kosong.');
-        }
+        $this->pastikanDatabaseDemoKosong($host);
 
         $pin = trim((string) config('app.demo_pin'));
         $pinDicetak = $pin === '';
@@ -79,6 +76,36 @@ class DemoSeeder extends Seeder
         if ($pinDicetak) {
             $this->command?->warn("PIN akun demo: {$pin}");
             $this->command?->warn('Catat sekarang: PIN ini tidak disimpan di mana pun dan tidak akan ditampilkan lagi.');
+        }
+    }
+
+    /**
+     * Pengaman berlapis: seeder ini MENGHAPUS seluruh pemetaan domain dan
+     * mengganti nama organisasi, jadi harus mustahil berjalan di database
+     * sungguhan walau DEMO_MODE tertinggal menyala di .env yang disalin.
+     */
+    private function pastikanDatabaseDemoKosong(string $host): void
+    {
+        $hostAplikasi = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+        if ($hostAplikasi !== $host) {
+            throw new \RuntimeException("APP_URL ({$hostAplikasi}) tidak sama dengan DEMO_HOST ({$host}). DemoSeeder dibatalkan.");
+        }
+
+        // Host bawaan migrasi di instalasi baru; host lain berarti database ini
+        // pernah dipakai membuka tenant sungguhan.
+        $hostBawaan = ['paru.jabnet.id', 'sukawarga10.jabnet.id', 'localhost', '127.0.0.1', 'desa.jabnet.id', 'sukakarya.desa.jabnet.id'];
+        $hostLain = Domain::whereNotIn('hostname', $hostBawaan)->pluck('hostname');
+        if ($hostLain->isNotEmpty()) {
+            throw new \RuntimeException('Database ini sudah memiliki domain tenant ('.$hostLain->implode(', ').'). DemoSeeder hanya untuk database baru.');
+        }
+
+        // Lintas tenant dengan sadar: yang diperiksa seluruh isi database.
+        $terisi = Keluarga::withoutGlobalScope('organisasi')->exists()
+            || Transaksi::withoutGlobalScope('organisasi')->exists()
+            || Surat::withoutGlobalScope('organisasi')->exists()
+            || User::count() > 1;
+        if ($terisi) {
+            throw new \RuntimeException('Database sudah berisi data (warga, transaksi, surat, atau lebih dari satu akun). DemoSeeder hanya untuk database demo yang kosong.');
         }
     }
 

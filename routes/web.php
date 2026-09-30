@@ -107,11 +107,13 @@ Route::middleware('auth')->group(function () {
     // tetap menjawab 404, bukan 403.
     Route::middleware('fitur:sampah')->group(function () {
         Route::middleware('izin:sampah.lihat')->get('/sampah', [TransaksiController::class, 'sampahIndex'])->name('billing.sampah');
-        Route::middleware('izin:sampah.tagih')->post('/sampah/bayar/{keluarga_id}', [TransaksiController::class, 'sampahStore']);
+        // {keluarga_id} = keluargas.id NUMERIK (iuran_*.keluarga_id juga numerik);
+        // halaman billing dulu mengirim ID bisnis kk_... sehingga selalu 404.
+        Route::middleware('izin:sampah.tagih')->post('/sampah/bayar/{keluarga_id}', [TransaksiController::class, 'sampahStore'])->whereNumber('keluarga_id');
     });
     Route::middleware('fitur:padaringan')->group(function () {
         Route::middleware('izin:padaringan.lihat')->get('/padaringan', [TransaksiController::class, 'padaringanIndex'])->name('billing.padaringan');
-        Route::middleware('izin:padaringan.tagih')->post('/padaringan/bayar/{keluarga_id}', [TransaksiController::class, 'padaringanStore']);
+        Route::middleware('izin:padaringan.tagih')->post('/padaringan/bayar/{keluarga_id}', [TransaksiController::class, 'padaringanStore'])->whereNumber('keluarga_id');
     });
 
     // Laporan — rute per-bagian, deep-linkable & bisa di-bookmark.
