@@ -36,6 +36,10 @@ Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 // supaya route('dashboard') di seluruh aplikasi tidak berubah.
 Route::get('/', App\Http\Controllers\BerandaController::class)->name('dashboard');
 
+// Manifest per tenant (nama, warna, ikon dari Pengaturan > Tampilan). Dulu
+// berkas statis di public/, yang menimpa rute ini bila dikembalikan.
+Route::get('/site.webmanifest', App\Http\Controllers\ManifestController::class)->name('manifest');
+
 // Protected Web Routes
 Route::middleware('auth')->group(function () {
 

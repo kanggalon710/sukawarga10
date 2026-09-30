@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ $desa->name }} - {{ namaAplikasi() }}</title>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('logo-sukawarga-icon.svg') }}">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <meta name="description" content="Daftar portal RW {{ $desa->name }}.">
     <style>
@@ -18,11 +17,12 @@
         .kartu-rw .btn { min-height: 44px; }
         .status-nonaktif { color: var(--merah, #b3382e); font-size: 12.5px; font-weight: 700; }
     </style>
+    @include('partials.kepala-merek')
 </head>
 <body style="background:var(--abu, #f4f6f4);">
 <main class="beranda-wrap">
     <header class="beranda-kop">
-        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="">
+        <img src="{{ ikonAplikasi() }}" alt="">
         <h1>{{ $desa->name }}</h1>
         <p>Warga: buka portal RW masing-masing untuk masuk.</p>
     </header>

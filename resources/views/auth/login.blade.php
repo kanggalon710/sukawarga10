@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* --primary/--primary-dark ditimpa partials.tema-merek bila tenant memilih warna sendiri. */
         :root { --primary: #0F7A4D; --primary-dark: #065F38; --accent: #F59E0B; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -214,6 +215,7 @@
             .modal-card { padding: 28px 22px; }
         }
     </style>
+    @include('partials.kepala-merek')
 </head>
 <body>
     <canvas id="bgCanvas"></canvas>
@@ -229,7 +231,7 @@
         {{-- ── TOP BAR ── --}}
         <div class="topbar">
             <div class="topbar-brand">
-                <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo">
+                <img src="{{ ikonAplikasi() }}" alt="">
                 <span class="name">{{ namaAplikasi() }}</span>
             </div>
             <div class="topbar-actions">
@@ -244,9 +246,9 @@
 
         {{-- ── HERO ── --}}
         <div class="hero">
-            {{-- alt menyebut "Portal Desa" karena teks itu memang tergambar di dalam SVG-nya,
-                 bukan nama instansi yang bisa diganti lewat Pengaturan. --}}
-            <img src="{{ asset('logo-sukawarga.svg') }}" alt="Logo Portal Desa" class="hero-logo" style="width:160px; height:auto; box-shadow:none; background:transparent; border-radius:0; padding:0;">
+            {{-- Logo bawaan memuat tulisan "Portal Desa" di dalam SVG-nya; logo unggahan
+                 tenant (Pengaturan > Tampilan) diberi alt nama aplikasinya. --}}
+            <img src="{{ logoAplikasi() }}" alt="{{ \App\Services\MerekAplikasi::adaLogoKustom() ? 'Logo '.namaAplikasi() : 'Logo Portal Desa' }}" class="hero-logo" style="width:160px; height:auto; box-shadow:none; background:transparent; border-radius:0; padding:0;">
             <h1>{{ namaAplikasi() }}</h1>
             <div class="loc-badge">
                 <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
@@ -660,9 +662,9 @@
         window.addEventListener('resize', resize); resize();
 
         const layers = [
-            { color: '#0F7A4D', alpha: 0.25, freq: 0.005, amp: 120, speed: 0.3, yOff: 0.45 },
+            { color: @json(warnaMerek()), alpha: 0.25, freq: 0.005, amp: 120, speed: 0.3, yOff: 0.45 },
             { color: '#14b8a6', alpha: 0.18, freq: 0.007, amp: 90,  speed: 0.5, yOff: 0.55 },
-            { color: '#065F38', alpha: 0.30, freq: 0.004, amp: 150, speed: 0.2, yOff: 0.65 },
+            { color: @json(\App\Services\MerekAplikasi::palet(warnaMerek())['--primary-active']), alpha: 0.30, freq: 0.004, amp: 150, speed: 0.2, yOff: 0.65 },
             { color: '#047857', alpha: 0.22, freq: 0.006, amp: 100, speed: 0.4, yOff: 0.50 },
         ];
         for(let i = 0; i < 50; i++) {

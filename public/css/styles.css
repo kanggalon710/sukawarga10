@@ -232,7 +232,7 @@ button {
   left: 0;
   top: 0;
   z-index: 100;
-  background: linear-gradient(160deg, var(--hijau) 0%, #065F38 100%);
+  background: linear-gradient(160deg, var(--hijau) 0%, var(--primary-active) 100%);
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
@@ -5168,3 +5168,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .ringkasan-galat { background: var(--merah-pale); color: var(--merah-teks); border: 1px solid var(--merah); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px; font-size: 14px; overflow-wrap: anywhere; }
 .ringkasan-galat ul { margin: 6px 0 0 18px; padding: 0; }
 .ringkasan-galat p { margin: 6px 0 0; font-size: 13px; }
+
+/* ── Pengaturan > Tampilan (merek aplikasi) ─────────────────────────── */
+.merek-grid { display: grid; gap: 20px; margin-top: 16px; }
+.merek-field { min-width: 0; }
+.merek-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text2); }
+.merek-baris { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+.merek-kontrol { flex: 1 1 220px; min-width: 0; }
+.merek-pratinjau { width: 72px; height: 72px; border: 1.5px solid var(--abu2); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; background: var(--abu); }
+.merek-pratinjau--lebar { width: 176px; max-width: 100%; }
+.merek-pratinjau img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.merek-input-berkas { width: 100%; max-width: 100%; font-size: 16px; min-height: 44px; }
+.merek-petunjuk { font-size: 12px; color: var(--text3); margin: 4px 0 0; }
+.merek-galat { font-size: 13px; color: var(--merah-teks); font-weight: 600; margin: 4px 0 0; }
+.merek-pilihan { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; cursor: pointer; }
+.merek-warna { width: 64px; height: 48px; padding: 2px; border: 1.5px solid var(--abu2); border-radius: var(--radius-sm); background: var(--white); cursor: pointer; }
+.merek-contoh { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: var(--radius-sm); color: var(--white); font-weight: 700; font-size: 14px; }
+.merek-simpan { margin-top: 20px; padding-top: 16px; border-top: 1.5px solid var(--abu2); }
+

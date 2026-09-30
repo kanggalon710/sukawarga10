@@ -133,7 +133,8 @@
         @elseif($kopLogo !== '')
             <img src="{{ asset('storage/'.$kopLogo) }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
         @else
-            <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
+            {{-- Bawaan kop = ikon aplikasi (Pengaturan > Tampilan, atau ikon repo). --}}
+            <img src="{{ ikonAplikasi() }}" alt="Logo {{ $rw }} {{ $kel }}" class="kop-logo">
         @endif
         <div class="kop-teks">
             <h2>RUKUN WARGA {{ $rw }}</h2>

@@ -5,13 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>@yield('title', 'Portal Warga') - {{ namaAplikasi() }}</title>
 
-    {{-- Identitas & ikon aplikasi --}}
-    <link rel="icon" type="image/svg+xml" href="{{ asset('logo-sukawarga-icon.svg') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
-    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
-    <meta name="theme-color" content="#0f7a4d">
+    {{-- Identitas aplikasi; ikon, manifest & warna ada di partials.kepala-merek --}}
     <meta name="description" content="Sistem informasi & keuangan komunitas {{ namaAplikasi() }}, {{ lokasiSingkat() }}.">
     <meta property="og:title" content="{{ namaAplikasi() }} · {{ lokasiSingkat() }}">
     <meta property="og:description" content="Data warga, iuran, dan laporan demografi {{ namaAplikasi() }}, {{ lokasiSingkat() }}.">
@@ -29,6 +23,7 @@
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @stack('styles')
+    @include('partials.kepala-merek')
 </head>
 <body>
     <div class="app-layout">
@@ -39,7 +34,7 @@
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo" class="sidebar-logo-icon">
+                    <img src="{{ ikonAplikasi() }}" alt="" class="sidebar-logo-icon">
                     <div>
                         <span class="sidebar-logo-title">{{ namaAplikasi() }}</span>
                         <span class="sidebar-logo-subtitle">Billing System</span>

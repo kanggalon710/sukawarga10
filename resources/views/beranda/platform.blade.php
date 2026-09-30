@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Dashboard Platform - {{ namaAplikasi() }}</title>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('logo-sukawarga-icon.svg') }}">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <style>
         .plat-wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 64px; }
@@ -19,6 +18,7 @@
         .plat-aksi { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
         .plat-aksi .btn { min-height: 44px; }
     </style>
+    @include('partials.kepala-merek')
 </head>
 <body style="background:var(--abu, #f4f6f4);">
 <main class="plat-wrap">

@@ -88,6 +88,30 @@ if (!function_exists('alamatPortal')) {
     }
 }
 
+if (!function_exists('logoAplikasi')) {
+    /** URL logo lebar aplikasi (Pengaturan > Tampilan, bawaan logo repo). */
+    function logoAplikasi(): string
+    {
+        return \App\Services\MerekAplikasi::logo();
+    }
+}
+
+if (!function_exists('ikonAplikasi')) {
+    /** URL ikon aplikasi; tanpa ukuran = ikon tampilan (sidebar). */
+    function ikonAplikasi(?int $ukuran = null): string
+    {
+        return \App\Services\MerekAplikasi::ikon($ukuran);
+    }
+}
+
+if (!function_exists('warnaMerek')) {
+    /** Warna utama merek efektif (#RRGGBB). */
+    function warnaMerek(): string
+    {
+        return \App\Services\MerekAplikasi::warna();
+    }
+}
+
 if (!function_exists('tenantSaatIni')) {
     /**
      * Nama organisasi tenant request untuk label UI:

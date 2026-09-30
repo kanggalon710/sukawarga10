@@ -9,6 +9,7 @@
         <button class="btn btn-primary btn-sm" id="tabTarif" onclick="showTab('tarif')">Tarif & Umum</button>
         <button class="btn btn-outline btn-sm" id="tabInfo" onclick="showTab('info')">Info RW</button>
         <button class="btn btn-outline btn-sm" id="tabWa" onclick="showTab('wa')">WhatsApp API</button>
+        <button class="btn btn-outline btn-sm" id="tabTampilan" onclick="showTab('tampilan')">Tampilan</button>
         <button class="btn btn-outline btn-sm" id="tabData" onclick="showTab('data')">Data & Backup</button>
     </div>
 </div>
@@ -64,7 +65,7 @@
                     @elseif($kopLogo !== '')
                         <img src="{{ asset('storage/'.$kopLogo) }}" alt="Logo kop surat saat ini" style="max-width:100%; max-height:100%; object-fit:contain;">
                     @else
-                        <img src="{{ asset('logo-sukawarga-icon.svg') }}" alt="Logo kop surat bawaan" style="max-width:100%; max-height:100%; object-fit:contain;">
+                        <img src="{{ ikonAplikasi() }}" alt="Logo kop surat bawaan" style="max-width:100%; max-height:100%; object-fit:contain;">
                     @endif
                 </div>
                 <div style="flex:1; min-width:220px;">
@@ -171,6 +172,82 @@
 
 
 
+{{-- Tab Tampilan: logo, ikon, dan warna utama per tenant (MerekAplikasi).
+     Berkas lewat PenyimpanBerkas; warna hanya hex yang lolos kontras. --}}
+<div class="card" id="panelTampilan" style="display:none;">
+    <div class="card-header"><div class="card-title"><i class="fas fa-palette" style="color:var(--primary);" aria-hidden="true"></i> Tampilan & Merek</div></div>
+    <div class="card-sub">Logo, ikon, dan warna utama portal ini. Kosongkan untuk memakai bawaan.</div>
+
+    <div class="merek-grid">
+        {{-- Logo lebar --}}
+        <div class="merek-field">
+            <label for="merek_logo_file" class="merek-label">Logo (halaman masuk)</label>
+            <div class="merek-baris">
+                <div class="merek-pratinjau merek-pratinjau--lebar">
+                    <img src="{{ logoAplikasi() }}" alt="Logo saat ini" width="160" height="64">
+                </div>
+                <div class="merek-kontrol">
+                    <input type="file" id="merek_logo_file" name="merek_logo_file" accept="image/png,image/jpeg,image/webp"
+                           class="merek-input-berkas" aria-describedby="merek_logo_petunjuk"
+                           @error('merek_logo_file') aria-invalid="true" @enderror>
+                    <p id="merek_logo_petunjuk" class="merek-petunjuk">PNG/JPG/WebP maks 1 MB, latar transparan disarankan. Diperkecil otomatis ke lebar 1024 px.</p>
+                    @error('merek_logo_file')<p class="merek-galat" role="alert">{{ $message }}</p>@enderror
+                    @if(\App\Services\MerekAplikasi::adaLogoKustom())
+                        <label class="merek-pilihan"><input type="checkbox" name="merek_logo_aksi" value="reset"> Kembalikan logo bawaan</label>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Ikon persegi --}}
+        <div class="merek-field">
+            <label for="merek_ikon_file" class="merek-label">Ikon (favicon, sidebar, kop bawaan)</label>
+            <div class="merek-baris">
+                <div class="merek-pratinjau">
+                    <img src="{{ ikonAplikasi() }}" alt="Ikon saat ini" width="64" height="64">
+                </div>
+                <div class="merek-kontrol">
+                    <input type="file" id="merek_ikon_file" name="merek_ikon_file" accept="image/png,image/webp"
+                           class="merek-input-berkas" aria-describedby="merek_ikon_petunjuk"
+                           @error('merek_ikon_file') aria-invalid="true" @enderror>
+                    <p id="merek_ikon_petunjuk" class="merek-petunjuk">PNG/WebP persegi maks 1 MB, disarankan 512 x 512 px. Ukuran favicon dibuat otomatis.</p>
+                    @error('merek_ikon_file')<p class="merek-galat" role="alert">{{ $message }}</p>@enderror
+                    @if(\App\Services\MerekAplikasi::adaIkonKustom())
+                        <label class="merek-pilihan"><input type="checkbox" name="merek_ikon_aksi" value="reset"> Kembalikan ikon bawaan</label>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Warna utama --}}
+        <div class="merek-field">
+            <label for="merek_warna" class="merek-label">Warna utama</label>
+            <div class="merek-baris">
+                <input type="color" id="merek_warna" name="merek_warna" value="{{ strtolower(warnaMerek()) }}"
+                       class="merek-warna" aria-describedby="merek_warna_petunjuk merek_warna_kontras"
+                       @error('merek_warna') aria-invalid="true" @enderror>
+                <div class="merek-kontrol">
+                    <div class="merek-contoh" id="merekContoh" style="background:{{ warnaMerek() }};">
+                        <span>Contoh tombol</span>
+                    </div>
+                    <p id="merek_warna_petunjuk" class="merek-petunjuk">Dipakai untuk tombol, sidebar, dan aksen. Harus cukup gelap agar teks putih terbaca (kontras minimal 4,5:1).</p>
+                    <p id="merek_warna_kontras" class="merek-petunjuk" aria-live="polite"></p>
+                    @error('merek_warna')<p class="merek-galat" role="alert">{{ $message }}</p>@enderror
+                    @if(\App\Services\MerekAplikasi::warnaKustom() !== null)
+                        <label class="merek-pilihan"><input type="checkbox" name="merek_warna_aksi" value="reset"> Kembalikan warna bawaan</label>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="merek-simpan">
+        <button type="submit" class="btn btn-primary" onclick="document.getElementById('activeTabInput').value='tampilan';">
+            <i class="fas fa-save" aria-hidden="true"></i> Simpan Tampilan
+        </button>
+    </div>
+</div>
+
 <!-- Tab Data -->
 <div class="card" id="panelData" style="display:none;">
     <div class="card-header"><div class="card-title"><i class="fas fa-database" style="color:var(--hijau);"></i> Data & Backup</div></div>
@@ -211,7 +288,7 @@
 
 <script>
 function showTab(tab) {
-    ['tarif','info','wa','data'].forEach(t => {
+    ['tarif','info','wa','tampilan','data'].forEach(t => {
         const panelId = 'panel' + t.charAt(0).toUpperCase() + t.slice(1);
         const tabId = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
         const panel = document.getElementById(panelId);
@@ -249,6 +326,28 @@ document.getElementById('resetConfirmInput')?.addEventListener('input', function
     document.getElementById('resetHiddenInput').value = isReset ? 'RESET' : '';
 });
 document.getElementById('resetModal')?.addEventListener('click', function(e){if(e.target===this)this.style.display='none';});
+
+// Pratinjau warna merek + perkiraan kontras (server tetap penentu).
+(function () {
+    const input = document.getElementById('merek_warna');
+    if (!input) return;
+    const contoh = document.getElementById('merekContoh');
+    const info = document.getElementById('merek_warna_kontras');
+    const lum = hex => {
+        const c = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255)
+            .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const perbarui = () => {
+        const rasio = 1.05 / (lum(input.value) + 0.05);
+        contoh.style.background = input.value;
+        info.textContent = 'Kontras dengan teks putih: ' + rasio.toFixed(1).replace('.', ',') + ':1'
+            + (rasio < 4.5 ? ' (terlalu terang, akan ditolak)' : ' (cukup)');
+        info.className = 'merek-petunjuk' + (rasio < 4.5 ? ' merek-galat' : '');
+    };
+    input.addEventListener('input', perbarui);
+    perbarui();
+})();
 
 // MPWA Test from Pengaturan
 const KUNCI_TERSEDIA = @json($statusKunciMpwa !== 'kosong');

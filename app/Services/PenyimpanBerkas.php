@@ -47,6 +47,16 @@ class PenyimpanBerkas
             'disk' => 'public', 'folder' => 'kop', 'sisiMaks' => 800,
             'jenis' => ['image/png' => 1, 'image/jpeg' => 1, 'image/webp' => 1],
         ],
+        // Merek aplikasi (Pengaturan > Tampilan): publik karena tampil di
+        // halaman login dan favicon. Tanpa SVG, alasan sama dengan logo kop.
+        'logo_aplikasi' => [
+            'disk' => 'public', 'folder' => 'merek', 'sisiMaks' => 1024,
+            'jenis' => ['image/png' => 1, 'image/jpeg' => 1, 'image/webp' => 1],
+        ],
+        'ikon_aplikasi' => [
+            'disk' => 'public', 'folder' => 'merek', 'sisiMaks' => 512,
+            'jenis' => ['image/png' => 1, 'image/webp' => 1],
+        ],
     ];
 
     /**
@@ -58,6 +68,8 @@ class PenyimpanBerkas
         'dokumen_warga' => [['local', 'dokumen'], ['public', 'dokumen']],
         'foto_warga' => [['local', 'dokumen'], ['public', 'dokumen']],
         'logo_kop' => [],
+        'logo_aplikasi' => [],
+        'ikon_aplikasi' => [],
     ];
 
     /** Kolom berkas pada tabel keluargas beserta profilnya. */
@@ -120,6 +132,62 @@ class PenyimpanBerkas
     public function simpan(UploadedFile $berkas, string $profil, string $kolom): string
     {
         return $this->tulis($berkas, $profil, $this->periksa($berkas, $profil, $kolom), $kolom);
+    }
+
+    /**
+     * Simpan ikon persegi sebagai beberapa PNG berukuran tetap
+     * (`<dasar>-<ukuran>.png`) dari SATU berkas yang sudah diperiksa.
+     * Mengembalikan path dasar tanpa ukuran & ekstensi.
+     *
+     * @param  list<int>  $ukuran
+     *
+     * @throws ValidationException
+     */
+    public function simpanIkon(UploadedFile $berkas, array $ukuran, string $kolom): string
+    {
+        $profil = 'ikon_aplikasi';
+        $p = self::profil($profil);
+        $mime = $this->periksa($berkas, $profil, $kolom);
+
+        [$lebar, $tinggi] = getimagesize($berkas->getRealPath());
+        if (abs($lebar - $tinggi) > max(2, (int) round(0.02 * max($lebar, $tinggi)))) {
+            $this->tolak($kolom, 'Ikon harus persegi (lebar sama dengan tinggi), minimal 512 x 512 piksel disarankan.');
+        }
+
+        $dasar = $p['folder'].'/'.Str::uuid();
+        $tertulis = [];
+        try {
+            foreach ($ukuran as $sisi) {
+                $path = "{$dasar}-{$sisi}.png";
+                $isi = $this->kodeUlang($berkas->getRealPath(), $mime, $sisi, $kolom, $p, 'image/png', true);
+                if (! Storage::disk($p['disk'])->put($path, $isi)) {
+                    $this->tolak($kolom, 'Berkas tidak dapat disimpan. Coba lagi.');
+                }
+                $tertulis[] = $path;
+            }
+        } catch (\Throwable $e) {
+            foreach ($tertulis as $path) {
+                Storage::disk($p['disk'])->delete($path);
+            }
+            throw $e;
+        }
+
+        return $dasar;
+    }
+
+    /**
+     * Hapus seluruh varian ikon hasil simpanIkon().
+     *
+     * @param  list<int>  $ukuran
+     */
+    public function hapusIkon(?string $dasar, array $ukuran): void
+    {
+        if (! is_string($dasar) || $dasar === '') {
+            return;
+        }
+        foreach ($ukuran as $sisi) {
+            $this->hapus("{$dasar}-{$sisi}.png", 'ikon_aplikasi');
+        }
     }
 
     /**
@@ -297,8 +365,9 @@ class PenyimpanBerkas
         return $path;
     }
 
-    private function kodeUlang(string $sumber, string $mime, int $sisiMaks, string $kolom, array $p): string
+    private function kodeUlang(string $sumber, string $mime, int $sisiMaks, string $kolom, array $p, ?string $mimeKeluaran = null, bool $ukuranTepat = false): string
     {
+        $keluaran = $mimeKeluaran ?? $mime;
         $gambar = match ($mime) {
             'image/jpeg' => @imagecreatefromjpeg($sumber),
             'image/png' => @imagecreatefrompng($sumber),
@@ -312,19 +381,19 @@ class PenyimpanBerkas
         // gambar ukuran penuh menahan dua salinan besar di memori sekaligus.
         // imagecopyresampled ke kanvas beralfa juga menjaga transparansi PNG
         // berpalet (logo), yang hilang bila lewat imagescale.
-        $gambar = $this->kecilkan($gambar, $sisiMaks);
+        $gambar = $this->kecilkan($gambar, $sisiMaks, $ukuranTepat);
 
         if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
             $gambar = $this->luruskanOrientasi($gambar, $sumber);
         }
 
-        if ($mime !== 'image/jpeg') {
+        if ($keluaran !== 'image/jpeg') {
             imagealphablending($gambar, false);
             imagesavealpha($gambar, true);
         }
 
         ob_start();
-        $ok = match ($mime) {
+        $ok = match ($keluaran) {
             'image/jpeg' => imagejpeg($gambar, null, 85),
             'image/png' => imagepng($gambar, null, 6),
             'image/webp' => imagewebp($gambar, null, 85),
@@ -340,11 +409,15 @@ class PenyimpanBerkas
     }
 
     /** Salin ke kanvas truecolor beralfa, diperkecil bila melewati sisi terpanjang. */
-    private function kecilkan(\GdImage $gambar, int $sisiMaks): \GdImage
+    private function kecilkan(\GdImage $gambar, int $sisiMaks, bool $ukuranTepat = false): \GdImage
     {
         $lebar = imagesx($gambar);
         $tinggi = imagesy($gambar);
-        $skala = min(1, $sisiMaks / max($lebar, $tinggi));
+        // Ukuran tepat (favicon 16..512) boleh memperbesar; foto dan logo hanya diperkecil.
+        $skala = $sisiMaks / max($lebar, $tinggi);
+        if (! $ukuranTepat) {
+            $skala = min(1, $skala);
+        }
         $lebarBaru = max(1, (int) round($lebar * $skala));
         $tinggiBaru = max(1, (int) round($tinggi * $skala));
 
