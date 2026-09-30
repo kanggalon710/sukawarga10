@@ -72,7 +72,9 @@ class DatabaseSeeder extends Seeder
             'pin' => Hash::make($pin),
             'level' => 'superadmin',
             'status' => 'aktif',
-            'isDefault' => false,
+            // Akun default tidak bisa dinonaktifkan/dihapus lewat Manajemen
+            // Akun: tanpa ini satu-satunya operator platform bisa terhapus.
+            'isDefault' => true,
         ]);
         UserRoleAssignment::create([
             'user_id' => $user->id, 'role_id' => $roleId, 'organization_id' => $platformId,

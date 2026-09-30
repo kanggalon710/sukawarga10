@@ -123,6 +123,29 @@ class PemulihanPinTest extends TestCase
 
     // --- PIN tidak berubah sebelum kode terbukti ------------------------------
 
+    public function test_tidak_ada_tulisan_database_sebelum_respons(): void
+    {
+        // Dengan defer aktif, respons dikirim sebelum pekerjaan apa pun: waktu
+        // respons tidak membedakan nomor terdaftar dari yang tidak.
+        $this->withDefer();
+        $tulisan = [];
+        \Illuminate\Support\Facades\DB::listen(function ($q) use (&$tulisan) {
+            if (preg_match('/^(insert|update|delete)/i', $q->sql)) {
+                $tulisan[] = $q->sql;
+            }
+        });
+
+        $kernel = app(\Illuminate\Contracts\Http\Kernel::class);
+        $request = \Illuminate\Http\Request::create('/login/forgot', 'POST', ['no_wa' => '081234567890'], [], [], [
+            'HTTP_ACCEPT' => 'application/json', 'REMOTE_ADDR' => '10.7.0.1',
+        ]);
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
+        $kernel->handle($request);
+
+        $this->assertSame([], array_values(array_filter($tulisan, fn ($s) => ! str_contains($s, 'cache') && ! str_contains($s, 'sessions'))),
+            'tulisan sebelum respons: '.implode(' | ', $tulisan));
+    }
+
     public function test_minta_kode_tidak_mengubah_pin_dan_tidak_mengirim_pin(): void
     {
         $this->mintaKode()->assertOk();

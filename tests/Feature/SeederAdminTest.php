@@ -62,6 +62,7 @@ class SeederAdminTest extends TestCase
         $this->assertSame('operatorbaru', $admin->username);
         $this->assertTrue(Hash::check('482917', $admin->pin));
         $this->assertSame(1, User::count());
+        $this->assertTrue((bool) $admin->isDefault, 'admin pertama dilindungi dari nonaktif/hapus');
         $this->assertStringNotContainsString('482917', $keluaran, 'PIN dari env tidak perlu dicetak');
     }
 

@@ -222,14 +222,30 @@ class PengaturanController extends Controller
             // dihapus justru baris yang aktif.
             $daftarKk = \App\Models\Keluarga::where('status', '!=', 'pindah')
                 ->orderBy('id')->get(array_merge(['id', 'keluarga_id', 'nama', 'rt'], array_keys(PenyimpanBerkas::KOLOM_KK)));
+            $berkasPindah = [];
             foreach ($daftarKk as $kk) {
                 $kunci = $kk->nama . '|' . $kk->rt;
                 if (isset($terlihat[$kunci])) {
                     $dupIds[] = $kk->id;
                     $dupKeluargaIds[] = $kk->keluarga_id;
-                    $berkasDup[] = $kk;
+                    // Dokumen milik baris duplikat DIPINDAH ke baris yang
+                    // dipertahankan bila di sana kolom itu masih kosong (sering
+                    // justru baris kedua yang sempat diberi scan KK). Hanya yang
+                    // sudah punya padanan yang dihapus.
+                    $dipertahankan = $terlihat[$kunci];
+                    $hapus = [];
+                    foreach (array_keys(PenyimpanBerkas::KOLOM_KK) as $kolom) {
+                        if (!$kk->$kolom) continue;
+                        if (!$dipertahankan->$kolom) {
+                            $dipertahankan->$kolom = $kk->$kolom;
+                            $berkasPindah[$dipertahankan->id][$kolom] = $kk->$kolom;
+                        } else {
+                            $hapus[$kolom] = $kk->$kolom;
+                        }
+                    }
+                    $berkasDup[] = $hapus;
                 } else {
-                    $terlihat[$kunci] = true;
+                    $terlihat[$kunci] = $kk;
                 }
             }
             $countKeluarga = count($dupIds);
@@ -246,6 +262,10 @@ class PengaturanController extends Controller
                 \App\Models\IuranPadaringan::whereIn('keluarga_id', $dupKeluargaIds)->delete();
 
                 \App\Models\Keluarga::whereIn('id', $dupIds)->delete();
+
+                foreach ($berkasPindah as $id => $kolomBerkas) {
+                    \App\Models\Keluarga::whereKey($id)->update($kolomBerkas);
+                }
             }
 
             // Anggota duplikat (keluarga_id + nama sama) di tenant ini.

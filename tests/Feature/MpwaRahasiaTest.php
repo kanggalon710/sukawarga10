@@ -121,6 +121,14 @@ class MpwaRahasiaTest extends TestCase
             ->assertSee('Tersimpan');
     }
 
+    public function test_input_kunci_tidak_diisi_otomatis_pengelola_sandi(): void
+    {
+        $this->actingAs($this->pengurus('ketua_rw'))->get('/pengaturan')
+            ->assertOk()
+            ->assertSee('id="mpwaApiKeyInput" name="mpwa_api_key" value=""', false)
+            ->assertSee('autocomplete="new-password"', false);
+    }
+
     public function test_kunci_tidak_tampil_di_halaman_mpwa(): void
     {
         $this->kunciRw10Sendiri();
@@ -262,6 +270,18 @@ class MpwaRahasiaTest extends TestCase
             $this->assertNull(MpwaService::baseUrl(), $url);
         }
         Http::assertNothingSent();
+    }
+
+    public function test_status_gateway_truthy_tetap_dianggap_terkirim(): void
+    {
+        foreach ([['status' => 1], ['status' => 'success'], ['status' => 'true'], ['id' => 'x']] as $jawaban) {
+            $this->gateway = fn () => Http::response($jawaban);
+            $this->assertTrue(MpwaService::send('081234567890', 'uji'), json_encode($jawaban));
+        }
+        foreach ([['status' => false], ['status' => 'false'], ['status' => 0]] as $jawaban) {
+            $this->gateway = fn () => Http::response($jawaban);
+            $this->assertFalse(MpwaService::send('081234567890', 'uji'), json_encode($jawaban));
+        }
     }
 
     public function test_redirect_dari_gateway_tidak_diikuti(): void

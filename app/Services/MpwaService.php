@@ -168,9 +168,14 @@ class MpwaService
         try {
             $resp = Http::timeout($timeout)->withoutRedirecting()->post($baseUrl.$endpoint, $payload);
             $body = $resp->json();
-            $ok = $resp->successful()
-                && is_array($body)
-                && (($body['status'] ?? false) === true || ($body['status'] ?? null) === 'true' || isset($body['id']));
+            // Semantik lama dipertahankan: status "truthy" (true, 1, "true",
+            // "success") atau ada id pesan = terkirim. Hanya string "false"/"0"
+            // yang kini dibaca sebagai gagal, bukan truthy.
+            $status = is_array($body) ? ($body['status'] ?? false) : false;
+            $statusOk = is_string($status)
+                ? (filter_var($status, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? ($status !== ''))
+                : (bool) $status;
+            $ok = $resp->successful() && is_array($body) && ($statusOk || isset($body['id']));
 
             if (!$ok) {
                 Log::warning('MPWA send failed', [

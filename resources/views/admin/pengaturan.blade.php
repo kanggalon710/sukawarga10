@@ -90,13 +90,15 @@
 
         {{-- API Key: TIDAK PERNAH dirender kembali ke HTML. Input kosong =
              kunci lama dipertahankan; kunci warisan desa/platform hanya
-             ditandai statusnya. --}}
+             ditandai statusnya. autocomplete="new-password" (bukan "off",
+             yang diabaikan browser): tanpa itu pengelola sandi bisa mengisi
+             PIN login ke sini dan menimpa kunci gateway saat form disimpan. --}}
         <div>
             <label for="mpwaApiKeyInput" style="display:block; font-size:12px; font-weight:600; margin-bottom:6px;">
                 API Key @if($statusKunciMpwa === 'kosong')<span style="color:var(--merah-teks);">*</span>@endif
             </label>
             <input type="password" id="mpwaApiKeyInput" name="mpwa_api_key" value=""
-                   autocomplete="off" spellcheck="false" aria-describedby="mpwaApiKeyPetunjuk"
+                   autocomplete="new-password" data-lpignore="true" data-1p-ignore spellcheck="false" aria-describedby="mpwaApiKeyPetunjuk"
                    @error('mpwa_api_key') aria-invalid="true" @enderror
                    placeholder="{{ $statusKunciMpwa === 'kosong' ? 'Masukkan API Key WhatsApp Anda' : 'Isi hanya untuk mengganti' }}"
                    style="width:100%; min-height:44px; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:16px; font-family:monospace; background:var(--abu);">

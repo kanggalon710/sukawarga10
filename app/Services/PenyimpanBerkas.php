@@ -71,8 +71,12 @@ class PenyimpanBerkas
         'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'application/pdf' => 'pdf',
     ];
 
-    /** Batas piksel sebelum didekode: gambar 1x1 MB bisa mengembang jadi GB di memori. */
-    private const PIKSEL_MAKS = 40_000_000;
+    /**
+     * Batas piksel sebelum didekode: GD memakai +-4 byte per piksel, jadi
+     * 25 MP = +-100 MB untuk salinan pertama. Foto ponsel biasa (12 MP) jauh
+     * di bawahnya; mode 48/50 MP ditolak dengan pesan, bukan galat memori.
+     */
+    private const PIKSEL_MAKS = 25_000_000;
 
     /**
      * Periksa lalu simpan semua berkas yang dikirim untuk kolom-kolom ini.
@@ -270,7 +274,7 @@ class PenyimpanBerkas
             $this->tolak($kolom, $this->pesanJenis($p));
         }
         if ($info[0] * $info[1] > self::PIKSEL_MAKS) {
-            $this->tolak($kolom, 'Resolusi gambar terlalu besar.');
+            $this->tolak($kolom, 'Resolusi gambar terlalu besar (maks 25 megapiksel). Perkecil fotonya lalu unggah lagi.');
         }
 
         return $mime;
@@ -304,18 +308,14 @@ class PenyimpanBerkas
             $this->tolak($kolom, $this->pesanJenis($p));
         }
 
+        // Diperkecil DULU ke kanvas truecolor transparan, baru diputar: memutar
+        // gambar ukuran penuh menahan dua salinan besar di memori sekaligus.
+        // imagecopyresampled ke kanvas beralfa juga menjaga transparansi PNG
+        // berpalet (logo), yang hilang bila lewat imagescale.
+        $gambar = $this->kecilkan($gambar, $sisiMaks);
+
         if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
             $gambar = $this->luruskanOrientasi($gambar, $sumber);
-        }
-
-        $lebar = imagesx($gambar);
-        $tinggi = imagesy($gambar);
-        if (max($lebar, $tinggi) > $sisiMaks) {
-            $skala = $sisiMaks / max($lebar, $tinggi);
-            $kecil = imagescale($gambar, max(1, (int) round($lebar * $skala)), max(1, (int) round($tinggi * $skala)));
-            if ($kecil instanceof \GdImage) {
-                $gambar = $kecil;
-            }
         }
 
         if ($mime !== 'image/jpeg') {
@@ -330,12 +330,32 @@ class PenyimpanBerkas
             'image/webp' => imagewebp($gambar, null, 85),
         };
         $hasil = (string) ob_get_clean();
+        imagedestroy($gambar);
 
         if (! $ok || $hasil === '') {
             $this->tolak($kolom, $this->pesanJenis($p));
         }
 
         return $hasil;
+    }
+
+    /** Salin ke kanvas truecolor beralfa, diperkecil bila melewati sisi terpanjang. */
+    private function kecilkan(\GdImage $gambar, int $sisiMaks): \GdImage
+    {
+        $lebar = imagesx($gambar);
+        $tinggi = imagesy($gambar);
+        $skala = min(1, $sisiMaks / max($lebar, $tinggi));
+        $lebarBaru = max(1, (int) round($lebar * $skala));
+        $tinggiBaru = max(1, (int) round($tinggi * $skala));
+
+        $kanvas = imagecreatetruecolor($lebarBaru, $tinggiBaru);
+        imagealphablending($kanvas, false);
+        imagesavealpha($kanvas, true);
+        imagefill($kanvas, 0, 0, imagecolorallocatealpha($kanvas, 0, 0, 0, 127));
+        imagecopyresampled($kanvas, $gambar, 0, 0, 0, 0, $lebarBaru, $tinggiBaru, $lebar, $tinggi);
+        imagedestroy($gambar);
+
+        return $kanvas;
     }
 
     /** Foto ponsel sering tersimpan miring dengan tag Orientation; kode ulang membuang tag itu. */
@@ -349,8 +369,12 @@ class PenyimpanBerkas
             return $gambar;
         }
         $putar = imagerotate($gambar, $sudut, 0);
+        if (! $putar instanceof \GdImage) {
+            return $gambar;
+        }
+        imagedestroy($gambar);
 
-        return $putar instanceof \GdImage ? $putar : $gambar;
+        return $putar;
     }
 
     /**

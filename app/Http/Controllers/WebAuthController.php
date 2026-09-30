@@ -235,26 +235,29 @@ class WebAuthController extends Controller
         ]);
 
         $nomor = normalizeWa($request->no_wa);
-        $user = $nomor ? $this->penggunaDariWa($nomor) : null;
 
-        if ($user) {
-            $kode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $pemulihan = \App\Models\PemulihanPin::terbitkan($user, $kode);
-            $nama = $user->namaLengkap ?? $user->username;
+        // SELURUH pekerjaan (cari akun, terbitkan kode, kirim WA, audit)
+        // berjalan setelah respons: nomor terdaftar dan tidak terdaftar harus
+        // dijawab dalam waktu yang sama, termasuk tulisan database-nya.
+        // Gagal kirim = kode dihanguskan, PIN tetap yang lama.
+        if ($nomor) {
+            \Illuminate\Support\defer(function () use ($nomor) {
+                $user = $this->penggunaDariWa($nomor);
+                if (! $user) {
+                    return;
+                }
 
-            // Dikirim SETELAH respons: waktu respons tidak boleh membedakan
-            // nomor terdaftar (menunggu gateway) dari yang tidak. Gagal kirim
-            // = kode dihanguskan, PIN tetap yang lama.
-            \Illuminate\Support\defer(function () use ($pemulihan, $nomor, $nama, $kode, $user) {
-                if (! MpwaService::notifyKodePemulihan($nomor, $nama, $kode)) {
+                $kode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                $pemulihan = \App\Models\PemulihanPin::terbitkan($user, $kode);
+                AuditLogService::log('pemulihan_pin_diminta', 'auth', 'Kode pemulihan PIN diterbitkan untuk akun #'.$user->id);
+
+                if (! MpwaService::notifyKodePemulihan($nomor, $user->namaLengkap ?? $user->username, $kode)) {
                     $pemulihan->forceFill(['dipakai_pada' => now()])->save();
                     \Illuminate\Support\Facades\Log::warning('Kode pemulihan PIN gagal dikirim', [
                         'akun' => $user->id, 'wa' => samarkanWa($nomor),
                     ]);
                 }
             });
-
-            AuditLogService::log('pemulihan_pin_diminta', 'auth', 'Kode pemulihan PIN diterbitkan untuk akun #'.$user->id);
         }
 
         return response()->json([

@@ -46,12 +46,26 @@ class AmankanDokumenWarga extends Command
 
         $dipindah = 0;
         $gagal = 0;
+        $bentrok = 0;
         foreach (array_keys($dirujuk) as $path) {
             if (! $this->pathDokumen($path) || ! Storage::disk($asal)->exists($path)) {
                 continue;
             }
             if (Storage::disk($tujuan)->exists($path)) {
-                continue; // sudah pernah dipindah; salinan asal dibiarkan untuk diperiksa manual
+                // Salinan di kedua disk (mis. hapus asal gagal di jalan
+                // sebelumnya). Bila isinya identik, salinan asal (yang publik)
+                // dihapus; bila berbeda, dilaporkan dan tidak disentuh.
+                $sama = hash('sha256', (string) Storage::disk($asal)->get($path))
+                    === hash('sha256', (string) Storage::disk($tujuan)->get($path));
+                if (! $sama) {
+                    $bentrok++;
+                } elseif ($jalankan) {
+                    Storage::disk($asal)->delete($path) ? $dipindah++ : $gagal++;
+                } else {
+                    $dipindah++;
+                }
+
+                continue;
             }
             if (! $jalankan) {
                 $dipindah++;
@@ -85,12 +99,15 @@ class AmankanDokumenWarga extends Command
         $mode = $jalankan ? '' : ' (laporan saja, tambahkan --jalankan)';
         $this->info('Berkas dirujuk KK: '.count($dirujuk).$mode);
         $this->info(($jalankan ? 'Dipindah' : 'Akan dipindah')." {$asal} -> {$tujuan}: {$dipindah}");
+        if ($bentrok > 0) {
+            $this->error("Ada di kedua disk dengan isi BERBEDA (tidak disentuh, periksa manual): {$bentrok}");
+        }
         if ($gagal > 0) {
             $this->error("Gagal dipindah (salinan asal tetap ada): {$gagal}");
         }
         $this->info('Berkas yatim: '.$yatim.($jalankan && $this->option('hapus-yatim') ? ' (dihapus)' : ''));
 
-        return $gagal > 0 ? self::FAILURE : self::SUCCESS;
+        return ($gagal + $bentrok) > 0 ? self::FAILURE : self::SUCCESS;
     }
 
     /** Hanya path relatif di folder dokumen yang dikenal; tidak pernah ../ */

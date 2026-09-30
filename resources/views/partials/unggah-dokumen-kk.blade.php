@@ -21,13 +21,19 @@
         <div class="unggah-dok__field">
             <label class="f-label" for="berkas-{{ $kolom }}"><span aria-hidden="true">{{ $ikon }}</span> {{ $label }}</label>
             @if($pathLama && isset($urlDokumen))
+                @php $pdfLama = str_ends_with(strtolower($pathLama), '.pdf'); @endphp
                 <div class="unggah-dok__pratinjau">
-                    @unless(str_ends_with(strtolower($pathLama), '.pdf'))
+                    @if($pdfLama)
+                        {{-- PDF disajikan sebagai unduhan (lihat DokumenWargaController). --}}
+                        <a href="{{ $urlDokumen($kolom) }}" class="btn btn-outline btn-sm" download>
+                            <i class="fas fa-download" aria-hidden="true"></i> Unduh {{ $label }} (PDF)
+                        </a>
+                    @else
                         <img src="{{ $urlDokumen($kolom) }}" alt="{{ $label }} yang tersimpan" width="200" height="150" loading="lazy">
-                    @endunless
-                    <a href="{{ $urlDokumen($kolom) }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
-                        <i class="fas fa-external-link-alt" aria-hidden="true"></i> Lihat {{ $label }}
-                    </a>
+                        <a href="{{ $urlDokumen($kolom) }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i> Lihat {{ $label }}
+                        </a>
+                    @endif
                 </div>
             @endif
             <input type="file" id="berkas-{{ $kolom }}" name="{{ $kolom }}" accept="{{ $accept }}"

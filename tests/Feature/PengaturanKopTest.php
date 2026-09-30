@@ -206,6 +206,28 @@ class PengaturanKopTest extends TestCase
         $this->assertStringNotContainsString('<script>', Storage::disk('public')->get($path));
     }
 
+    public function test_logo_transparan_besar_tetap_transparan_setelah_diperkecil(): void
+    {
+        Storage::fake('public');
+        $logo = imagecreatetruecolor(1200, 400);
+        imagealphablending($logo, false);
+        imagesavealpha($logo, true);
+        imagefill($logo, 0, 0, imagecolorallocatealpha($logo, 0, 0, 0, 127));
+        ob_start();
+        imagepng($logo);
+        $png = ob_get_clean();
+
+        $this->actingAs($this->admin)->post('/pengaturan', [
+            '_active_tab' => 'info',
+            'kop_logo_file' => UploadedFile::fake()->createWithContent('logo.png', $png),
+        ])->assertSessionHasNoErrors();
+
+        $hasil = imagecreatefromstring(Storage::disk('public')->get($this->nilaiKopLogoRw10()));
+        $this->assertSame(800, imagesx($hasil));
+        $alfa = (imagecolorat($hasil, 5, 5) >> 24) & 0x7F;
+        $this->assertSame(127, $alfa, 'latar transparan tidak boleh jadi hitam');
+    }
+
     public function test_aksi_hapus_menyimpan_sentinel_dan_menghapus_file_lama(): void
     {
         Storage::fake('public');

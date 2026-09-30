@@ -197,6 +197,29 @@ class UnggahDokumenWargaTest extends TestCase
         $this->assertLessThanOrEqual(667, $tinggi);
     }
 
+    public function test_gambar_ditampilkan_inline_dengan_sandbox(): void
+    {
+        $gambar = imagecreatetruecolor(10, 10);
+        ob_start();
+        imagepng($gambar);
+        Storage::disk('local')->put('dokumen-warga/rumah.png', ob_get_clean());
+        $kk = $this->kk(['fotoRumah' => 'dokumen-warga/rumah.png']);
+
+        $res = $this->actingAs($this->pengurus())->get("/warga/{$kk->id}/dokumen/fotoRumah");
+
+        $res->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->assertStringStartsWith('inline', $res->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('sandbox', $res->headers->get('Content-Security-Policy'));
+    }
+
+    public function test_resolusi_berlebih_ditolak_dengan_pesan(): void
+    {
+        // Hanya header yang dibaca sebelum dekode, jadi PNG 6000x6000 kosong cukup.
+        $this->actingAs($this->pengurus())->post('/warga', $this->formKk([
+            'fotoRumah' => UploadedFile::fake()->image('besar.png', 6000, 6000),
+        ]))->assertSessionHasErrors('fotoRumah');
+    }
+
     public function test_ganti_berkas_menghapus_berkas_lama(): void
     {
         Storage::disk('local')->put('dokumen-warga/lama.jpg', 'x');
@@ -296,6 +319,22 @@ class UnggahDokumenWargaTest extends TestCase
         Storage::disk('local')->assertMissing('dokumen-warga/dup.jpg');
     }
 
+    public function test_hapus_duplikat_memindahkan_dokumen_ke_baris_yang_dipertahankan(): void
+    {
+        Storage::disk('local')->put('dokumen-warga/scan-dup.jpg', 'x');
+        $asli = $this->kk(['nama' => 'Kembar2']);
+        $this->kk(['nama' => 'Kembar2', 'fotoKK' => 'dokumen-warga/scan-dup.jpg']);
+
+        $admin = $this->pasangPeranSetaraLevel(User::create([
+            'user_id' => 'usr_sa_pd', 'username' => 'sapd', 'namaLengkap' => 'SA',
+            'pin' => Hash::make('123456'), 'level' => 'superadmin', 'status' => 'aktif',
+        ]));
+        $this->actingAs($admin)->post('/pengaturan/remove-duplicates')->assertSessionHas('success');
+
+        $this->assertSame('dokumen-warga/scan-dup.jpg', $asli->fresh()->fotoKK);
+        Storage::disk('local')->assertExists('dokumen-warga/scan-dup.jpg');
+    }
+
     public function test_reset_data_menghapus_berkas_tenant_ini_saja(): void
     {
         Storage::disk('local')->put('dokumen-warga/sini.jpg', 'x');
@@ -324,6 +363,8 @@ class UnggahDokumenWargaTest extends TestCase
 
         $res->assertOk();
         $res->assertHeader('Content-Type', 'application/pdf');
+        // PDF diunduh, bukan inline: penampil PDF tidak jalan di bawah sandbox.
+        $this->assertStringStartsWith('attachment', $res->headers->get('Content-Disposition'));
         $res->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->assertStringContainsString('sandbox', $res->headers->get('Content-Security-Policy'));
         $this->assertStringContainsString('no-store', $res->headers->get('Cache-Control'));
@@ -400,6 +441,42 @@ class UnggahDokumenWargaTest extends TestCase
     }
 
     // --- migrasi penyimpanan & berkas yatim ----------------------------------
+
+    public function test_salinan_ganda_identik_publik_dihapus_berbeda_dilaporkan(): void
+    {
+        Storage::disk('public')->put('dokumen/sama.jpg', 'isi');
+        Storage::disk('local')->put('dokumen/sama.jpg', 'isi');
+        Storage::disk('public')->put('dokumen/beda.jpg', 'versi-a');
+        Storage::disk('local')->put('dokumen/beda.jpg', 'versi-b');
+        $this->kk(['fotoKK' => 'dokumen/sama.jpg', 'fotoRumah' => 'dokumen/beda.jpg']);
+
+        $this->artisan('dokumen:amankan', ['--jalankan' => true])
+            ->expectsOutputToContain('BERBEDA')
+            ->assertFailed();
+
+        Storage::disk('public')->assertMissing('dokumen/sama.jpg');
+        Storage::disk('public')->assertExists('dokumen/beda.jpg');
+        $this->assertSame('versi-b', Storage::disk('local')->get('dokumen/beda.jpg'));
+    }
+
+    public function test_migrasi_memindahkan_dan_rollback_mengembalikan(): void
+    {
+        Storage::disk('public')->put('dokumen/lama.pdf', '%PDF-1.4');
+        $this->kk(['dokumenPBB' => 'dokumen/lama.pdf']);
+        $migrasi = require database_path('migrations/2026_09_30_000003_pindahkan_dokumen_warga_ke_disk_privat.php');
+
+        ob_start();
+        $migrasi->up();
+        ob_end_clean();
+        Storage::disk('public')->assertMissing('dokumen/lama.pdf');
+        Storage::disk('local')->assertExists('dokumen/lama.pdf');
+
+        ob_start();
+        $migrasi->down();
+        ob_end_clean();
+        Storage::disk('public')->assertExists('dokumen/lama.pdf');
+        Storage::disk('local')->assertMissing('dokumen/lama.pdf');
+    }
 
     public function test_perintah_amankan_memindahkan_berkas_warisan_dan_membersihkan_yatim(): void
     {

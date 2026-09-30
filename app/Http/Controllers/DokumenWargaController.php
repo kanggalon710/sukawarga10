@@ -44,10 +44,15 @@ class DokumenWargaController extends Controller
         // pernah ditampilkan inline dengan tipe yang bisa dieksekusi browser.
         $mime = $penyimpan->jenisIsi($path);
         $aman = $penyimpan->jenisDiizinkan($mime, $profil);
+        // Hanya GAMBAR yang tampil inline (di bawah CSP sandbox). PDF diunduh:
+        // penampil PDF Chrome menolak berjalan di dokumen ber-sandbox, dan
+        // tanpa sandbox PDF bisa membawa skripnya sendiri.
+        $inline = $aman && str_starts_with($mime, 'image/');
+        $ekstensi = ['image/jpeg' => '.jpg', 'image/png' => '.png', 'image/webp' => '.webp', 'application/pdf' => '.pdf'][$mime] ?? '';
 
         return response()->file($path, [
             'Content-Type' => $aman ? $mime : 'application/octet-stream',
-            'Content-Disposition' => ($aman ? 'inline' : 'attachment').'; filename="'.$jenis.'"',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$jenis.$ekstensi.'"',
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'",
             'Cache-Control' => 'private, no-store, max-age=0',
