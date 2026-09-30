@@ -19,8 +19,10 @@ Tanpa `.env`, tes masih gagal karena APP_KEY (Phase 2). Pint: berkas baru bersih
 berkas lama tidak bertambah pelanggaran (baseline 34 berkas, Phase 2).
 
 ## Works
-- Phase 1 (P0 keamanan) SELESAI di branch `codex/p0-security-remediation`
-  (basis `f1f3084`, belum di-push, belum di-merge, belum di-deploy):
+- Phase 1 (P0 keamanan) SELESAI dan TER-DEPLOY 2026-09-30: `main`, `dev`, dan
+  `production` = `c5aed80` (termasuk `f1f3084` yang sebelumnya belum di produksi).
+  Server `jabnet@103.194.47.165:~/repositories/desa-manage`, backup sebelum
+  deploy di `~/cadangan/p0-2026-09-30/` (db.sql.gz, env.bak, commit-sebelum.txt):
   unggahan lewat `PenyimpanBerkas` (sniff isi, batas ukuran, kode ulang GD,
   disk privat, `DokumenWargaController` berizin); lupa PIN berkode sekali pakai
   + pembatas laju + jawaban seragam; kunci MPWA terenkripsi, tidak pernah ke
@@ -32,15 +34,17 @@ berkas lama tidak bertambah pelanggaran (baseline 34 berkas, Phase 2).
 - Matriks kapabilitas, feature flag, scope tenant, AppSetting bertingkat tetap.
 
 ## In progress
-Menunggu pemilik: review PR dari branch di atas. Langkah berikutnya setelah
-disetujui: push branch + buka PR (butuh izin eksplisit), lalu Phase 2
+Phase 1 selesai dan aktif di produksi. Berikutnya Phase 2
 (`.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md`): CI, APP_KEY tes, upgrade
 Laravel >= 12.69 + Flysystem, Larastan, rapikan 34 berkas Pint.
 
 ## Blocked, needs a human
-- Izin push branch + buat PR; merge; deploy (ikuti `DEPLOY.md` bagian
-  "Rilis P0 keamanan", termasuk php.ini dan `APP_DEBUG=false`).
-- Rotasi kunci MPWA dan PIN lama SETELAH rilis P0 aktif di produksi.
+- Rotasi PIN akun lama yang pernah tercatat di repo publik (`admin`, `jabnet`,
+  akun dari `auth.js` lama) - rilis P0 sudah aktif, rotasi aman dilakukan.
+- Produksi TIDAK punya kunci MPWA di database (migrasi mengenkripsi 0 baris):
+  WA tidak terkirim sampai kunci diisi lewat Pengaturan > WhatsApp API.
+- Uji manual oleh pengurus: unggah dokumen KK dan alur lupa PIN end-to-end
+  (butuh kunci MPWA dan akun nyata; agen tidak memakai kredensial produksi).
 - Keputusan pembersihan riwayat git publik (data warga + PIN lama).
 - Kebijakan SEO halaman publik desa (robots saat ini memblokir semua).
 

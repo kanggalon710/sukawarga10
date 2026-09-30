@@ -2,6 +2,25 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-09-30 - Rilis Phase 1 P0 ke main, dev, dan produksi
+**Agen:** claude-opus-5.5 (Claude Code) | **Status:** selesai (atas perintah eksplisit pemilik)
+**Kenapa:** Pemilik meminta push ke main dan dev lalu pull di produksi.
+**Perubahan:** `main`/`dev` fast-forward `f1f3084 -> c5aed80`; `production`
+`c693a6e -> c5aed80`. Di server (`~/repositories/desa-manage`): backup DB
+(30 tabel, dump lengkap) + `.env` ke `~/cadangan/p0-2026-09-30/` (mode 600),
+`git pull --ff-only`, `migrate --force` (5 migrasi: dua dari `f1f3084` + tiga P0),
+`config/route/view:cache`. composer.lock tidak berubah, jadi tanpa composer install.
+**Verifikasi:** `https://desa.jabnet.id/login` 200 dan memuat langkah 2 lupa PIN;
+POST `/login/forgot` nomor tak terdaftar -> jawaban seragam; `/storage/dokumen/...`
+404; `/warga/1/dokumen/fotoKK` tamu di host RW -> 302 ke login; host desa & RW 200;
+laravel.log nol ERROR sejak deploy.
+**Temuan produksi:** tidak ada dokumen warga di disk publik (0 berkas dipindah) dan
+tidak ada `mpwa_api_key`/`mpwa_api_url` di app_settings (0 baris), jadi dua
+migrasi data itu no-op. `.htaccess` lokal server tetap (tidak disentuh).
+`post_max_size` web 20M (cukup kecuali tiga berkas maksimum sekaligus).
+**Rollback:** lihat DEPLOY.md "Rilis P0 keamanan"; commit sebelum di
+`~/cadangan/p0-2026-09-30/commit-sebelum.txt`.
+
 ## 2026-09-30 - Phase 1: remediasi keamanan P0
 **Agen:** claude-opus-5.5 (Claude Code) | **Status:** selesai di branch, belum di-push/merge/deploy
 **Kenapa:** Audit menemukan lima jalur berisiko tinggi di sistem yang memegang uang

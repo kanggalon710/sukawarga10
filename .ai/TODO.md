@@ -22,8 +22,7 @@ diverifikasi dengan riwayat git baru dan dataset kosong.
 - [x] Pisahkan rahasia MPWA dari setting yang terbaca tenant + allow-list host
       gateway. SELESAI di branch P0, belum deploy.
 - [x] Seeder membaca kredensial awal dari environment (SELESAI di branch P0).
-- [ ] Rotasi API key MPWA serta PIN akun produksi/default - SETELAH rilis P0 aktif
-      (butuh pemilik; lihat DEPLOY.md "Rilis P0 keamanan" langkah 7).
+- [ ] Rotasi PIN akun produksi/default (rilis P0 sudah aktif; butuh pemilik).
 - [ ] Putuskan pembersihan riwayat git publik yang pernah memuat data warga. Setelah
       itu rotasi semua rahasia yang mungkin pernah terekspos dan koordinasikan
       force-push dengan semua clone/deploy.
@@ -32,9 +31,10 @@ diverifikasi dengan riwayat git baru dan dataset kosong.
 
 ### Tindak lanjut dari Phase 1 (2026-09-30)
 
-- [ ] Minta izin pemilik: push `codex/p0-security-remediation` dan buka PR ke `main`.
-- [ ] Saat deploy P0: `APP_DEBUG=false`, php.ini `upload_max_filesize>=8M`,
-      `post_max_size>=26M`, `memory_limit>=256M`; baca keluaran migrasi dokumen.
+- [x] Push ke main/dev dan deploy produksi (2026-09-30, `c5aed80`; backup di
+      `~/cadangan/p0-2026-09-30/`). APP_DEBUG=false sudah; php.ini web 20M/20M/512M.
+- [ ] Isi kunci MPWA di Pengaturan > WhatsApp API (produksi belum punya kunci,
+      WA tidak terkirim sampai diisi).
 - [ ] Broadcast WA masih menerima `sender` bebas dari daftar empat nomor yang
       ditulis tetap di `MpwaController::index`; batasi ke sender tenant.
 - [ ] Persetujuan pendaftaran masih mengirim PIN awal lewat WA (bukan pintu

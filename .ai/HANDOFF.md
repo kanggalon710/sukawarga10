@@ -16,8 +16,8 @@ riwayat kronologis; baca kalau butuh konteks sejarah, bukan untuk orientasi.
 
 | | |
 |---|---|
-| Commit | `main` = `f1f3084`; Phase 1 P0 ada di branch lokal `codex/p0-security-remediation` (belum di-push) |
-| Branch | `main` dan `dev` sama; `production` tertinggal satu commit |
+| Commit | `c5aed80` (Phase 1 P0) |
+| Branch | `main`, `dev`, `production` sama; produksi ter-deploy 2026-09-30 |
 | Remote | `git@github.com:kanggalon710/sukawarga10.git` (SSH, bukan HTTPS) |
 | Tes | Branch P0: 493 lulus, 1947 assertion (dengan `.env`); tanpa `.env` masih gagal APP_KEY |
 | Working tree | satu gambar milik pengguna tidak terlacak; kode aplikasi bersih |
