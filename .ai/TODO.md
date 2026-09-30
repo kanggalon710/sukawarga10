@@ -45,6 +45,16 @@ diverifikasi dengan riwayat git baru dan dataset kosong.
 - [ ] `ringkasan-galat`/`unggah-dokumen-kk`: modal login/daftar lain masih 14px
       dan tombol tutup 32px (hanya modal lupa PIN yang sudah diperbaiki).
 
+### Tindak lanjut instalasi demo (2026-09-30)
+
+- [ ] Unggah logo/ikon & pilih warna demo asli di Pengaturan > Tampilan demo
+      (sekarang placeholder: nama "Portal Warga Demo", logo/warna bawaan).
+- [ ] Pesan sukses bayar iuran masih memakai `number_format` manual (aturan AGENTS #5:
+      pakai `formatRupiah()`); belum diubah karena di luar lingkup.
+- [ ] Buat tenant baru di demo butuh wildcard DNS + sertifikat `*.demo-sukawarga.jabnet.id`.
+- [ ] Iuran lama berkunci ID bisnis `kk_...` (bila ada) tidak terlihat karena scope
+      tenant iuran memakai id numerik; produksi saat ini 0 baris iuran, jadi aman.
+
 ### P1 - keandalan, performa, dan operasi
 
 - [ ] Buat GitHub Actions untuk Composer validate/audit, test dengan APP_KEY dan

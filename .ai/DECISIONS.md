@@ -3,6 +3,22 @@
 Keputusan arsitektur: konteks, opsi, pilihan, alasan. Terbaru di atas.
 Jangan menulis ulang entri lama; tambahkan entri koreksi.
 
+## 2026-09-30 - Demo = instalasi kedua dari repo yang sama, bukan repo baru
+**Konteks:** Salinan dengan domain/data/merek sendiri di akun cPanel yang sama.
+**Opsi:** (a) tenant di instalasi produksi; (b) instalasi kedua dari repo sama;
+(c) repo privat baru dari snapshot.
+**Pilihan (disetujui pemilik):** (b). Satu kode, perbaikan sampai ke keduanya lewat
+branch `production`; isolasi DB/APP_KEY/cookie/storage penuh. Merek dipindah ke
+setting (Pengaturan > Tampilan) supaya tidak ada berkas repo yang disunting per
+instalasi. `DEMO_MODE` mematikan WA total karena demo terbuka untuk dicoba siapa saja.
+Opsi (c) tetap jalur untuk produk yang dijual/dikelola terpisah (lihat rencana audit).
+
+## 2026-09-30 - Warna merek hanya satu hex, turunannya dihitung server
+Tenant memilih satu warna utama; ditolak bila teks putih di atasnya < 4,5:1. Server
+menurunkan hover/active/soft dan menulis HANYA custom property di
+`MerekAplikasi::TOKEN_WARNA`. Tidak pernah menerima CSS bebas. "Kembalikan" menghapus
+baris milik tenant (kembali mewarisi desa/platform), bukan menyimpan '' yang membekukan.
+
 ## 2026-09-30 - P0: service unggahan + controller penyaji, di luar pola "controller gemuk"
 **Konteks:** Tiga controller menyimpan dokumen warga masing-masing ke disk publik.
 **Pilihan:** `App\Services\PenyimpanBerkas` (satu pipeline: sniff, batas, kode

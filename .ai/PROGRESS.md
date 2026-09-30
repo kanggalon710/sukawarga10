@@ -2,6 +2,32 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-09-30 - Instalasi demo demo-sukawarga.jabnet.id + merek per tenant
+**Agen:** claude-opus-5.5 (Claude Code) | **Status:** selesai, ter-deploy
+**Kenapa:** Pemilik ingin salinan aplikasi dengan domain, data, logo, dan warna
+sendiri di akun cPanel yang sama. Diputuskan: repo SAMA, instalasi kedua (bukan
+repo baru), data fiktif, merek bisa diganti dari website, aset asli menyusul.
+**Perubahan (kode, `6442717..90ca47d`):** `MerekAplikasi` + tab Pengaturan >
+Tampilan (logo/ikon lewat `PenyimpanBerkas`, warna hex berkontras, manifest jadi rute);
+`DEMO_MODE` (pita + WA mati), `DemoSeeder` berpengaman berlapis, `TENANT_DOMAIN`.
+Review independen (10 temuan) menemukan akar bug uang yang lebih besar: halaman
+Iuran Sampah/Padaringan mengirim ID bisnis `kk_...` ke rute yang mencari id numerik,
+jadi SETIAP pembayaran lewat halaman 404 (produksi: 71 KK, 0 transaksi iuran seumur
+hidup). Diperbaiki bersama Dashboard (tunggakan selalu 100%), Laporan (ranking RT
+kosong), dan pesan sukses yang mengaku WA terkirim walau gagal.
+**Server:** backup produksi `~/cadangan/merek-2026-09-30/`; `production` -> `90ca47d`
+di `desa-manage` (tanpa migrasi baru). Demo: DNS A via API PowerDNS (ns1/ns2 serial
+2026093001), clone `production` ke `~/repositories/demo-sukawarga`, composer
+--no-dev, DB `jabnet_demosukawarga` + user `jabnet_demosuk` (sandi acak dibuat di
+server, langsung ke .env 600), .env demo (APP_KEY baru, cookie/cache/session sendiri),
+subdomain cPanel docroot `.../public`, AutoSSL (Let's Encrypt s.d. 2026-12-29),
+migrate, admin `chief0012` + DemoSeeder (PIN dicetak sekali ke pemilik).
+**Verifikasi:** `composer test` 533/2289; tiap tes baru merah sebelum perbaikan;
+Pint baru bersih/lama tak bertambah; browser lokal 93/93 + bayar iuran lewat UI
+Chrome; produksi login 360/768/1280 bersih & warna/logo tetap bawaan; demo live
+50/50 (1 cek cookie terlalu ketat, cookie `.demo-sukawarga.jabnet.id` memang benar);
+DB demo hanya kenal host demo, 25 KK semuanya [Demo]; produksi tetap 71 KK/0 trx/7 domain.
+
 ## 2026-09-30 - Rilis Phase 1 P0 ke main, dev, dan produksi
 **Agen:** claude-opus-5.5 (Claude Code) | **Status:** selesai (atas perintah eksplisit pemilik)
 **Kenapa:** Pemilik meminta push ke main dan dev lalu pull di produksi.

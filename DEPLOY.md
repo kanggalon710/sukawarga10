@@ -76,6 +76,43 @@ sebelumnya dan bangun ulang cache. Rollback mengembalikan dokumen ke disk publik
 dipulihkan (kode lama jatuh ke `https://mpwa.jabnet.id`). Kode pemulihan PIN
 yang sedang berjalan ikut hilang (tidak berbahaya).
 
+## Instalasi demo `demo-sukawarga.jabnet.id` (sejak 2026-09-30)
+
+Instalasi KEDUA dari repo yang sama, di akun cPanel yang sama:
+
+| | Produksi | Demo |
+|---|---|---|
+| Direktori | `~/repositories/desa-manage` | `~/repositories/demo-sukawarga` |
+| Branch | `production` | `production` |
+| Database | `jabnet_desa_manage` | `jabnet_demosukawarga` (user `jabnet_demosuk`) |
+| `.env` penting | - | `DEMO_MODE=true`, `DEMO_HOST`, `TENANT_DOMAIN=demo-sukawarga.jabnet.id`, `SESSION_COOKIE=demo_sukawarga_session`, `SESSION_DOMAIN`, `CACHE_PREFIX=demo_sukawarga_` |
+| Data | warga nyata | fiktif dari `DemoSeeder` ([Demo], NIK 9999..., HP 62800000...) |
+| WhatsApp | aktif | DIMATIKAN oleh `DEMO_MODE` (tidak ada pesan keluar walau kunci diisi) |
+
+Merek demo (logo, ikon, warna, nama) diatur dari dalam demo: Pengaturan > Tampilan
+dan Tarif & Umum. Tidak ada berkas repo yang perlu diubah.
+
+**Memperbarui demo:** login admin platform demo -> Pembaruan Sistem, atau SSH:
+```bash
+cd ~/repositories/demo-sukawarga && git pull --ff-only origin production
+~/bin/php artisan migrate --force && ~/bin/php artisan config:cache && ~/bin/php artisan route:cache && ~/bin/php artisan view:cache
+```
+Demo dan produksi mengikuti branch yang sama tapi diperbarui SENDIRI-SENDIRI.
+
+**JANGAN** menjalankan `DemoSeeder` lagi (ditolak bila database sudah terisi) dan
+jangan menyalin `.env` demo ke produksi atau sebaliknya.
+
+**Membuat ulang demo dari nol:** `uapi Mysql delete_database name=jabnet_demosukawarga`,
+buat lagi (lihat PROGRESS 2026-09-30), `migrate --force`,
+`ADMIN_USERNAME=<username> db:seed --force`, lalu `db:seed --class=DemoSeeder --force`.
+
+**Menghapus demo:** (1) cPanel > Domains: hapus `demo-sukawarga.jabnet.id` (UAPI akun
+ini tidak punya penghapus subdomain); (2) `uapi Mysql delete_database
+name=jabnet_demosukawarga` dan `uapi Mysql delete_user name=jabnet_demosuk`;
+(3) hapus rekaman DNS A `demo-sukawarga.jabnet.id` lewat API PowerDNS
+(kredensial di `~/.acme.sh/account.conf`, `changetype: DELETE`);
+(4) `rm -rf ~/repositories/demo-sukawarga`.
+
 ## 0. Sebelum mulai
 - Server sudah punya `.env` sendiri (MySQL) - paket ini **tidak menyertakan `.env`**, jadi konfigurasi produksi aman.
 - **Tidak ada variabel `.env` baru** yang perlu ditambah. Identitas aplikasi
