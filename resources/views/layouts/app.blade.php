@@ -26,7 +26,6 @@
     @include('partials.kepala-merek')
 </head>
 <body>
-    @include('partials.pita-demo')
     <div class="app-layout">
         <!-- Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -207,6 +206,8 @@
 
         <!-- Main Content -->
         <div class="main-content">
+            {{-- Di dalam kolom konten, bukan di atas body: sidebar fixed akan tertutup. --}}
+            @include('partials.pita-demo')
             <!-- Top Header -->
             <header class="top-header">
                 <div class="header-left">

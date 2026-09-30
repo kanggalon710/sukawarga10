@@ -88,8 +88,12 @@ class DashboardController extends Controller
         $iuranSampahAll = IuranSampah::where('tahun', $tahun)->get()->keyBy('keluarga_id');
 
         // Satu definisi "sudah lunas bulan ini", dipakai di semua perhitungan sampah.
-        $lunasBulanIni = function ($keluargaId) use ($iuranSampahAll, $bulanKey) {
-            $iur = $iuranSampahAll[$keluargaId] ?? null;
+        // iuran_*.keluarga_id berisi id NUMERIK keluargas.id (alur bayar
+        // TransaksiController, dan kolom yang dipakai scope tenant iuran); dulu
+        // dicocokkan dengan ID bisnis kk_... sehingga setiap pembayaran sah
+        // tetap terhitung menunggak dan tingkat penagihan selalu 0%.
+        $lunasBulanIni = function (Keluarga $k) use ($iuranSampahAll, $bulanKey) {
+            $iur = $iuranSampahAll[$k->id] ?? null;
             if (!$iur) return false;
             foreach ($iur->weeks ?? [] as $key => $val) {
                 if (str_starts_with($key, $bulanKey) && $val === 'lunas') return true;
@@ -100,7 +104,7 @@ class DashboardController extends Controller
         // Tunggakan: KK yang ikut sampah tapi belum bayar bulan ini (any week)
         $kkSampah = Keluarga::where('status', 'aktif')->where('ikutSampah', true)->get();
         $tunggakanSampahIds = $kkSampah
-            ->reject(fn($k) => $lunasBulanIni($k->keluarga_id))
+            ->reject(fn($k) => $lunasBulanIni($k))
             ->pluck('keluarga_id')->values()->toArray();
         $tunggakanSampah = count($tunggakanSampahIds);
 
@@ -108,7 +112,9 @@ class DashboardController extends Controller
         $kkBayarPadaringanIds = IuranPadaringan::where('tahun', $tahun)->get()->filter(function($i) use ($bulanKey) {
             return ($i->months[$bulanKey] ?? false);
         })->pluck('keluarga_id')->toArray();
-        $tunggakanPadaringanIds = $kkPadaringan->pluck('keluarga_id')->diff($kkBayarPadaringanIds)->toArray();
+        $tunggakanPadaringanIds = $kkPadaringan
+            ->reject(fn($k) => in_array($k->id, $kkBayarPadaringanIds))
+            ->pluck('keluarga_id')->values()->toArray();
         $tunggakanPadaringan = count($tunggakanPadaringanIds);
 
         // DISTINCT KK yang menunggak di minimal 1 jenis iuran
@@ -134,7 +140,7 @@ class DashboardController extends Controller
         foreach ($rts as $rt) {
             $kkRT = $kkSampahByRT->get($rt, collect());
             $totalKKRT = $kkRT->count();
-            $lunasRT = $kkRT->filter(fn($k) => $lunasBulanIni($k->keluarga_id))->count();
+            $lunasRT = $kkRT->filter(fn($k) => $lunasBulanIni($k))->count();
             $pembayaranRT[] = [
                 'rt' => $rt, 'total_kk' => $totalKKRT, 'lunas' => $lunasRT,
                 'persentase' => $totalKKRT > 0 ? round($lunasRT / $totalKKRT * 100) : 0,

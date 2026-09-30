@@ -177,15 +177,16 @@ class DemoSeeder extends Seeder
         $tarifPadaringan = 15000;
 
         foreach ($daftar as $i => $kk) {
-            // Sebagian KK sengaja menunggak supaya laporan tunggakan berisi.
-            $lunasSampai = max(0, $bulanBerjalan - 1 - ($i % 4));
+            // Sebagian besar lunas sampai bulan berjalan; sekitar seperempat
+            // menunggak 1-2 bulan supaya laporan tunggakan tetap berisi.
+            $lunasSampai = max(0, $bulanBerjalan - ($i % 4 === 3 ? 1 + ($i % 2) : 0));
 
             if ($kk->ikutSampah && $lunasSampai > 0) {
                 $weeks = [];
                 $tanggal = [];
                 for ($b = 0; $b < $lunasSampai; $b++) {
                     $bulan = self::BULAN[$b];
-                    $tgl = sprintf('%d-%02d-10', $tahun, $b + 1);
+                    $tgl = $this->tanggalLampau($tahun, $b + 1, 10);
                     $kunci = [];
                     for ($m = 1; $m <= 4; $m++) {
                         $weeks["{$bulan}-M{$m}"] = 'lunas';
@@ -202,7 +203,7 @@ class DemoSeeder extends Seeder
                 $tanggal = [];
                 for ($b = 0; $b < $lunasSampai; $b++) {
                     $bulan = self::BULAN[$b];
-                    $tgl = sprintf('%d-%02d-12', $tahun, $b + 1);
+                    $tgl = $this->tanggalLampau($tahun, $b + 1, 12);
                     $months[$bulan] = true;
                     $tanggal[$bulan] = $tgl;
                     $this->transaksi($tgl, 'masuk', 'padaringan', "Iuran Padaringan {$bulan} - {$kk->nama} (RT {$kk->rt})", $tarifPadaringan, $kk->id, [$bulan]);
@@ -215,6 +216,12 @@ class DemoSeeder extends Seeder
         foreach (['[Demo] Beli alat kebersihan' => 250000, '[Demo] Konsumsi rapat RW' => 180000, '[Demo] Perbaikan lampu jalan' => 320000] as $ket => $jumlah) {
             $this->transaksi(sprintf('%d-%02d-15', $tahun, max(1, $bulanBerjalan - 1)), 'keluar', 'umum', $ket, $jumlah, null, null);
         }
+    }
+
+    /** Tanggal di bulan itu, tidak pernah melewati hari ini (awal bulan berjalan). */
+    private function tanggalLampau(int $tahun, int $bulan, int $hari): string
+    {
+        return now()->setDate($tahun, $bulan, $hari)->min(now())->toDateString();
     }
 
     private function transaksi(string $tanggal, string $jenis, string $kas, string $keterangan, int $jumlah, ?int $refKeluarga, ?array $periode): void
@@ -300,11 +307,12 @@ class DemoSeeder extends Seeder
     {
         $akun = [
             // username => [nama, level, slug peran, organisasi assignment]
-            'demo.ketua' => ['[Demo] Ketua RW', 'ketua_rw', 'rw_admin', $this->rwId],
-            'demo.sekretaris' => ['[Demo] Sekretaris RW', 'sekretaris', 'rw_secretary', $this->rwId],
-            'demo.bendahara' => ['[Demo] Bendahara RW', 'bendahara', 'rw_finance', $this->rwId],
-            'demo.rt' => ['[Demo] Petugas RT 01', 'petugas_rt', 'rt_admin', Organization::where('slug', 'rt-01-demo')->value('id')],
-            'demo.warga' => [$daftar[0]->nama, 'warga', null, null],
+            // Nama akun berawalan "Demo" (bukan "[Demo]") supaya inisial avatar terbaca.
+            'demo.ketua' => ['Demo Ketua RW', 'ketua_rw', 'rw_admin', $this->rwId],
+            'demo.sekretaris' => ['Demo Sekretaris RW', 'sekretaris', 'rw_secretary', $this->rwId],
+            'demo.bendahara' => ['Demo Bendahara RW', 'bendahara', 'rw_finance', $this->rwId],
+            'demo.rt' => ['Demo Petugas RT 01', 'petugas_rt', 'rt_admin', Organization::where('slug', 'rt-01-demo')->value('id')],
+            'demo.warga' => ['Demo Warga', 'warga', null, null],
         ];
 
         foreach ($akun as $username => [$nama, $level, $slugPeran, $orgId]) {
