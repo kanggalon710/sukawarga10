@@ -33,7 +33,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Dokumen warga tinggal di disk ini dan HANYA disajikan lewat
+            // DokumenWargaController (berizin). Rute /storage bawaan Laravel
+            // untuk disk privat dimatikan agar tidak ada pintu kedua.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

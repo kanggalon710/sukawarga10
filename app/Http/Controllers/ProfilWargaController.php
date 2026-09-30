@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Keluarga;
+use App\Services\PenyimpanBerkas;
 
 class ProfilWargaController extends Controller
 {
@@ -83,17 +84,18 @@ class ProfilWargaController extends Controller
             }
         }
 
-        // Handle file uploads
-        foreach (['fotoKK', 'fotoRumah', 'dokumenPBB'] as $field) {
-            if ($request->hasFile($field)) {
-                if ($kk->$field && \Storage::disk('public')->exists($kk->$field)) {
-                    \Storage::disk('public')->delete($kk->$field);
-                }
-                $data[$field] = $request->file($field)->store('dokumen', 'public');
-            }
+        // Pipeline yang sama dengan form pengurus: berkas lama baru dihapus
+        // setelah baris berhasil diperbarui.
+        $penyimpan = app(PenyimpanBerkas::class);
+        $berkas = $penyimpan->simpanDariRequest($request, PenyimpanBerkas::KOLOM_KK);
+        $pathLama = $kk->only(array_keys($berkas));
+        try {
+            $kk->update(array_merge($data, $berkas));
+        } catch (\Throwable $e) {
+            $penyimpan->hapusBerkasKeluarga([$berkas]);
+            throw $e;
         }
-
-        $kk->update($data);
+        $penyimpan->hapusYangDiganti($pathLama);
         $kk->refresh();
 
         $newCompletion = $this->calcCompletion($kk);

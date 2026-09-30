@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Services\PenyimpanBerkas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -58,7 +59,9 @@ class PengaturanController extends Controller
             'mpwa_api_url'     => 'nullable|url|max:255',
             // Logo kop: tanpa SVG (bisa memuat skrip = stored XSS, dilayani
             // same-origin dari /storage), maksimal 1 MB.
-            'kop_logo_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp|max:1024',
+            // Isi berkas diperiksa ulang oleh PenyimpanBerkas (sniff + kode ulang);
+            // aturan di sini hanya saringan murah di depan.
+            'kop_logo_file'    => 'nullable|file|max:1024',
             'kop_logo_aksi'    => 'nullable|in:hapus,reset',
         ]);
 
@@ -67,8 +70,11 @@ class PengaturanController extends Controller
         // Tiga status: '' = logo bawaan, 'kop/...' = upload, 'tanpa-logo' = tanpa logo.
         $aksiLogo = null;
         if ($request->hasFile('kop_logo_file')) {
+            // Disimpan (dan diperiksa) DULU: logo lama hanya dihapus bila logo
+            // baru benar-benar sah, bukan sebelum validasinya.
+            $pathBaru = app(PenyimpanBerkas::class)->simpan($request->file('kop_logo_file'), 'logo_kop', 'kop_logo_file');
             $this->hapusFileLogoMilikTenant();
-            AppSetting::simpan('kop_logo', $request->file('kop_logo_file')->store('kop', 'public'));
+            AppSetting::simpan('kop_logo', $pathBaru);
             $aksiLogo = 'kop_logo (upload)';
         } elseif (($validated['kop_logo_aksi'] ?? null) === 'hapus') {
             $this->hapusFileLogoMilikTenant();
@@ -114,9 +120,8 @@ class PengaturanController extends Controller
         $lama = AppSetting::where('key', 'kop_logo')
             ->where('organization_id', $orgId)->value('value');
 
-        if ($lama && str_starts_with($lama, 'kop/') && \Storage::disk('public')->exists($lama)) {
-            \Storage::disk('public')->delete($lama);
-        }
+        // hapus() hanya bertindak di dalam folder kop/ (cek realpath).
+        app(PenyimpanBerkas::class)->hapus($lama, 'logo_kop');
     }
 
     /**
@@ -144,6 +149,10 @@ class PengaturanController extends Controller
             \App\Models\Keluarga::class, \App\Models\AuditLog::class,
         ];
 
+        // Path berkas dokumen dicatat sebelum barisnya hilang, lalu dihapus
+        // setelah commit (tersaring scope: hanya milik tenant ini).
+        $berkasKk = \App\Models\Keluarga::get(array_keys(PenyimpanBerkas::KOLOM_KK))->toArray();
+
         try {
             DB::transaction(function () use ($model) {
                 foreach ($model as $kelas) {
@@ -153,6 +162,8 @@ class PengaturanController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal reset data: ' . $e->getMessage());
         }
+
+        app(PenyimpanBerkas::class)->hapusBerkasKeluarga($berkasKk);
 
         // Ditulis SETELAH penghapusan, supaya jejaknya tidak ikut terhapus.
         // Lewat AuditLogService, bukan AuditLog::create langsung: skema audit_logs
@@ -181,6 +192,7 @@ class PengaturanController extends Controller
             // kecil untuk dibandingkan di memori (kolom seperlunya saja).
             $dupIds = [];
             $dupKeluargaIds = [];
+            $berkasDup = [];
             $terlihat = [];
             // KK berstatus 'pindah' adalah ARSIP yang sengaja dipertahankan supaya
             // riwayat iuran & transaksinya (yang menunjuk id numerik baris ini)
@@ -188,12 +200,13 @@ class PengaturanController extends Controller
             // kembali akan dianggap duplikat dari arsipnya sendiri, dan yang
             // dihapus justru baris yang aktif.
             $daftarKk = \App\Models\Keluarga::where('status', '!=', 'pindah')
-                ->orderBy('id')->get(['id', 'keluarga_id', 'nama', 'rt']);
+                ->orderBy('id')->get(array_merge(['id', 'keluarga_id', 'nama', 'rt'], array_keys(PenyimpanBerkas::KOLOM_KK)));
             foreach ($daftarKk as $kk) {
                 $kunci = $kk->nama . '|' . $kk->rt;
                 if (isset($terlihat[$kunci])) {
                     $dupIds[] = $kk->id;
                     $dupKeluargaIds[] = $kk->keluarga_id;
+                    $berkasDup[] = $kk;
                 } else {
                     $terlihat[$kunci] = true;
                 }
@@ -232,6 +245,7 @@ class PengaturanController extends Controller
             }
 
             DB::commit();
+            app(PenyimpanBerkas::class)->hapusBerkasKeluarga($berkasDup);
 
             $msg = "Pembersihan duplikat selesai: $countKeluarga KK duplikat dan $countDupAnggota Anggota duplikat dihapus.";
             return back()->with('success', $msg);

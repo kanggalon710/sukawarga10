@@ -424,23 +424,7 @@
                 <div style="font-size:12px; color:var(--text3); margin-top:2px;">Opsional · upload scan KK, foto rumah, dan dokumen PBB</div>
             </div>
         </div>
-        <div style="display:grid; gap:16px;">
-            <div class="f-group">
-                <label class="f-label">📋 Scan Kartu Keluarga</label>
-                <input type="file" name="fotoKK" accept="image/*,.pdf" class="f-input" style="font-size:12px;">
-                <span class="f-hint">Format: JPG, PNG, PDF. Maks 2MB</span>
-            </div>
-            <div class="f-group">
-                <label class="f-label">🏠 Foto Rumah</label>
-                <input type="file" name="fotoRumah" accept="image/*" class="f-input" style="font-size:12px;">
-                <span class="f-hint">Format: JPG, PNG. Maks 2MB</span>
-            </div>
-            <div class="f-group">
-                <label class="f-label">📄 Dokumen PBB</label>
-                <input type="file" name="dokumenPBB" accept="image/*,.pdf" class="f-input" style="font-size:12px;">
-                <span class="f-hint">Format: JPG, PNG, PDF. Maks 2MB</span>
-            </div>
-        </div>
+        @include('partials.unggah-dokumen-kk', ['kk' => null])
 
         <div style="display:flex; gap:10px; margin-top:24px;">
             <button type="button" class="btn btn-outline" style="flex:1;" onclick="goStep(4)"><i class="fas fa-arrow-left"></i> Kembali</button>

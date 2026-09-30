@@ -26,7 +26,11 @@ class ImportPendataanKeluarga extends Command
         if ($this->option('fresh')) {
             $this->warn('Menghapus data lama (keluarga, anggota, transaksi, iuran)...');
             Anggota::query()->delete();
+            // Berkas dokumen KK ikut dibersihkan; tanpa ini --fresh meninggalkan
+            // scan KK tanpa pemilik di disk.
+            $berkasKk = Keluarga::get(array_keys(\App\Services\PenyimpanBerkas::KOLOM_KK))->toArray();
             Keluarga::query()->delete();
+            app(\App\Services\PenyimpanBerkas::class)->hapusBerkasKeluarga($berkasKk);
             Transaksi::query()->delete();
             IuranSampah::query()->delete();
             IuranPadaringan::query()->delete();

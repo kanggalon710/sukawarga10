@@ -236,32 +236,7 @@
     <div class="card">
         <div class="card-header"><div class="card-title"><i class="fas fa-file-alt" style="color:#7e57c2;"></i> Dokumen & Foto</div></div>
         <div class="edit-fields">
-            <div>
-                <label class="f-label">📋 Scan Kartu Keluarga</label>
-                @if($kk->fotoKK)
-                <div style="margin-bottom:8px;"><img src="{{ asset('storage/' . $kk->fotoKK) }}" style="max-width:200px; border-radius:8px; border:1px solid var(--abu2);" alt="Scan KK"></div>
-                @endif
-                <input type="file" name="fotoKK" accept="image/*,.pdf" class="f-input" style="font-size:12px;">
-                <div style="font-size:10px; color:var(--text3); margin-top:4px;">Format: JPG, PNG, PDF. Maks 2MB</div>
-            </div>
-            <div>
-                <label class="f-label">🏠 Foto Rumah</label>
-                @if($kk->fotoRumah)
-                <div style="margin-bottom:8px;"><img src="{{ asset('storage/' . $kk->fotoRumah) }}" style="max-width:200px; border-radius:8px; border:1px solid var(--abu2);" alt="Foto Rumah"></div>
-                @endif
-                <input type="file" name="fotoRumah" accept="image/*" class="f-input" style="font-size:12px;">
-                <div style="font-size:10px; color:var(--text3); margin-top:4px;">Format: JPG, PNG. Maks 2MB</div>
-            </div>
-            <div>
-                <label class="f-label">📄 Dokumen PBB</label>
-                @if($kk->dokumenPBB)
-                <div style="margin-bottom:8px;">
-                    <a href="{{ asset('storage/' . $kk->dokumenPBB) }}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-external-link-alt"></i> Lihat Dokumen PBB</a>
-                </div>
-                @endif
-                <input type="file" name="dokumenPBB" accept="image/*,.pdf" class="f-input" style="font-size:12px;">
-                <div style="font-size:10px; color:var(--text3); margin-top:4px;">Format: JPG, PNG, PDF. Maks 2MB</div>
-            </div>
+            @include('partials.unggah-dokumen-kk', ['kk' => $kk, 'urlDokumen' => fn ($kolom) => route('warga.dokumen', [$kk->id, $kolom])])
         </div>
         <div class="edit-btn-row">
             <button type="button" class="btn btn-outline" style="flex:1;" onclick="goStep(4)"><i class="fas fa-arrow-left"></i></button>

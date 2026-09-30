@@ -41,6 +41,8 @@ Route::middleware('auth')->group(function () {
 
     // Warga Self-Service Profil
     Route::get('/profil', [ProfilWargaController::class, 'index'])->name('profil.index');
+    Route::get('/profil/dokumen/{jenis}', [App\Http\Controllers\DokumenWargaController::class, 'milikSendiri'])
+        ->whereIn('jenis', ['fotoKK', 'fotoRumah', 'dokumenPBB'])->name('profil.dokumen');
     Route::put('/profil', [ProfilWargaController::class, 'update'])->name('profil.update');
     Route::post('/profil/anggota', [ProfilWargaController::class, 'storeAnggota'])->name('profil.anggota.store');
     Route::delete('/profil/anggota/{anggotaId}', [ProfilWargaController::class, 'destroyAnggota'])->name('profil.anggota.destroy');
@@ -59,6 +61,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/warga', [KeluargaController::class, 'indexWeb'])->name('warga.index');
             Route::get('/warga/create', [KeluargaController::class, 'create'])->name('warga.create');
             Route::get('/warga/{id}/edit', [KeluargaController::class, 'edit'])->whereNumber('id')->name('warga.edit');
+            // Dokumen KK dari disk privat; dulu terbuka untuk siapa pun lewat /storage.
+            Route::get('/warga/{id}/dokumen/{jenis}', [App\Http\Controllers\DokumenWargaController::class, 'pengurus'])
+                ->whereNumber('id')->whereIn('jenis', ['fotoKK', 'fotoRumah', 'dokumenPBB'])->name('warga.dokumen');
         });
 
         Route::middleware('izin:warga.kelola')->group(function () {

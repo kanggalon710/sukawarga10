@@ -7,6 +7,7 @@ use App\Models\Keluarga;
 use App\Models\Anggota;
 use App\Services\AuditLogService;
 use App\Services\PemeriksaNikWarga;
+use App\Services\PenyimpanBerkas;
 use Illuminate\Support\Str;
 
 class KeluargaController extends Controller
@@ -115,14 +116,16 @@ class KeluargaController extends Controller
         ];
         $data['tags'] = array_filter($request->input('tags', []));
 
-        // Handle file uploads
-        foreach (['fotoKK', 'fotoRumah', 'dokumenPBB'] as $field) {
-            if ($request->hasFile($field)) {
-                $data[$field] = $request->file($field)->store('dokumen', 'public');
-            }
+        // Berkas lewat satu pipeline (sniff isi, batas ukuran, disk privat).
+        // Bila baris KK gagal dibuat, berkas yang telanjur tersimpan dihapus.
+        $penyimpan = app(PenyimpanBerkas::class);
+        $berkas = $penyimpan->simpanDariRequest($request, PenyimpanBerkas::KOLOM_KK);
+        try {
+            $kk = Keluarga::create(array_merge($data, $berkas));
+        } catch (\Throwable $e) {
+            $penyimpan->hapusBerkasKeluarga([$berkas]);
+            throw $e;
         }
-
-        $kk = Keluarga::create($data);
 
         // Handle inline anggota from create form
         $anggotaNames = $request->input('anggota_nama', []);
@@ -249,18 +252,19 @@ class KeluargaController extends Controller
         ];
         $data['tags'] = array_filter($request->input('tags', []));
 
-        // Handle file uploads
-        foreach (['fotoKK', 'fotoRumah', 'dokumenPBB'] as $field) {
-            if ($request->hasFile($field)) {
-                // Delete old file if exists
-                if ($kk->$field && \Storage::disk('public')->exists($kk->$field)) {
-                    \Storage::disk('public')->delete($kk->$field);
-                }
-                $data[$field] = $request->file($field)->store('dokumen', 'public');
-            }
+        // Berkas baru disimpan dulu; berkas lama baru dihapus SETELAH baris
+        // berhasil diperbarui, supaya kegagalan di tengah tidak menghilangkan
+        // dokumen yang masih dirujuk.
+        $penyimpan = app(PenyimpanBerkas::class);
+        $berkas = $penyimpan->simpanDariRequest($request, PenyimpanBerkas::KOLOM_KK);
+        $pathLama = $kk->only(array_keys($berkas));
+        try {
+            $kk->update(array_merge($data, $berkas));
+        } catch (\Throwable $e) {
+            $penyimpan->hapusBerkasKeluarga([$berkas]);
+            throw $e;
         }
-
-        $kk->update($data);
+        $penyimpan->hapusYangDiganti($pathLama);
         return redirect()->route('warga.index')->with('success', 'Data ' . $kk->nama . ' berhasil diperbarui.');
     }
 
@@ -281,6 +285,7 @@ class KeluargaController extends Controller
         // Cascade: delete anggota too
         Anggota::where('keluarga_id', $kk->keluarga_id)->delete();
         $kk->delete();
+        app(PenyimpanBerkas::class)->hapusBerkasKeluarga([$kk]);
         AuditLogService::log('delete', 'warga', 'Hapus warga: ' . $nama);
         return redirect()->route('warga.index')->with('success', "Data $nama berhasil dihapus.");
     }

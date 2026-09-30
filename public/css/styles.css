@@ -18,6 +18,8 @@
   --merah: #EF4444;
   /* Vivid red for alerts */
   --merah-pale: #FEF2F2;
+  /* Merah untuk TEKS pesan galat: --merah hanya 3,8:1 di atas putih, ini 6,5:1. */
+  --merah-teks: #B91C1C;
   --biru: #3B82F6;
   /* Modern crisp blue */
   --biru-pale: #EFF6FF;
@@ -5151,3 +5153,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .finbar__cell { border-left: 0; padding: 8px 0; border-top: 1px solid var(--border-color); }
   .finbar__cell:first-child { border-top: 0; padding-top: 0; }
 }
+
+/* ── Unggah dokumen KK (partials/unggah-dokumen-kk) ───────────────── */
+.unggah-dok { display: grid; gap: 16px; }
+.unggah-dok__field { display: flex; flex-direction: column; min-width: 0; }
+.unggah-dok__input { font-size: 16px; min-height: 44px; max-width: 100%; }
+.unggah-dok__hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.unggah-dok__galat { font-size: 13px; color: var(--merah-teks); margin-top: 4px; font-weight: 600; }
+.unggah-dok__pratinjau { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.unggah-dok__pratinjau img { width: 200px; max-width: 100%; height: 150px; object-fit: contain; border-radius: 8px; border: 1px solid var(--abu2); background: var(--abu); }
+.unggah-dok__pratinjau .btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }

@@ -169,6 +169,43 @@ class PengaturanKopTest extends TestCase
         $this->assertNull($this->nilaiKopLogoRw10());
     }
 
+    public function test_skrip_menyamar_png_ditolak_dan_logo_lama_utuh(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('kop/lama.png', 'isi-lama');
+        AppSetting::create([
+            'key' => 'kop_logo', 'value' => 'kop/lama.png',
+            'organization_id' => $this->idRw10(),
+        ]);
+
+        $this->actingAs($this->admin)->post('/pengaturan', [
+            '_active_tab' => 'info',
+            'kop_logo_file' => UploadedFile::fake()->createWithContent('logo.png', '<?php echo "x"; ?>'),
+        ])->assertSessionHasErrors('kop_logo_file');
+
+        // Logo lama tidak boleh hilang hanya karena pengganti yang ditolak.
+        $this->assertSame('kop/lama.png', $this->nilaiKopLogoRw10());
+        Storage::disk('public')->assertExists('kop/lama.png');
+    }
+
+    public function test_logo_dikode_ulang_muatan_tempelan_terbuang(): void
+    {
+        Storage::fake('public');
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        );
+
+        $this->actingAs($this->admin)->post('/pengaturan', [
+            '_active_tab' => 'info',
+            // Polyglot: PNG sah dengan skrip ditempel di belakang IEND.
+            'kop_logo_file' => UploadedFile::fake()->createWithContent('logo-rw.png', $png.'<script>alert(1)</script>'),
+        ])->assertSessionHasNoErrors();
+
+        $path = $this->nilaiKopLogoRw10();
+        $this->assertMatchesRegularExpression('#^kop/[0-9a-f-]{36}\.png$#', $path);
+        $this->assertStringNotContainsString('<script>', Storage::disk('public')->get($path));
+    }
+
     public function test_aksi_hapus_menyimpan_sentinel_dan_menghapus_file_lama(): void
     {
         Storage::fake('public');
