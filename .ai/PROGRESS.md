@@ -2,6 +2,43 @@
 
 Catatan pekerjaan, terbaru di atas. Jelaskan KENAPA, bukan APA (git sudah mencatat apa).
 
+## 2026-09-30 - Rencana pengerasan dan pembuatan aplikasi bermerek baru
+
+**Agen:** codex-gpt-5 (Codex) | **Status:** dokumentasi selesai, eksekusi belum dimulai
+**Kenapa:** Pemilik ingin memperbaiki aplikasi asal lebih dahulu, mendorong hasilnya
+ke proyek yang ada, lalu membuat aplikasi baru dengan domain, identitas, warna,
+rahasia, dan data yang terpisah tanpa membawa utang atau riwayat data lama.
+**Perubahan:** Dokumen eksekusi lintas agen dibuat dengan gerbang keputusan tenant
+versus aplikasi terpisah, enam fase pengerasan/rilis, prosedur snapshot repo privat
+berriwayat baru, acceptance check, serta delapan prompt siap pakai untuk agen pilihan.
+Handoff, state, dan backlog menautkan dokumen itu sebagai sumber kerja berikutnya.
+**File:** `.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md`, `.ai/HANDOFF.md`,
+`.ai/STATE.md`, `.ai/TODO.md`, `.ai/PROGRESS.md`.
+**Verifikasi:** `git diff --check`; seluruh rujukan berkas lokal dalam dokumen
+diperiksa; tidak ada kode aplikasi, dependency, data, secret, atau konfigurasi
+produksi yang diubah.
+**Catatan:** Jalur yang direkomendasikan adalah repo privat baru dari snapshot tag
+terverifikasi, bukan fork riwayat repo publik. Pembuatan repo, push, deploy, rotasi
+secret, dan rewrite history tetap memerlukan persetujuan manusia.
+
+## 2026-09-30 - Audit keamanan, optimasi, kompatibilitas, dan reuse
+
+**Agen:** codex-gpt-5 (Codex) | **Status:** audit selesai, perbaikan belum diterapkan
+**Kenapa:** Pemilik meminta gambaran faktual tentang koneksi GitHub, keadaan proyek,
+risiko utama, dan penambahan yang paling bernilai sebelum pengembangan berikutnya.
+**Perubahan:** Tidak ada kode aplikasi yang diubah. Handoff diperbarui dan backlog audit
+ditambahkan, dengan prioritas upload warga, pemulihan PIN, rahasia MPWA lintas tenant,
+dependensi rentan, CI, performa WA/laporan, aksesibilitas, serta dokumentasi yang usang.
+**File:** `.ai/STATE.md`, `.ai/HANDOFF.md`, `.ai/PROGRESS.md`, `.ai/TODO.md`.
+**Verifikasi:** Remote GitHub dan sinkronisasi branch diperiksa; produksi dan jalur
+sensitif diperiksa lewat HTTPS; 174 berkas PHP lolos sintaks; migrasi+seeder SQLite
+berhasil; 406 tes/1585 assertion tanpa kegagalan dengan APP_KEY sementara tetapi 348
+peringatan; Pint menemukan 34 berkas; Composer menemukan dua advisory low; sampel UI
+dibuka di browser nyata pada 360/768/1280 tanpa overflow/kesalahan konsol, tetapi banyak
+label, heading, modal, dan target sentuh tidak memenuhi standar.
+**Catatan:** `composer test` dari clone tanpa `.env` masih gagal karena APP_KEY kosong.
+Berkas tak terlacak `stai-garut-r-7095b88a.webp` tidak disentuh.
+
 ## 2026-08-20 - Rilis 2: NIK ganda lintas desa ditolak, tanpa membocorkan alamat orang
 
 **Agen:** claude | **Status:** selesai

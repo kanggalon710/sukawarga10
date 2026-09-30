@@ -1,10 +1,13 @@
 # HANDOFF - Orientasi untuk agent berikutnya
 
-Halaman ini untuk dibaca **pertama**, sebelum menyentuh kode. Isinya keadaan
-project per **2026-08-15**, bukan riwayat lengkap.
+Halaman ini untuk dibaca **pertama**, sebelum menyentuh kode. Orientasi terbaru
+ada di `.ai/STATE.md` (audit 2026-09-30); rincian historis di bawah masih berguna
+tetapi sebagian angka dan rujukannya berasal dari **2026-08-15**.
 
-Urutan baca: file ini → `AGENTS.md` (aturan) → `.ai/TODO.md` (pekerjaan) →
-`.ai/DECISIONS.md` (kenapa sesuatu dibentuk begitu). `.ai/PROGRESS.md` adalah
+Urutan baca: file ini → `AGENTS.md` (aturan) → `.ai/STATE.md` (keadaan terbaru)
+→ `.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md` (rencana pengerasan dan aplikasi
+baru) → `.ai/TODO.md` (pekerjaan) → `.ai/DECISIONS.md` (kenapa sesuatu dibentuk
+begitu). `.ai/PROGRESS.md` adalah
 riwayat kronologis; baca kalau butuh konteks sejarah, bukan untuk orientasi.
 
 ---
@@ -13,14 +16,14 @@ riwayat kronologis; baca kalau butuh konteks sejarah, bukan untuk orientasi.
 
 | | |
 |---|---|
-| Commit | terakhir dicatat `36c0e57`; kalau `git log -1` sudah lain, halaman ini tertinggal |
-| Branch | `main` dan `dev` sama-sama di commit itu, sinkron dengan `origin` |
+| Commit | `f1f3084` pada audit 2026-09-30 |
+| Branch | `main` dan `dev` sama; `production` tertinggal satu commit |
 | Remote | `git@github.com:kanggalon710/sukawarga10.git` (SSH, bukan HTTPS) |
-| Tes | 73 lulus, 137 assertion (`composer test`) |
-| Working tree | bersih |
+| Tes | 406 tanpa kegagalan, 1585 assertion, tetapi 348 peringatan tanpa `.env`/APP_KEY sementara |
+| Working tree | satu gambar milik pengguna tidak terlacak; kode aplikasi bersih |
 
-Produksi berjalan di `https://paru.jabnet.id` dengan MySQL (rencana pindah ke
-`desa.jabnet.id`, langkahnya di `DEPLOY.md` bagian "Pindah domain"). Ini sistem
+Produksi terverifikasi berjalan di `https://desa.jabnet.id` dengan MySQL;
+`paru.jabnet.id` tidak lagi memiliki DNS pada audit 2026-09-30. Ini sistem
 yang dipakai sungguhan: ada uang iuran warga dan data pribadi (NIK, No. KK,
 alamat, nomor HP) di dalamnya. Perlakukan setiap perubahan sesuai bobot itu.
 

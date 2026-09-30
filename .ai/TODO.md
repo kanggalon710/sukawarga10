@@ -1,7 +1,68 @@
 # TODO
 
-Diperbarui 2026-08-15 setelah penyelarasan project dengan standar pengembangan.
+Diperbarui 2026-09-30 setelah audit menyeluruh Codex.
 Riwayat lengkap ada di `.ai/PROGRESS.md`.
+
+---
+
+## Temuan audit 2026-09-30
+
+Rencana fase, acceptance check, dan prompt untuk agen pelaksana ada di
+`.ai/AUDIT-REMEDIATION-AND-NEW-APP-PLAN.md`. Jangan membuat aplikasi baru dari
+commit saat ini; selesaikan pengerasan, rilis, lalu ambil snapshot tag yang sudah
+diverifikasi dengan riwayat git baru dan dataset kosong.
+
+### P0 - keamanan dan data
+
+- [ ] Validasi seluruh unggahan `fotoKK`, `fotoRumah`, dan `dokumenPBB` dengan
+      MIME hasil sniff server, ukuran, ekstensi aman, dan satu pipeline bersama.
+      Simpan di lokasi yang tidak dapat mengeksekusi skrip; hapus berkas lama saat
+      diganti dan saat KK dihapus.
+- [ ] Amankan registrasi dan lupa PIN publik: throttle per IP dan identitas,
+      respons anti-enumerasi, jangan ubah PIN sebelum WA berhasil, jangan log nomor
+      penuh/username, dan pertimbangkan token sekali pakai alih-alih mengirim PIN.
+- [ ] Pisahkan rahasia MPWA dari `AppSetting` yang diwariskan/dapat dibaca tenant.
+      Masking UI saja tidak cukup. Batasi host URL gateway dengan allow-list agar
+      tidak menjadi SSRF atau mengirim API key ke host yang dipilih tenant.
+- [ ] Rotasi API key MPWA serta PIN akun produksi/default. Seeder harus membaca
+      kredensial awal dari environment, bukan menyimpan PIN terkenal di repo publik.
+- [ ] Putuskan pembersihan riwayat git publik yang pernah memuat data warga. Setelah
+      itu rotasi semua rahasia yang mungkin pernah terekspos dan koordinasikan
+      force-push dengan semua clone/deploy.
+- [ ] Perbarui `laravel/framework` minimal ke 12.69.0 dan `league/flysystem` ke
+      versi yang menutup GHSA-jh5r-qr3c-85q8 dan GHSA-cxf4-7mrp-vvpr, lalu tes ulang.
+
+### P1 - keandalan, performa, dan operasi
+
+- [ ] Buat GitHub Actions untuk Composer validate/audit, test dengan APP_KEY dan
+      environment test yang benar, Pint, serta cache config/route/view. Lindungi
+      branch deploy dengan required checks.
+- [ ] Hilangkan 348 peringatan tes tanpa `.env` dan pastikan `composer test` hijau
+      dari clone bersih tanpa langkah rahasia yang tidak terdokumentasi.
+- [ ] Agregasikan statistik laporan dan login tanpa query di dalam loop.
+- [ ] Pindahkan broadcast/notifikasi WA ke queued jobs dengan retry, idempotensi,
+      status per penerima, dan mekanisme worker yang cocok untuk cPanel.
+- [ ] Tambahkan pagination pada semua daftar yang dapat tumbuh.
+- [ ] Keraskan pembaru aplikasi: validasi branch/working tree, catat commit rollback,
+      rate-limit aksi, dan jangan tampilkan output shell mentah ke browser.
+- [ ] Selesaikan race nomor surat dan NIK dengan constraint/locking setelah data lama
+      dibersihkan.
+
+### P2 - aksesibilitas, reuse, dan dokumentasi
+
+- [ ] Tambahkan label nyata untuk input, nama aksesibel untuk tombol ikon, heading
+      `h1` per halaman, focus trap/Escape pada modal, input 16px, dan target sentuh
+      44px. Audit sampel menemukan puluhan input tanpa label dan target kecil.
+- [ ] Pecah modal, field form, tombol ikon, status, dan kartu berulang menjadi Blade
+      component/partial; kurangi inline style dan 198 inline event handler agar CSP
+      dapat diterapkan.
+- [ ] Rapikan 34 berkas yang gagal `vendor/bin/pint --test` dan tambahkan Larastan.
+- [ ] Perbarui README/DEPLOY agar memakai `desa.jabnet.id`, matriks kapabilitas
+      `izin:`, jumlah tes terkini, dan keadaan multi-tenant yang sudah diterapkan.
+- [ ] Tentukan kebijakan SEO. Jika portal privat, beri `noindex` eksplisit pada area
+      privat. Jika profil desa publik harus ditemukan, buat robots/sitemap dari rute,
+      canonical, metadata unik, dan structured data yang sesuai tampilan.
+- [ ] Tambahkan Content-Security-Policy bertahap setelah inline script/style dikurangi.
 
 ---
 
