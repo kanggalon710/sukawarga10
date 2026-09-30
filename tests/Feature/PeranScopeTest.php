@@ -179,9 +179,11 @@ class PeranScopeTest extends TestCase
 
     public function test_seeder_memasang_super_admin_untuk_akun_bawaan(): void
     {
+        // Sejak P0 2026-09-30 identitas admin pertama dari env, bukan literal.
+        config(['app.admin_awal' => ['username' => 'operatoruji', 'pin' => '482917']]);
         $this->seed();
 
-        $admin = User::where('username', 'admin')->first();
+        $admin = User::where('username', 'operatoruji')->first();
         $this->assertNotNull($admin);
         $this->assertSame('superadmin', $admin->levelEfektifUntuk($this->rw()));
 

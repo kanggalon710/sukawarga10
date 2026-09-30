@@ -86,10 +86,14 @@ php artisan import:anggota  "database/seed-data/anggota.csv"  --fresh
 - `import:anggota` - 280 anggota di-link ke KK induk via No.KK; baris "Kepala Keluarga" melengkapi tgl lahir + jenis kelamin KK (tidak dobel).
 
 ## 4. Akun login
-Importer tidak membuat akun. Pastikan akun admin produksi ada. Bila perlu seed admin default:
+Importer tidak membuat akun. Pastikan akun admin produksi ada. Instalasi BARU
+(belum ada admin platform) membuat admin pertama dari environment:
 ```bash
-php artisan db:seed --class=DatabaseSeeder --force   # admin / 463696 (GANTI PIN setelah login!)
+ADMIN_USERNAME=<username> php artisan db:seed --class=DatabaseSeeder --force
+# ADMIN_PIN kosong -> PIN acak dicetak SEKALI di layar; catat, lalu ganti setelah login.
 ```
+Tidak ada PIN bawaan di repo. Bila admin platform sudah ada, seeder tidak
+mengubah akun apa pun (aman dijalankan ulang di produksi).
 
 ## 5. Optimasi + bersihkan cache
 ```bash

@@ -21,14 +21,15 @@ lokal SQLite. Autentikasi memakai **username + PIN**.
 ## Menjalankan secara lokal
 
 ```bash
-composer setup        # install, buat .env, generate key, migrate, seed
-php artisan serve     # http://localhost:8000
+ADMIN_USERNAME=namaanda composer setup   # install, buat .env, generate key, migrate, seed
+php artisan serve                        # http://localhost:8000
 ```
 
-`composer setup` membuat dua akun bawaan: `admin` dan `jabnet`. PIN keduanya ada
-di `database/seeders/DatabaseSeeder.php`. **Ganti PIN setelah login pertama.**
-Akun hanya dibuat bila belum ada, jadi menjalankan ulang seeder tidak akan
-menimpa PIN yang sudah diganti.
+Seeder membuat SATU admin platform dari `ADMIN_USERNAME` (wajib) dan
+`ADMIN_PIN` (opsional, 6 angka, tidak boleh berulang/berurutan). Bila
+`ADMIN_PIN` kosong, PIN acak dicetak sekali ke konsol dan tidak disimpan di
+mana pun. Tidak ada PIN bawaan di repo. Seeder tidak menyentuh akun apa pun
+begitu admin platform sudah ada, jadi menjalankannya ulang tidak mereset PIN.
 
 ## Perintah
 

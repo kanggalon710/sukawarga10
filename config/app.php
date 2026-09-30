@@ -71,6 +71,17 @@ return [
     'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
+    | Admin platform pertama yang dibuat DatabaseSeeder (hanya bila belum ada
+    | super admin platform sama sekali). Tidak ada nilai bawaan: username wajib
+    | diisi; PIN kosong = PIN acak dicetak sekali ke konsol. Hapus ADMIN_PIN
+    | dari .env setelah seeding pertama.
+    */
+    'admin_awal' => [
+        'username' => env('ADMIN_USERNAME'),
+        'pin' => env('ADMIN_PIN'),
+    ],
+
+    /*
     |--------------------------------------------------------------------------
     | Paksa HTTPS
     |--------------------------------------------------------------------------
