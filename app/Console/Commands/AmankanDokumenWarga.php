@@ -83,7 +83,7 @@ class AmankanDokumenWarga extends Command
         }
 
         $mode = $jalankan ? '' : ' (laporan saja, tambahkan --jalankan)';
-        $this->info("Berkas dirujuk KK: ".count($dirujuk).$mode);
+        $this->info('Berkas dirujuk KK: '.count($dirujuk).$mode);
         $this->info(($jalankan ? 'Dipindah' : 'Akan dipindah')." {$asal} -> {$tujuan}: {$dipindah}");
         if ($gagal > 0) {
             $this->error("Gagal dipindah (salinan asal tetap ada): {$gagal}");

@@ -75,10 +75,11 @@ class MpwaService
         $sah = ($bagian['scheme'] ?? '') === 'https'
             && $host !== ''
             && in_array($host, $diizinkan, true)
-            && ! isset($bagian['user'], $bagian['pass'])
-            && ! isset($bagian['query'], $bagian['fragment']);
+            // Satu per satu: isset(a, b) baru true bila KEDUANYA ada.
+            && !isset($bagian['user']) && !isset($bagian['pass'])
+            && !isset($bagian['query']) && !isset($bagian['fragment']);
 
-        if (! $sah) {
+        if (!$sah) {
             Log::error('MPWA: URL gateway ditolak (bukan https atau host di luar allow-list)', ['host' => $host]);
 
             return null;
@@ -159,7 +160,7 @@ class MpwaService
     private static function kirimKeGateway(string $endpoint, array $payload, int $timeout): array
     {
         $baseUrl = self::baseUrl();
-        if ($baseUrl === null || ! in_array($endpoint, self::ENDPOINT, true)) {
+        if ($baseUrl === null || !in_array($endpoint, self::ENDPOINT, true)) {
             return ['ok' => false, 'alasan' => 'Gateway WhatsApp tidak diizinkan. Hubungi admin platform.'];
         }
 
@@ -171,7 +172,7 @@ class MpwaService
                 && is_array($body)
                 && (($body['status'] ?? false) === true || ($body['status'] ?? null) === 'true' || isset($body['id']));
 
-            if (! $ok) {
+            if (!$ok) {
                 Log::warning('MPWA send failed', [
                     'to' => $tujuan,
                     'http' => $resp->status(),

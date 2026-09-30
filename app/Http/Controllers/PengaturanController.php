@@ -102,7 +102,7 @@ class PengaturanController extends Controller
         }
 
         $aksiKunci = null;
-        if (! empty($validated['mpwa_api_key'])) {
+        if (!empty($validated['mpwa_api_key'])) {
             AppSetting::simpanRahasia('mpwa_api_key', $validated['mpwa_api_key']);
             $aksiKunci = 'mpwa_api_key (diganti)';
         } elseif ($request->boolean('mpwa_api_key_hapus')) {

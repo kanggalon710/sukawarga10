@@ -255,6 +255,15 @@ class MpwaRahasiaTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_url_gateway_dengan_kredensial_atau_query_ditolak(): void
+    {
+        foreach (['https://u@mpwa.jabnet.id', 'https://u:p@mpwa.jabnet.id', 'https://mpwa.jabnet.id?x=1', 'https://mpwa.jabnet.id#x'] as $url) {
+            config(['services.mpwa.url' => $url]);
+            $this->assertNull(MpwaService::baseUrl(), $url);
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_redirect_dari_gateway_tidak_diikuti(): void
     {
         $this->gateway = fn (PermintaanHttp $r) => str_contains($r->url(), 'penyerang')
