@@ -28,6 +28,7 @@
 <form action="{{ route('warga.update', $kk->id) }}" method="POST" id="wargaForm" enctype="multipart/form-data">
 @csrf @method('PUT')
 <div class="edit-form-wrap">
+@include('partials.ringkasan-galat')
 
 <!-- STEP 1 -->
 <div id="step1" class="step-panel">
@@ -624,5 +625,9 @@ document.getElementById('agEditModal').addEventListener('click', function (e) {
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeEditAnggota();
 });
+@if($errors->hasAny(array_keys(\App\Services\PenyimpanBerkas::KOLOM_KK)))
+// Berkas ditolak: buka langkah Dokumen supaya pesan di field-nya terlihat.
+goStep(5);
+@endif
 </script>
 @endsection

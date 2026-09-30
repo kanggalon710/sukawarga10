@@ -98,7 +98,7 @@
             <input type="password" id="mpwaApiKeyInput" name="mpwa_api_key" value=""
                    autocomplete="off" spellcheck="false" aria-describedby="mpwaApiKeyPetunjuk"
                    @error('mpwa_api_key') aria-invalid="true" @enderror
-                   placeholder="{{ $statusKunciMpwa === 'kosong' ? 'Masukkan API Key WhatsApp Anda' : 'Kosongkan untuk mempertahankan API Key' }}"
+                   placeholder="{{ $statusKunciMpwa === 'kosong' ? 'Masukkan API Key WhatsApp Anda' : 'Isi hanya untuk mengganti' }}"
                    style="width:100%; min-height:44px; padding:10px 14px; border:1.5px solid var(--abu2); border-radius:var(--radius-sm); font-size:16px; font-family:monospace; background:var(--abu);">
             <span id="mpwaApiKeyPetunjuk" style="font-size:12px; color:var(--text3); margin-top:4px; display:block;">
                 @if($statusKunciMpwa === 'sendiri')

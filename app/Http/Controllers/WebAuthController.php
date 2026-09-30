@@ -311,8 +311,10 @@ class WebAuthController extends Controller
             return true;
         });
 
+        // 200 + success:false, bukan 4xx: salah ketik kode adalah kejadian
+        // normal, dan status galat membuat konsol browser mencatat error.
         if (! $berhasil) {
-            return response()->json(['success' => false, 'message' => self::PESAN_KODE_SALAH], 422);
+            return response()->json(['success' => false, 'message' => self::PESAN_KODE_SALAH]);
         }
 
         AuditLogService::log('pemulihan_pin_berhasil', 'auth', 'PIN akun #'.$user->id.' diganti lewat kode pemulihan WA');

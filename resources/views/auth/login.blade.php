@@ -186,6 +186,8 @@
            form lain di halaman ini menyusul di fase aksesibilitas. */
         #forgotModal .form-control { font-size: 16px; min-height: 44px; }
         #forgotModal .modal-close { width: 44px; height: 44px; top: 8px; right: 8px; }
+        /* Judul tidak boleh tertutup tombol tutup 44px di layar 360px. */
+        #forgotModal .modal-header { padding: 0 40px; }
         #forgotModal .btn-action { min-height: 48px; }
         #forgotModal .form-control[aria-invalid="true"] { border-color: #b91c1c; }
         #forgotAlert { font-size: 13px; line-height: 1.45; }

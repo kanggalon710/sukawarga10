@@ -5163,3 +5163,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .unggah-dok__pratinjau { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
 .unggah-dok__pratinjau img { width: 200px; max-width: 100%; height: 150px; object-fit: contain; border-radius: 8px; border: 1px solid var(--abu2); background: var(--abu); }
 .unggah-dok__pratinjau .btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Ringkasan galat form bertahap (partials/ringkasan-galat) */
+.ringkasan-galat { background: var(--merah-pale); color: var(--merah-teks); border: 1px solid var(--merah); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px; font-size: 14px; overflow-wrap: anywhere; }
+.ringkasan-galat ul { margin: 6px 0 0 18px; padding: 0; }
+.ringkasan-galat p { margin: 6px 0 0; font-size: 13px; }

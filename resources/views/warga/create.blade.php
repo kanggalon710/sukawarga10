@@ -88,6 +88,7 @@
 <form action="{{ route('warga.store') }}" method="POST" id="wargaForm" novalidate enctype="multipart/form-data">
 @csrf
 <div style="max-width:640px;">
+@include('partials.ringkasan-galat', ['catatan' => 'Isian formulir perlu diisi ulang; berkas yang ditolak tidak disimpan.'])
 
 {{-- ══════════════════════════════ STEP 1: IDENTITAS ══════════════════════════════ --}}
 <div id="step1" class="step-panel">

@@ -31,6 +31,7 @@
                 </div>
             @endif
             <input type="file" id="berkas-{{ $kolom }}" name="{{ $kolom }}" accept="{{ $accept }}"
+                   data-maks-gambar-mb="8" data-maks-pdf-mb="5"
                    class="f-input unggah-dok__input"
                    aria-describedby="berkas-{{ $kolom }}-petunjuk @error($kolom) berkas-{{ $kolom }}-galat @enderror"
                    @error($kolom) aria-invalid="true" @enderror>
@@ -40,6 +41,40 @@
             @error($kolom)
                 <div class="unggah-dok__galat" id="berkas-{{ $kolom }}-galat" role="alert">{{ $message }}</div>
             @enderror
+            <div class="unggah-dok__galat" id="berkas-{{ $kolom }}-klien" role="alert" hidden></div>
         </div>
     @endforeach
 </div>
+
+@once
+<script>
+// Pemeriksaan awal di browser supaya berkas yang jelas ditolak tidak
+// menghapus seluruh isian form saat dikirim. Server (PenyimpanBerkas) tetap
+// penentu; ini hanya membaca jenis & ukuran yang dilaporkan browser.
+document.querySelectorAll('.unggah-dok__input').forEach(function (input) {
+    input.addEventListener('change', function () {
+        var galat = document.getElementById(input.id + '-klien');
+        var berkas = input.files && input.files[0];
+        var pesan = '';
+        if (berkas) {
+            var diizinkan = input.accept.split(',');
+            var pdf = berkas.type === 'application/pdf';
+            var maksMb = Number(pdf ? input.dataset.maksPdfMb : input.dataset.maksGambarMb);
+            if (berkas.type && diizinkan.indexOf(berkas.type) === -1) {
+                pesan = 'Jenis berkas tidak diterima. Pilih berkas sesuai petunjuk di atas.';
+            } else if (berkas.size > maksMb * 1048576) {
+                pesan = 'Ukuran ' + (pdf ? 'PDF' : 'gambar') + ' maksimal ' + maksMb + ' MB.';
+            }
+        }
+        galat.textContent = pesan;
+        galat.hidden = pesan === '';
+        if (pesan) {
+            input.value = '';
+            input.setAttribute('aria-invalid', 'true');
+        } else {
+            input.removeAttribute('aria-invalid');
+        }
+    });
+});
+</script>
+@endonce
